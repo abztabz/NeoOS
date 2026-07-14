@@ -1,0 +1,16 @@
+{
+  "package": "NeoOS Governance Repository Pack",
+  "version": "1.0.0",
+  "prepared_date": "2026-07-14",
+  "source_learning": [
+    "NLR-001 v1.1",
+    "LR-0001 Master SEO",
+    "NeoOS current working-model decisions and amendments"
+  ],
+  "status": "prepared-for-repository-upload",
+  "claims": {
+    "persisted": false,
+    "runtime_enforced": false,
+    "independently_verified": false
+  }
+}

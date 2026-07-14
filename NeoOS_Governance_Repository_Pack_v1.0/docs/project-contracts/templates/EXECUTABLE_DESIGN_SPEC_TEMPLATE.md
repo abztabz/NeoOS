@@ -1,0 +1,23 @@
+# Executable Design Specification Template
+
+- Project and contract ID
+- Approved artifact ID, filename, version, authority, and date
+- Execution mode
+- Business objective
+- Target users and devices
+- Frozen copy and claim status
+- Exact information architecture
+- Component inventory
+- Responsive matrix and required viewports
+- Visual tokens
+- Media and identity-preservation contract
+- Interaction and state contract
+- Data contract
+- Zero-tolerance requirements
+- Low-tolerance requirements
+- Permitted interpretation
+- Prohibited additions
+- Functional, structural, copy, accessibility, performance, and visual tests
+- Required evidence package
+- Builder and independent verifier
+- CMO and Atlas approval record
