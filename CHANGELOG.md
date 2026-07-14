@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.0 - 2026-07-14
+
+Added the contributor, security, ownership, GDR, versioning, documentation-quality, release, and repository-presentation foundation. Branch protection and runtime governance enforcement remain pending GitHub configuration and independent verification.
+
+
 ## 1.0.0 - 2026-07-14
 
 Prepared first complete repository-ready NeoOS governance corpus.

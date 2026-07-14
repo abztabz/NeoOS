@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NeoOS Governance Pack Metadata",
+  "type": "object",
+  "required": [
+    "package",
+    "version",
+    "prepared_date",
+    "status",
+    "claims"
+  ],
+  "properties": {
+    "package": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+([\\-+][0-9A-Za-z.-]+)?$"
+    },
+    "prepared_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string"
+    },
+    "claims": {
+      "type": "object",
+      "required": [
+        "persisted",
+        "runtime_enforced",
+        "independently_verified"
+      ],
+      "properties": {
+        "persisted": {
+          "type": "boolean"
+        },
+        "runtime_enforced": {
+          "type": "boolean"
+        },
+        "independently_verified": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

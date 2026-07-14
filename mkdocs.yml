@@ -1,0 +1,14 @@
+site_name: NeoOS Governance
+site_description: Governance-first foundations for an AI-native organizational operating system
+repo_name: abztabz/neoos
+repo_url: https://github.com/abztabz/neoos
+theme:
+  name: material
+nav:
+  - Home: README.md
+  - Constitution: docs/constitution/NEOOS_CONSTITUTION.md
+  - Core Principles: docs/core-principles/CORE_PRINCIPLES.md
+  - Governance Manual: docs/governance/GOVERNANCE_MANUAL.md
+  - Governance Decisions: docs/governance/records/README.md
+  - Contributing: CONTRIBUTING.md
+  - Security: SECURITY.md
