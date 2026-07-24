@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0",
+  "asOf": "2026-07-25T09:00:00Z",
+  "mode": "live",
+  "deployment": {
+    "score": 72,
+    "recommendation": "Increase Deployment",
+    "posture": "Firm Pressure",
+    "reasons": [
+      "Cash score fell to 48 — cash no longer outcompetes the opportunity set.",
+      "Market score 74 — broad value emerged after the drawdown.",
+      "Evidence integrity 93 — all sources current."
+    ]
+  },
+  "scores": {
+    "cash": 48,
+    "market": 74,
+    "opportunity": 71,
+    "confidence": 82,
+    "evidenceIntegrity": 93,
+    "reserveHealth": 85
+  },
+  "radar": [
+    {
+      "id": "radar-value",
+      "severity": "positive",
+      "title": "Global value ETF crossed Buy threshold",
+      "detail": "Price fell below the Buy-below level with evidence intact."
+    }
+  ],
+  "assets": [
+    {
+      "id": "value-etf",
+      "ticker": "VLUE",
+      "name": "Developed-market value ETF",
+      "score": 86,
+      "rating": "Buy",
+      "confidence": 85,
+      "intrinsicValueLow": 48,
+      "intrinsicValueHigh": 56,
+      "buyBelow": 50,
+      "strongBuyBelow": 42
+    },
+    {
+      "id": "gold",
+      "ticker": "XAU",
+      "name": "Gold",
+      "score": 73,
+      "rating": "Accumulate",
+      "confidence": 88,
+      "intrinsicValueLow": 2050,
+      "intrinsicValueHigh": 2300,
+      "buyBelow": null,
+      "strongBuyBelow": null
+    }
+  ]
+}

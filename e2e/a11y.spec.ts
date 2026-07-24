@@ -1,0 +1,76 @@
+import { expect, test } from "@playwright/test";
+
+test("primary touch targets are at least 44px tall", async ({ page }) => {
+  await page.goto("/");
+  const targets = [
+    page.getByRole("button", { name: /why this score/i }),
+    page.getByRole("button", { name: "Data" }),
+  ];
+  for (const target of targets) {
+    const box = await target.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("mobile nav links are at least 44px touch targets", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "bottom navigation is a mobile-only surface");
+  await page.goto("/");
+  const links = page.locator("nav.fixed a");
+  const count = await links.count();
+  expect(count).toBe(6);
+  for (let i = 0; i < count; i++) {
+    const box = await links.nth(i).boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("keyboard focus is visible on interactive elements", async ({ page }) => {
+  await page.goto("/");
+  const trigger = page.getByRole("button", { name: /why this score/i });
+  await trigger.focus();
+  const outline = await trigger.evaluate((el) => {
+    const style = window.getComputedStyle(el);
+    return { width: style.outlineWidth, style: style.outlineStyle };
+  });
+  expect(outline.style).not.toBe("none");
+  expect(parseFloat(outline.width)).toBeGreaterThan(0);
+});
+
+test("reduced-motion preference is honored and content stays correct", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.getByTestId("deployment-score")).toHaveText("35%");
+  const width = await page
+    .getByTestId("gauge-fill")
+    .evaluate((el) => (el as HTMLElement).style.width);
+  expect(width).toBe("35%");
+});
+
+test("rating meaning is carried by text, not color alone", async ({ page }) => {
+  await page.goto("/markets");
+  // Every rating pill contains its rating as text.
+  const pills = page.locator("span", { hasText: /^(Strong Buy|Buy|Accumulate|Hold|Reduce|Sell|Avoid)$/ });
+  expect(await pills.count()).toBeGreaterThan(0);
+  // Radar severities include an sr-only text label.
+  await page.goto("/");
+  await expect(page.locator(".sr-only", { hasText: /Positive change/ }).first()).toBeAttached();
+});
+
+test("PWA metadata is present and the manifest resolves", async ({ page, request }) => {
+  await page.goto("/");
+  const manifestHref = await page
+    .locator('link[rel="manifest"]')
+    .first()
+    .getAttribute("href");
+  expect(manifestHref).toBeTruthy();
+  const response = await request.get(manifestHref!);
+  expect(response.ok()).toBe(true);
+  const manifest = await response.json();
+  expect(manifest.name).toBe("NeoOS CIO");
+  expect(manifest.display).toBe("standalone");
+  expect(manifest.icons.length).toBeGreaterThanOrEqual(2);
+  const themeColor = await page.locator('meta[name="theme-color"]').first().getAttribute("content");
+  expect(themeColor).toBe("#050607");
+});
