@@ -28,8 +28,10 @@ export default function PortfolioPage() {
         ) : (
           <ul className="grid gap-2">
             {holdings.map(({ detail, asset }) => (
-              <li key={asset.id}>
-                <details className="group rounded-[14px] border border-[#222d36] bg-panel2">
+              // min-w-0 stops summary min-content propagating into the grid,
+              // which otherwise widens the mobile layout viewport past 390px.
+              <li key={asset.id} className="min-w-0">
+                <details className="group overflow-hidden rounded-[14px] border border-[#222d36] bg-panel2">
                   <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2.5 p-3 [&::-webkit-details-marker]:hidden">
                     <div className="flex min-w-0 items-center gap-2.5">
                       <span
