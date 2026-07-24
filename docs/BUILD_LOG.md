@@ -46,3 +46,22 @@
 - PWA icons are generated at build time via the new `prebuild` hook (`scripts/gen-icons.mjs`),
   so the deploy payload is source-only. Verified live: home page serves the full prerendered
   cockpit, `/manifest.webmanifest` resolves, icons serve byte-identical to local output.
+
+## 2026-07-24 — Sprint 2: report schema v1.1 (data-driven workspaces)
+- Extended the report contract to v1.1: optional sections `regime`, `commentary`, `markets`
+  (regions + macro), `portfolio` (holding details), `gold` (factors + fair value + role),
+  `cash` (position + recommendation), `timeline` (events), `tiers`, `deploymentPlan`.
+  Machine-readable contract: `schemas/neoos-report-v1.1.schema.json` (v1.0 kept alongside).
+- `parseReport` accepts v1.0 and v1.1; v1.0 files are validated against the original schema and
+  migrated up (sections absent). Unsupported versions produce a clear error naming both versions.
+- Demo workspace content moved into the canonical demo report (`demoSections`); the old
+  `data/workspace-content.ts` module is gone. New `domain/report-view.ts` selectors resolve each
+  section from the report with per-section demo fallback and provenance.
+- Every workspace now renders from the report. When a non-demo report omits a section, the card
+  shows an amber "Demo content" badge — imported data and demo filler are never conflated.
+- Import preview now shows the declared schema version (and migration note) plus the list of
+  workspace sections the file provides.
+- Tests: 32 unit (migration, partial sections, malformed-section paths, selector provenance,
+  fallback badging) · 85 E2E (adds: v1.1 file drives markets/cash/timeline/tiers with no badges,
+  preview names provided sections, v1.0 file migrates with demo-labeled workspace fallback).
+- Gates: `lint` ✓ · `typecheck` ✓ · `test` 32/32 ✓ · `test:e2e` 85/85 ✓ · `build` ✓.

@@ -81,12 +81,18 @@ destroys current state. Imported JSON is data only — never rendered as HTML, n
 6. **M6 — Gates**: `lint`, `typecheck`, `test`, `test:e2e` (desktop + both iPhone viewports),
    `build` all green. BUILD_LOG updated per milestone.
 
-## 6. Out of scope for Sprint 1
+## 6. Sprint 2 (delivered): report schema v1.1
+
+All workspace content became report-driven: v1.1 adds optional sections (regime, commentary,
+markets, portfolio, gold, cash, timeline, tiers, deploymentPlan) with v1.0 migration and
+per-section demo fallback labeled in the UI. One JSON drop now updates every workspace.
+
+## 7. Out of scope so far
 
 Live market data, user action notes on the Timeline, real report generation, auth, deployment to
 a public audience (requires explicit approval per CLAUDE.md).
 
-## 7. Risks & mitigations
+## 8. Risks & mitigations
 
 - **Storage-blocked browsers** → defensive adapter + in-memory fallback (acceptance-tested).
 - **Sandbox has no outside network at runtime** → no external fonts/CDNs; system font stack per
