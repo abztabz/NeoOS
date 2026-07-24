@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #050607;
+  --color-panel: #0d1115;
+  --color-panel2: #111820;
+  --color-line: #26313b;
+  --color-line-strong: #303d49;
+  --color-ink: #f7fafc;
+  --color-muted: #8f9ba7;
+  --color-faint: #65717d;
+  --color-cyan: #54d6ff;
+  --color-green: #64f0a5;
+  --color-amber: #f2b56b;
+  --color-red: #ff7b7b;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-card: 22px;
+  --radius-hero: 28px;
+
+  --shadow-card: 0 12px 38px rgba(0, 0, 0, 0.22);
+  --shadow-hero: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+html {
+  background: var(--color-bg);
+}
+
+body {
+  color: var(--color-ink);
+  background:
+    radial-gradient(circle at 85% -10%, rgba(84, 214, 255, 0.16), transparent 30%),
+    radial-gradient(circle at -10% 25%, rgba(100, 240, 165, 0.08), transparent 28%),
+    linear-gradient(180deg, #050607 0%, #080b0e 100%);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+/* Monospaced micro-label, a signature of the approved baseline. */
+.microlabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.card {
+  background: rgba(13, 17, 21, 0.94);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 2px;
+}
+
+/* Gauge track hatching, from the approved baseline. */
+.gauge-hatch::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 5px,
+    rgba(5, 7, 9, 0.55) 5px 7px
+  );
+  pointer-events: none;
+  border-radius: 4px;
+}
+
+dialog::backdrop {
+  background: rgba(2, 4, 6, 0.72);
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
