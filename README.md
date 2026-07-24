@@ -21,6 +21,8 @@ npm run test:e2e   # Playwright (desktop + iPhone 390×844 + 430×932)
 npm run build      # production build
 ```
 
+Live: **https://neoos-cio.vercel.app** (Vercel, production)
+
 Docs: `docs/IMPLEMENTATION_PLAN.md` (plan), `docs/BUILD_LOG.md` (history),
 `docs/PRODUCT_SPEC.md` + `CLAUDE.md` (requirements), `tests/ACCEPTANCE_TESTS.md` (definition
 of done). Daily report contract: `schemas/neoos-report.schema.json` (import via the **Data**

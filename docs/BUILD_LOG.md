@@ -38,3 +38,11 @@
   `overflow-hidden` on `details`. Also hardened the E2E overflow assertion to compare
   `window.innerWidth` against the device viewport so layout-viewport zoom can't mask overflow.
 - Final gate run: `lint` ✓ · `typecheck` ✓ · `test` 23/23 ✓ · `test:e2e` 76/76 ✓ · `build` ✓.
+
+## 2026-07-24 — Production deployment (user-approved)
+- Deployed to Vercel on user instruction ("Use vercel"): project `neoos-cio`, production target.
+- Live URL: https://neoos-cio.vercel.app (deployment dpl_A2yC6p4sHZP4YN6MNmijE7Wt1dLD, framework
+  auto-detected as Next.js, all routes statically prerendered).
+- PWA icons are generated at build time via the new `prebuild` hook (`scripts/gen-icons.mjs`),
+  so the deploy payload is source-only. Verified live: home page serves the full prerendered
+  cockpit, `/manifest.webmanifest` resolves, icons serve byte-identical to local output.
