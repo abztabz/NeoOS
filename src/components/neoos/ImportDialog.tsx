@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useReport } from "@/data/report-store";
 import { MAX_REPORT_BYTES, type NeoosReport } from "@/schemas/neoos-report";
+import { providedSections } from "@/domain/report-view";
 import { formatAsOf } from "@/lib/format";
 
 interface Preview {
   text: string;
   report: NeoosReport;
   fileName: string;
+  sourceVersion: "1.0" | "1.1";
 }
 
 export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -51,7 +53,12 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
       setError(result.error);
       return;
     }
-    setPreview({ text, report: result.report, fileName: file.name });
+    setPreview({
+      text,
+      report: result.report,
+      fileName: file.name,
+      sourceVersion: result.sourceVersion,
+    });
   }
 
   function onApply() {
@@ -129,10 +136,21 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
                 {Math.round(preview.report.deployment.score)}% ·{" "}
                 {preview.report.deployment.recommendation}
               </dd>
+              <dt className="text-muted">Schema</dt>
+              <dd className="text-right">
+                v{preview.sourceVersion}
+                {preview.sourceVersion === "1.0" ? " → migrated to v1.1" : ""}
+              </dd>
               <dt className="text-muted">Radar items</dt>
               <dd className="text-right">{preview.report.radar.length}</dd>
               <dt className="text-muted">Assets</dt>
               <dd className="text-right">{preview.report.assets.length}</dd>
+              <dt className="text-muted">Workspace sections</dt>
+              <dd className="text-right">
+                {providedSections(preview.report).length > 0
+                  ? providedSections(preview.report).join(", ")
+                  : "none — demo content fills the workspaces"}
+              </dd>
             </dl>
             <button
               type="button"

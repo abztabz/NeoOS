@@ -3,25 +3,32 @@
 import { SectionCard } from "@/components/neoos/SectionCard";
 import { RatingPill } from "@/components/neoos/RatingPill";
 import { useReport } from "@/data/report-store";
-import { macroContext, marketRegime, regions } from "@/data/workspace-content";
+import { isDemoFallback, marketsView, regimeView } from "@/domain/report-view";
 import { opportunityLabel } from "@/domain/scoring";
 
 export default function MarketsPage() {
   const { report } = useReport();
   const ranked = [...report.assets].sort((a, b) => b.score - a.score);
+  const regime = regimeView(report);
+  const markets = marketsView(report);
+  const marketsFallback = isDemoFallback(report, markets);
 
   return (
     <div className="grid gap-3.5">
-      <SectionCard title="MARKET REGIME" meta="WEATHER">
-        <p className="text-lg font-bold text-cyan">{marketRegime}</p>
+      <SectionCard title="MARKET REGIME" meta="WEATHER" demoFallback={isDemoFallback(report, regime)}>
+        <p className="text-lg font-bold text-cyan">{regime.data}</p>
         <p className="mt-2 text-xs leading-relaxed text-[#9aa7b3]">
           Opportunity index {report.scores.opportunity} — {opportunityLabel(report.scores.opportunity)}.
         </p>
       </SectionCard>
 
-      <SectionCard title="GLOBAL OPPORTUNITY HEAT MAP" meta="DEMO SCORES">
+      <SectionCard
+        title="GLOBAL OPPORTUNITY HEAT MAP"
+        meta={markets.fromReport && report.mode === "live" ? "REPORT SCORES" : "DEMO SCORES"}
+        demoFallback={marketsFallback}
+      >
         <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
-          {regions.map((region) => (
+          {markets.data.regions.map((region) => (
             <div
               key={region.id}
               className="min-h-[110px] rounded-[17px] border border-[#27333d] bg-gradient-to-br from-[#101820] to-[#0a0f13] p-3.5"
@@ -37,8 +44,8 @@ export default function MarketsPage() {
         </div>
       </SectionCard>
 
-      <SectionCard title="MACRO CONTEXT" meta="BACKDROP">
-        <p className="text-[13px] leading-[1.65] text-[#d6dee5]">{macroContext}</p>
+      <SectionCard title="MACRO CONTEXT" meta="BACKDROP" demoFallback={marketsFallback}>
+        <p className="text-[13px] leading-[1.65] text-[#d6dee5]">{markets.data.macroContext}</p>
       </SectionCard>
 
       <SectionCard title="GLOBAL OPPORTUNITY RANKING" meta={`${ranked.length} ASSETS`}>

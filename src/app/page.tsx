@@ -8,10 +8,11 @@ import { Bar } from "@/components/neoos/Bar";
 import { useReport } from "@/data/report-store";
 import { cashDecision, opportunityLabel, confidenceTier } from "@/domain/scoring";
 import {
-  deploymentPlan,
-  morpheusCommentary,
-  tierStatuses,
-} from "@/data/workspace-content";
+  commentaryView,
+  deploymentPlanView,
+  isDemoFallback,
+  tiersView,
+} from "@/domain/report-view";
 import { formatMoney } from "@/lib/format";
 import type { NeoosAsset } from "@/schemas/neoos-report";
 
@@ -32,6 +33,9 @@ export default function CapitalPage() {
   const { report } = useReport();
   const { scores, assets } = report;
   const watchlist = watchlistAssets(assets);
+  const tiers = tiersView(report);
+  const plan = deploymentPlanView(report);
+  const commentary = commentaryView(report);
 
   return (
     <>
@@ -81,15 +85,23 @@ export default function CapitalPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="MORPHEUS COMMENTARY" meta="CIO VIEW">
-            <p className="text-[13px] leading-[1.65] text-[#d6dee5]">{morpheusCommentary}</p>
+          <SectionCard
+            title="MORPHEUS COMMENTARY"
+            meta="CIO VIEW"
+            demoFallback={isDemoFallback(report, commentary)}
+          >
+            <p className="text-[13px] leading-[1.65] text-[#d6dee5]">{commentary.data}</p>
           </SectionCard>
         </div>
 
         <aside className="grid content-start gap-3.5">
-          <SectionCard title="FAMILY OFFICE HEALTH" meta="5 TIERS">
+          <SectionCard
+            title="FAMILY OFFICE HEALTH"
+            meta={`${tiers.data.length} TIERS`}
+            demoFallback={isDemoFallback(report, tiers)}
+          >
             <ul className="grid gap-2">
-              {tierStatuses.map((tier) => (
+              {tiers.data.map((tier) => (
                 <li key={tier.id} className="rounded-[14px] border border-[#222d36] bg-panel2 p-3">
                   <div className="flex items-center justify-between gap-2.5">
                     <strong className="text-[12px]">{tier.name}</strong>
@@ -127,9 +139,13 @@ export default function CapitalPage() {
             )}
           </SectionCard>
 
-          <SectionCard title="DEPLOYMENT PLAN" meta="EXECUTION">
+          <SectionCard
+            title="DEPLOYMENT PLAN"
+            meta="EXECUTION"
+            demoFallback={isDemoFallback(report, plan)}
+          >
             <ul className="grid gap-2">
-              {deploymentPlan.map((row) => (
+              {plan.data.map((row) => (
                 <li key={row.id} className="rounded-[14px] border border-[#222d36] bg-panel2 p-3">
                   <div className="flex items-center justify-between gap-2.5">
                     <strong className="text-[12px]">{row.label}</strong>

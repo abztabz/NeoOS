@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { deploymentBand, deploymentBands } from "@/domain/scoring";
-import { marketRegime } from "@/data/workspace-content";
+import { regimeView } from "@/domain/report-view";
 import type { NeoosReport } from "@/schemas/neoos-report";
 
 /**
@@ -39,7 +39,7 @@ export function Gauge({ report }: { report: NeoosReport }) {
             Capital Deployment Gauge
           </h2>
           <div className="mt-2 text-xs text-[#d8e1e8]">
-            Market weather: <b className="text-cyan">{marketRegime}</b>
+            Market weather: <b className="text-cyan">{regimeView(report).data}</b>
           </div>
         </div>
         <div className="text-right">

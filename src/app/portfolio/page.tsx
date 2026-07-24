@@ -3,14 +3,15 @@
 import { SectionCard } from "@/components/neoos/SectionCard";
 import { RatingPill } from "@/components/neoos/RatingPill";
 import { useReport } from "@/data/report-store";
-import { holdingDetails } from "@/data/workspace-content";
+import { isDemoFallback, portfolioView } from "@/domain/report-view";
 import { confidenceTier } from "@/domain/scoring";
 import { formatRange } from "@/lib/format";
 
 export default function PortfolioPage() {
   const { report } = useReport();
+  const portfolio = portfolioView(report);
 
-  const holdings = holdingDetails
+  const holdings = portfolio.data
     .map((detail) => {
       const asset = report.assets.find((a) => a.id === detail.assetId);
       return asset ? { detail, asset } : null;
@@ -19,7 +20,11 @@ export default function PortfolioPage() {
 
   return (
     <div className="grid gap-3.5">
-      <SectionCard title="PORTFOLIO" meta={`${holdings.length} HOLDINGS`}>
+      <SectionCard
+        title="PORTFOLIO"
+        meta={`${holdings.length} HOLDINGS`}
+        demoFallback={isDemoFallback(report, portfolio)}
+      >
         {holdings.length === 0 ? (
           <p className="rounded-xl border border-[#222d36] bg-panel2 p-4 text-xs text-muted">
             No holdings match the current report&apos;s assets. Reset to demo data to see the

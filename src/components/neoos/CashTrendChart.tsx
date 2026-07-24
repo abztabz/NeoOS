@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { TimelineEvent } from "@/data/workspace-content";
+import type { TimelineEvent } from "@/schemas/neoos-report";
 
 /**
  * Small trend chart — an enhancement over the timeline list, not the content.

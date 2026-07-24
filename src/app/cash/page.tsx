@@ -4,24 +4,30 @@ import { SectionCard } from "@/components/neoos/SectionCard";
 import { ScoreCard } from "@/components/neoos/ScoreCard";
 import { useReport } from "@/data/report-store";
 import { cashDecision } from "@/domain/scoring";
-import { cashPosition } from "@/data/workspace-content";
+import { cashView, isDemoFallback } from "@/domain/report-view";
 import { formatMoney } from "@/lib/format";
 
 export default function CashPage() {
   const { report } = useReport();
   const cashScore = report.scores.cash;
+  const cash = cashView(report);
+  const cashFallback = isDemoFallback(report, cash);
 
   return (
     <div className="grid gap-3.5">
-      <SectionCard title="CASH OPERATING SYSTEM" meta={`SCORE ${cashScore}`}>
+      <SectionCard
+        title="CASH OPERATING SYSTEM"
+        meta={`SCORE ${cashScore}`}
+        demoFallback={cashFallback}
+      >
         <p className="mb-3 text-xs leading-relaxed text-[#9aa7b3]">
           Cash is a first-class asset. Its score answers whether waiting currently beats deploying.
         </p>
         <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-          <ScoreCard label="Available" value={formatMoney(cashPosition.available)} note="Total cash on hand" />
-          <ScoreCard label="Emergency reserve" value={formatMoney(cashPosition.emergencyReserve)} note="Protected — never deployed" tone="green" />
-          <ScoreCard label="Deployable" value={formatMoney(cashPosition.deployable)} note="Investable after reserves" tone="cyan" />
-          <ScoreCard label="Monthly surplus" value={formatMoney(cashPosition.monthlySurplus)} note="Adds to deployable each month" />
+          <ScoreCard label="Available" value={formatMoney(cash.data.available)} note="Total cash on hand" />
+          <ScoreCard label="Emergency reserve" value={formatMoney(cash.data.emergencyReserve)} note="Protected — never deployed" tone="green" />
+          <ScoreCard label="Deployable" value={formatMoney(cash.data.deployable)} note="Investable after reserves" tone="cyan" />
+          <ScoreCard label="Monthly surplus" value={formatMoney(cash.data.monthlySurplus)} note="Adds to deployable each month" />
         </div>
       </SectionCard>
 
@@ -34,12 +40,12 @@ export default function CashPage() {
             <span className="text-[15px] font-bold">{cashDecision(cashScore)}</span>
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-[#8e9aa5]">
-            Cash yield ~{cashPosition.cashYieldPct}%. {cashPosition.opportunityCost}
+            Cash yield ~{cash.data.cashYieldPct}%. {cash.data.opportunityCost}
           </p>
         </SectionCard>
 
-        <SectionCard title="RECOMMENDATION" meta="RESERVES FIRST">
-          <p className="text-[13px] leading-[1.65] text-[#d6dee5]">{cashPosition.recommendation}</p>
+        <SectionCard title="RECOMMENDATION" meta="RESERVES FIRST" demoFallback={cashFallback}>
+          <p className="text-[13px] leading-[1.65] text-[#d6dee5]">{cash.data.recommendation}</p>
         </SectionCard>
       </div>
     </div>
