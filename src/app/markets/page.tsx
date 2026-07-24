@@ -77,11 +77,13 @@ export default function MarketsPage() {
                       <td className="p-2.5 font-mono text-faint">{String(i + 1).padStart(2, "0")}</td>
                       <td className="p-2.5">
                         <span className="font-bold">{asset.name}</span>
-                        {asset.ticker ? (
-                          <span className="mt-0.5 block font-mono text-[9px] text-[#6f7d89]">
-                            {asset.ticker}
-                          </span>
-                        ) : null}
+                        <span className="mt-0.5 block font-mono text-[9px] text-[#6f7d89]">
+                          {asset.kind === "category"
+                            ? `Category${asset.assetClass ? ` · ${asset.assetClass}` : ""}`
+                            : [asset.ticker, asset.exchange, asset.currency]
+                                .filter(Boolean)
+                                .join(" · ")}
+                        </span>
                       </td>
                       <td className="p-2.5 text-[15px] font-extrabold">{asset.score}</td>
                       <td className="p-2.5">
@@ -107,7 +109,7 @@ export default function MarketsPage() {
                   </div>
                   <p className="mt-1.5 font-mono text-[10px] text-[#8e9aa5]">
                     Score {asset.score} · Confidence {asset.confidence}%
-                    {asset.ticker ? ` · ${asset.ticker}` : ""}
+                    {asset.kind === "category" ? " · Category" : asset.ticker ? ` · ${asset.ticker}` : ""}
                   </p>
                 </li>
               ))}

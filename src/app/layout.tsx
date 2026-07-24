@@ -5,7 +5,10 @@ import { AppHeader } from "@/components/neoos/AppHeader";
 import { DesktopNav, MobileNav } from "@/components/neoos/WorkspaceNav";
 
 export const metadata: Metadata = {
-  title: "NeoOS CIO",
+  title: {
+    default: "NeoOS CIO — Capital",
+    template: "NeoOS CIO — %s",
+  },
   description:
     "Capital Allocation Operating System — should capital be deployed today, and how aggressively?",
   applicationName: "NeoOS CIO",

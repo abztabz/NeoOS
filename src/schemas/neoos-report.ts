@@ -55,9 +55,24 @@ export const radarItemSchema = z.object({
   detail: z.string(),
 });
 
+/**
+ * Asset identity: a row is either a SPECIFIC INSTRUMENT (real ticker, real
+ * exchange) or a generic CATEGORY (e.g. "Developed-market value ETF" as a
+ * bucket). A category must never be labeled with a ticker as though it were
+ * a specific instrument.
+ */
+export const assetKinds = ["instrument", "category"] as const;
+export type AssetKind = (typeof assetKinds)[number];
+
 export const assetSchema = z.object({
   id: z.string(),
+  kind: z.enum(assetKinds).optional(),
   ticker: z.string().optional(),
+  exchange: z.string().optional(),
+  currency: z.string().optional(),
+  assetClass: z.string().optional(),
+  category: z.string().optional(),
+  region: z.string().optional(),
   name: z.string(),
   score: score0to100,
   rating: z.enum(assetRatings),
@@ -156,14 +171,45 @@ const coreShape = {
   assets: z.array(assetSchema),
 };
 
-export const neoosReportV10Schema = z.object({
-  schemaVersion: z.literal("1.0"),
-  ...coreShape,
-});
+/** Reject duplicate asset ids and categories masquerading as tickers. */
+function assetIntegrityRefine(
+  assets: { id: string; kind?: AssetKind; ticker?: string }[],
+  ctx: z.RefinementCtx,
+): void {
+  const seen = new Set<string>();
+  assets.forEach((asset, index) => {
+    if (seen.has(asset.id)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["assets", index, "id"],
+        message: `Duplicate asset id "${asset.id}" — each asset must appear once.`,
+      });
+    }
+    seen.add(asset.id);
+    if (asset.kind === "category" && asset.ticker) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["assets", index, "ticker"],
+        message: `Asset "${asset.id}" is a generic category and must not carry a ticker.`,
+      });
+    }
+  });
+}
+
+export const neoosReportV10Schema = z
+  .object({
+    schemaVersion: z.literal("1.0"),
+    ...coreShape,
+  })
+  .superRefine((report, ctx) => assetIntegrityRefine(report.assets, ctx));
 
 export const neoosReportV11Schema = z.object({
   schemaVersion: z.literal("1.1"),
   ...coreShape,
+  /** When the underlying evidence set was last refreshed (may lag asOf). */
+  evidenceUpdatedAt: z.iso.datetime({ offset: true }).optional(),
+  /** Version of the scoring engine that produced the report, e.g. "2.0.0". */
+  engineVersion: z.string().optional(),
   regime: z.string().optional(),
   commentary: z.string().optional(),
   markets: marketsSectionSchema.optional(),
@@ -174,6 +220,10 @@ export const neoosReportV11Schema = z.object({
   tiers: z.array(tierStatusSchema).optional(),
   deploymentPlan: z.array(deploymentPlanRowSchema).optional(),
 });
+
+export const neoosReportV11Checked = neoosReportV11Schema.superRefine((report, ctx) =>
+  assetIntegrityRefine(report.assets, ctx),
+);
 
 /** The application always works with the latest report shape. */
 export type NeoosReport = z.infer<typeof neoosReportV11Schema>;
@@ -240,7 +290,7 @@ export function parseReport(text: string): ParseReportResult {
     return { ok: true, report: migrateV10toV11(result.data), sourceVersion: "1.0" };
   }
 
-  const result = neoosReportV11Schema.safeParse(raw);
+  const result = neoosReportV11Checked.safeParse(raw);
   if (!result.success) {
     if (declared !== "1.1") {
       return {

@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import { useReport } from "@/data/report-store";
-import { formatAsOf } from "@/lib/format";
 import { ImportDialog } from "@/components/neoos/ImportDialog";
+import { DataStateBadge } from "@/components/neoos/DataStateBadge";
 
 export function AppHeader() {
-  const { report, source, storageStatus } = useReport();
+  const { storageStatus } = useReport();
   const [importOpen, setImportOpen] = useState(false);
-
-  const demo = report.mode === "demo";
 
   return (
     <header className="mb-4 flex items-center justify-between gap-3.5">
@@ -29,21 +27,7 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-2">
-        <span
-          data-testid="mode-badge"
-          className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-2 font-mono text-[9px] uppercase tracking-wider ${
-            demo ? "border-amber/40 text-amber" : "border-cyan/40 text-cyan"
-          }`}
-        >
-          <span
-            aria-hidden="true"
-            className={`size-2 rounded-full ${demo ? "bg-amber shadow-[0_0_14px_rgba(242,181,107,.7)]" : "bg-cyan shadow-[0_0_14px_rgba(84,214,255,.7)]"}`}
-          />
-          <span className="hidden sm:inline">
-            {demo ? "Demo data" : `${source === "imported" ? "Imported" : "Live"} · ${formatAsOf(report.asOf)}`}
-          </span>
-          <span className="sm:hidden">{demo ? "Demo" : "Live"}</span>
-        </span>
+        <DataStateBadge />
         <button
           type="button"
           onClick={() => setImportOpen(true)}

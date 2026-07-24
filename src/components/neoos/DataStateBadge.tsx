@@ -1,0 +1,167 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import {
+  dataStateLabels,
+  dataStateTones,
+  deriveDataState,
+  formatRelativeAge,
+  isReportStale,
+  REPORT_STALE_AFTER_HOURS,
+  type DataState,
+} from "@/domain/app-state";
+import { useReport } from "@/data/report-store";
+import { formatAsOf } from "@/lib/format";
+
+const toneClasses: Record<string, { border: string; text: string; dot: string }> = {
+  amber: { border: "border-amber/40", text: "text-amber", dot: "bg-amber shadow-[0_0_14px_rgba(242,181,107,.7)]" },
+  cyan: { border: "border-cyan/40", text: "text-cyan", dot: "bg-cyan shadow-[0_0_14px_rgba(84,214,255,.7)]" },
+  green: { border: "border-green/40", text: "text-green", dot: "bg-green shadow-[0_0_14px_rgba(100,240,165,.7)]" },
+  red: { border: "border-red/40", text: "text-red", dot: "bg-red shadow-[0_0_14px_rgba(255,123,123,.7)]" },
+};
+
+const shortLabels: Record<DataState, string> = {
+  demo: "Demo",
+  imported: "Imported",
+  live_verified: "Live",
+  stale: "Stale",
+  insufficient_evidence: "Insuff.",
+  error: "Error",
+};
+
+/**
+ * Global data-state badge + report metadata details. Clicking the badge opens
+ * exact timestamps, versions, and freshness — the badge itself shows relative
+ * freshness where useful.
+ */
+export function DataStateBadge() {
+  const { report, source, loadError, dismissLoadError } = useReport();
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  // Freshness depends on wall-clock time; compute client-side after mount so
+  // server HTML (always demo) never disagrees with the first client render.
+  const [now, setNow] = useState<Date | null>(null);
+  const reportRef = useRef(report);
+  useEffect(() => {
+    // Refresh the clock on mount and whenever the active report changes.
+    if (now === null || reportRef.current !== report) {
+      reportRef.current = report;
+      const id = setTimeout(() => setNow(new Date()), 0);
+      return () => clearTimeout(id);
+    }
+  }, [report, now]);
+
+  const state = deriveDataState({ report, source, loadError, now: now ?? undefined });
+  const tone = toneClasses[dataStateTones[state]]!;
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (detailsOpen && !dialog.open) dialog.showModal();
+    if (!detailsOpen && dialog.open) dialog.close();
+  }, [detailsOpen]);
+
+  const stale = now ? isReportStale(report.asOf, now) : false;
+  const metaRows: [string, string][] = [
+    ["Data state", dataStateLabels[state]],
+    ["Report timestamp", `${formatAsOf(report.asOf)} UTC`],
+    [
+      "Report age",
+      now ? formatRelativeAge(report.asOf, now) : "—",
+    ],
+    [
+      "Freshness",
+      state === "demo"
+        ? "Demo — freshness not applicable"
+        : stale
+          ? `Stale (older than ${REPORT_STALE_AFTER_HOURS}h)`
+          : `Fresh (within ${REPORT_STALE_AFTER_HOURS}h)`,
+    ],
+    [
+      "Last evidence update",
+      report.evidenceUpdatedAt ? `${formatAsOf(report.evidenceUpdatedAt)} UTC` : "Not provided by this report",
+    ],
+    ["Scoring engine", report.engineVersion ?? "Not provided by this report"],
+    ["Schema version", `v${report.schemaVersion}`],
+  ];
+
+  return (
+    <>
+      <button
+        type="button"
+        data-testid="mode-badge"
+        onClick={() => setDetailsOpen(true)}
+        aria-haspopup="dialog"
+        aria-label={`Data state: ${dataStateLabels[state]}. Open report details.`}
+        className={`inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full border px-3 py-2 font-mono text-[9px] uppercase tracking-wider transition-colors hover:bg-white/5 ${tone.border} ${tone.text}`}
+      >
+        <span aria-hidden="true" className={`size-2 rounded-full ${tone.dot}`} />
+        <span className="hidden sm:inline">
+          {dataStateLabels[state]}
+          {state !== "demo" && state !== "error" && now
+            ? ` · ${formatRelativeAge(report.asOf, now)}`
+            : ""}
+        </span>
+        <span className="sm:hidden">{shortLabels[state]}</span>
+      </button>
+
+      <dialog
+        ref={dialogRef}
+        onClose={() => setDetailsOpen(false)}
+        aria-labelledby="report-details-title"
+        className="m-auto w-[min(92vw,440px)] rounded-3xl border border-line bg-panel p-0 text-ink"
+      >
+        <div className="p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="microlabel">Report details</div>
+              <h3 id="report-details-title" className="mt-1 text-lg font-bold">
+                {dataStateLabels[state]}
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDetailsOpen(false)}
+              aria-label="Close report details"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line text-muted transition-colors hover:text-ink"
+            >
+              ✕
+            </button>
+          </div>
+
+          {loadError ? (
+            <div
+              role="alert"
+              className="mt-3 rounded-xl border border-red/40 bg-red/10 p-3 text-xs leading-relaxed text-red"
+            >
+              {loadError}
+              <button
+                type="button"
+                onClick={dismissLoadError}
+                className="mt-2 block rounded-full border border-red/40 px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider text-red hover:bg-red/10"
+              >
+                Acknowledge
+              </button>
+            </div>
+          ) : null}
+
+          <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
+            {metaRows.map(([label, value]) => (
+              <div key={label} className="contents">
+                <dt className="text-muted">{label}</dt>
+                <dd className="text-right font-mono text-[11px]">{value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {state === "stale" ? (
+            <p className="mt-3 rounded-xl border border-amber/40 bg-amber/10 p-3 text-xs leading-relaxed text-amber">
+              This report is older than the {REPORT_STALE_AFTER_HOURS}-hour freshness horizon.
+              Scores may no longer reflect current conditions — import a newer report.
+            </p>
+          ) : null}
+        </div>
+      </dialog>
+    </>
+  );
+}

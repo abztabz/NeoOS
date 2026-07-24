@@ -16,14 +16,21 @@ import {
 } from "@/schemas/neoos-report";
 
 const STORAGE_KEY = "neoos.report.v1";
+/** Corrupt stored reports are preserved here — never destroyed, never silently replaced. */
+const RECOVERY_KEY = "neoos.report.recovery";
 
 export type StorageStatus = "unknown" | "persisted" | "memory-only";
-export type ReportSource = "demo" | "imported";
+export type ReportSource = "demo" | "imported" | "live";
 
 interface StoreState {
   report: NeoosReport;
   source: ReportSource;
   storageStatus: StorageStatus;
+  /**
+   * Non-null when loading persisted data failed. Demo content is shown, but
+   * the failure is explicit (header error state) — never a silent fallback.
+   */
+  loadError: string | null;
 }
 
 /**
@@ -38,9 +45,9 @@ function storageRead(): string | null {
   }
 }
 
-function storageWrite(value: string): boolean {
+function storageWrite(value: string, key: string = STORAGE_KEY): boolean {
   try {
-    window.localStorage.setItem(STORAGE_KEY, value);
+    window.localStorage.setItem(key, value);
     return true;
   } catch {
     return false;
@@ -64,6 +71,7 @@ const serverState: StoreState = {
   report: demoReport,
   source: "demo",
   storageStatus: "unknown",
+  loadError: null,
 };
 
 let clientState: StoreState = serverState;
@@ -89,15 +97,29 @@ function initFromStorage(): StoreState {
       report: demoReport,
       source: "demo",
       storageStatus: writable ? "persisted" : "memory-only",
+      loadError: null,
     };
   }
   const parsed = parseReport(stored);
   if (parsed.ok) {
-    return { report: parsed.report, source: "imported", storageStatus: "persisted" };
+    return {
+      report: parsed.report,
+      source: "imported",
+      storageStatus: "persisted",
+      loadError: null,
+    };
   }
-  // Stored data is corrupt or from an unsupported version — fall back safely.
+  // Stored data is corrupt or from an unsupported version. Preserve the raw
+  // bytes for recovery and surface an explicit error state — demo content is
+  // shown, but never silently.
+  storageWrite(stored, RECOVERY_KEY);
   storageClear();
-  return { report: demoReport, source: "demo", storageStatus: "persisted" };
+  return {
+    report: demoReport,
+    source: "demo",
+    storageStatus: "persisted",
+    loadError: `Stored report could not be loaded (${parsed.error}) — the raw data was preserved for recovery. Demo content is shown instead.`,
+  };
 }
 
 if (typeof window !== "undefined") {
@@ -107,7 +129,12 @@ if (typeof window !== "undefined") {
 /** Test-only: reset the module singleton between test cases. */
 export function _resetStoreForTests(): void {
   storageClear();
-  clientState = { report: demoReport, source: "demo", storageStatus: "persisted" };
+  clientState = {
+    report: demoReport,
+    source: "demo",
+    storageStatus: "persisted",
+    loadError: null,
+  };
   for (const listener of listeners) listener();
 }
 
@@ -115,11 +142,14 @@ export interface ReportContextValue {
   report: NeoosReport;
   source: ReportSource;
   storageStatus: StorageStatus;
+  loadError: string | null;
   /** Validate report text without applying it (used for import preview). */
   previewReport: (text: string) => ParseReportResult;
   /** Validate and atomically apply report text. Current state survives failure. */
   importReport: (text: string) => ParseReportResult;
   resetDemo: () => void;
+  /** Acknowledge a load error (state returns to demo; recovery data stays). */
+  dismissLoadError: () => void;
 }
 
 const ReportContext = createContext<ReportContextValue | null>(null);
@@ -141,18 +171,23 @@ export function ReportProvider({ children }: { children: ReactNode }) {
       report: parsed.report,
       source: "imported",
       storageStatus: persisted ? "persisted" : "memory-only",
+      loadError: null,
     });
     return parsed;
   }, []);
 
   const resetDemo = useCallback(() => {
     storageClear();
-    setState({ report: demoReport, source: "demo" });
+    setState({ report: demoReport, source: "demo", loadError: null });
+  }, []);
+
+  const dismissLoadError = useCallback(() => {
+    setState({ loadError: null });
   }, []);
 
   const value = useMemo(
-    () => ({ ...state, previewReport, importReport, resetDemo }),
-    [state, previewReport, importReport, resetDemo],
+    () => ({ ...state, previewReport, importReport, resetDemo, dismissLoadError }),
+    [state, previewReport, importReport, resetDemo, dismissLoadError],
   );
 
   return <ReportContext.Provider value={value}>{children}</ReportContext.Provider>;

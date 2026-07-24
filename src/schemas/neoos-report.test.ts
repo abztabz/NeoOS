@@ -141,3 +141,63 @@ describe("v1.0 → v1.1 migration", () => {
     expect(result.ok).toBe(false);
   });
 });
+
+describe("import hardening", () => {
+  const assets = (r: Record<string, unknown>) => r.assets as Record<string, unknown>[];
+
+  it("rejects negative scores", () => {
+    const result = parseReport(validText((r) => (assets(r)[0]!.score = -5)));
+    expect(result.ok).toBe(false);
+  });
+
+  it("rejects scores above 100", () => {
+    const result = parseReport(validText((r) => (assets(r)[0]!.score = 101)));
+    expect(result.ok).toBe(false);
+  });
+
+  it("rejects non-finite score values", () => {
+    // JSON cannot carry NaN/Infinity literals; 1e999 parses to Infinity.
+    const text = validText().replace(/"score":\s*87/, '"score": 1e999');
+    const result = parseReport(text);
+    expect(result.ok).toBe(false);
+  });
+
+  it("rejects null where a score is required (NaN-like input)", () => {
+    const result = parseReport(
+      validText((r) => ((r.scores as Record<string, unknown>).cash = null)),
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it("rejects invalid report dates", () => {
+    const result = parseReport(validText((r) => (r.asOf = "not-a-date")));
+    expect(result.ok).toBe(false);
+  });
+
+  it("rejects duplicate asset ids", () => {
+    const result = parseReport(
+      validText((r) => {
+        const list = assets(r);
+        list.push({ ...list[0]! });
+      }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/Duplicate asset id/);
+  });
+
+  it("rejects a generic category labeled with a ticker", () => {
+    const result = parseReport(
+      validText((r) => {
+        assets(r)[0]!.kind = "category";
+        assets(r)[0]!.ticker = "FAKE";
+      }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/category/i);
+  });
+
+  it("rejects missing required top-level fields", () => {
+    const result = parseReport(validText((r) => delete r.deployment));
+    expect(result.ok).toBe(false);
+  });
+});

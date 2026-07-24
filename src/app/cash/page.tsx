@@ -42,6 +42,15 @@ export default function CashPage() {
           <p className="mt-2 text-[11px] leading-relaxed text-[#8e9aa5]">
             Cash yield ~{cash.data.cashYieldPct}%. {cash.data.opportunityCost}
           </p>
+          <p
+            data-testid="cash-score-explainer"
+            className="mt-3 rounded-xl border border-[#222d36] bg-panel2 p-3 text-[11px] leading-relaxed text-[#c6d0d8]"
+          >
+            <strong className="text-ink">What this score means:</strong> a high Cash Score means
+            cash and cash-equivalents are currently <em>attractive to hold</em> relative to the
+            opportunity set — waiting is being paid for. It is a statement about markets, not about
+            your cash position: it never means your cash balance is unhealthy.
+          </p>
         </SectionCard>
 
         <SectionCard title="RECOMMENDATION" meta="RESERVES FIRST" demoFallback={cashFallback}>
