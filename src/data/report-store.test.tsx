@@ -60,7 +60,7 @@ describe("ReportProvider", () => {
 
   it("provides the demo report by default", () => {
     setup();
-    expect(screen.getByTestId("score").textContent).toBe("35");
+    expect(screen.getByTestId("score").textContent).toBe(String(demoReport.deployment.score));
     expect(screen.getByTestId("source").textContent).toBe("demo");
   });
 
@@ -92,7 +92,7 @@ describe("ReportProvider", () => {
     setup();
     await user.click(screen.getByRole("button", { name: "import-valid" }));
     await user.click(screen.getByRole("button", { name: "reset" }));
-    expect(screen.getByTestId("score").textContent).toBe("35");
+    expect(screen.getByTestId("score").textContent).toBe(String(demoReport.deployment.score));
     expect(screen.getByTestId("source").textContent).toBe("demo");
     expect(window.localStorage.getItem("neoos.report.v1")).toBeNull();
   });

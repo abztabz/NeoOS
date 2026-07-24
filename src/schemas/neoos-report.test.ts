@@ -13,8 +13,10 @@ describe("parseReport", () => {
     const result = parseReport(validText());
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.report.deployment.score).toBe(35);
-      expect(result.report.assets).toHaveLength(6);
+      // The demo report is engine-generated: assert the round trip preserves
+      // the computed posture rather than pinning a hand-typed constant.
+      expect(result.report.deployment.score).toBe(demoReport.deployment.score);
+      expect(result.report.assets).toHaveLength(demoReport.assets.length);
     }
   });
 
@@ -25,7 +27,7 @@ describe("parseReport", () => {
   });
 
   it("rejects an unsupported schema version", () => {
-    const result = parseReport(validText((r) => (r.schemaVersion = "2.0")));
+    const result = parseReport(validText((r) => (r.schemaVersion = "9.9")));
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toMatch(/schemaVersion/);
   });
@@ -101,7 +103,7 @@ describe("v1.0 → v1.1 migration", () => {
       expect(result.sourceVersion).toBe("1.0");
       expect(result.report.schemaVersion).toBe("1.1");
       expect(result.report.markets).toBeUndefined();
-      expect(result.report.deployment.score).toBe(35);
+      expect(result.report.deployment.score).toBe(demoReport.deployment.score);
     }
   });
 
@@ -156,8 +158,9 @@ describe("import hardening", () => {
   });
 
   it("rejects non-finite score values", () => {
-    // JSON cannot carry NaN/Infinity literals; 1e999 parses to Infinity.
-    const text = validText().replace(/"score":\s*87/, '"score": 1e999');
+    // JSON cannot carry NaN/Infinity literals, but 1e999 parses to Infinity.
+    const text = validText().replace(/"score":\s*[\d.]+/, '"score": 1e999');
+    expect(text).toContain("1e999");
     const result = parseReport(text);
     expect(result.ok).toBe(false);
   });

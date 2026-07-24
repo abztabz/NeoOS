@@ -3,6 +3,8 @@
  * Pure functions only — no I/O, no framework imports.
  */
 
+import type { AssetRating } from "@/schemas/neoos-report";
+
 export interface DeploymentBand {
   min: number;
   max: number;
@@ -57,11 +59,15 @@ export const deploymentBands: DeploymentBand[] = [
   },
 ];
 
+/**
+ * Band lookup by upper bound. The declared bands are integer-labeled
+ * (0–20, 21–40, …) but engine scores are continuous, so a value like 20.5
+ * must land in the band whose ceiling it falls under — never in a gap.
+ */
 export function deploymentBand(score: number): DeploymentBand {
   const clamped = Math.min(100, Math.max(0, score));
-  const band = deploymentBands.find((b) => clamped >= b.min && clamped <= b.max);
-  // Bands are contiguous over [0,100]; fallback is unreachable but keeps the type total.
-  return band ?? deploymentBands[0]!;
+  const band = deploymentBands.find((b) => clamped <= b.max);
+  return band ?? deploymentBands[deploymentBands.length - 1]!;
 }
 
 export interface RatingBand {
@@ -83,6 +89,21 @@ export const ratingBands: RatingBand[] = [
 export function ratingFromScore(score: number): RatingBand {
   const clamped = Math.min(100, Math.max(0, score));
   return ratingBands.find((b) => clamped >= b.min) ?? ratingBands[ratingBands.length - 1]!;
+}
+
+/**
+ * Score → canonical AssetRating enum value. The bottom band is displayed as
+ * "Sell / Avoid" but resolves to "Avoid" — the engine reserves "Sell" for an
+ * explicit exit instruction on a held position, which score alone can't imply.
+ */
+export function ratingFromScoreEnum(score: number): AssetRating {
+  const clamped = Math.min(100, Math.max(0, score));
+  if (clamped >= 95) return "Strong Buy";
+  if (clamped >= 85) return "Buy";
+  if (clamped >= 70) return "Accumulate";
+  if (clamped >= 55) return "Hold";
+  if (clamped >= 40) return "Reduce";
+  return "Avoid";
 }
 
 /** Cash score → decision, from the constitution's scoring engine. */

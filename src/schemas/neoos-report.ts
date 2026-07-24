@@ -249,7 +249,12 @@ export interface ParseReportSuccess {
   ok: true;
   report: NeoosReport;
   /** Version the file declared before any migration. */
-  sourceVersion: "1.0" | "1.1";
+  sourceVersion: "1.0" | "1.1" | "2.0";
+  /**
+   * Full engine payload — present only for v2.0 files, which carry the
+   * auditable calculation trace alongside the presentation view.
+   */
+  engine?: unknown;
 }
 export interface ParseReportFailure {
   ok: false;
@@ -284,6 +289,20 @@ export function parseReport(text: string): ParseReportResult {
       ? (raw as { schemaVersion: unknown }).schemaVersion
       : undefined;
 
+  if (declared === "2.0") {
+    // Engine report file: { schemaVersion, engine, view }. The view is
+    // validated with the same v1.1 contract; the engine payload is validated
+    // by the caller (parsing it here would pull the engine into every import).
+    const shape = z.object({
+      schemaVersion: z.literal("2.0"),
+      engine: z.unknown(),
+      view: neoosReportV11Checked,
+    });
+    const result = shape.safeParse(raw);
+    if (!result.success) return { ok: false, error: firstIssueMessage(result.error, "2.0") };
+    return { ok: true, report: result.data.view, sourceVersion: "2.0", engine: result.data.engine };
+  }
+
   if (declared === "1.0") {
     const result = neoosReportV10Schema.safeParse(raw);
     if (!result.success) return { ok: false, error: firstIssueMessage(result.error, "1.0") };
@@ -295,7 +314,7 @@ export function parseReport(text: string): ParseReportResult {
     if (declared !== "1.1") {
       return {
         ok: false,
-        error: `Report does not match schema v1.0 or v1.1 — unsupported schemaVersion ${JSON.stringify(declared ?? null)}.`,
+        error: `Unsupported schemaVersion ${JSON.stringify(declared ?? null)} — NeoOS accepts v1.0, v1.1, and v2.0 engine reports.`,
       };
     }
     return { ok: false, error: firstIssueMessage(result.error, "1.1") };

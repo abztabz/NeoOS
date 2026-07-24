@@ -22,7 +22,8 @@ describe("Gauge", () => {
 
   it("renders the deployment score, recommendation, and posture", () => {
     render(<Gauge report={demoReport} />);
-    expect(screen.getByTestId("deployment-score").textContent).toBe("35%");
+    const expected = Math.round(demoReport.deployment.score);
+    expect(screen.getByTestId("deployment-score").textContent).toBe(`${expected}%`);
     expect(screen.getByText("Deploy Gradually", { selector: "strong" })).toBeInTheDocument();
     expect(screen.getByText("Light Pressure", { selector: "strong" })).toBeInTheDocument();
   });
@@ -30,7 +31,7 @@ describe("Gauge", () => {
   it("exposes meter semantics for the gauge track", () => {
     render(<Gauge report={demoReport} />);
     const meter = screen.getByRole("meter", { name: "Deployment intensity" });
-    expect(meter).toHaveAttribute("aria-valuenow", "35");
+    expect(meter).toHaveAttribute("aria-valuenow", String(Math.round(demoReport.deployment.score)));
     expect(meter.getAttribute("aria-valuetext")).toMatch(/Deploy Gradually/);
   });
 

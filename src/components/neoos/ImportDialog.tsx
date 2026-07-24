@@ -10,7 +10,7 @@ interface Preview {
   text: string;
   report: NeoosReport;
   fileName: string;
-  sourceVersion: "1.0" | "1.1";
+  sourceVersion: "1.0" | "1.1" | "2.0";
 }
 
 export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -140,6 +140,7 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
               <dd className="text-right">
                 v{preview.sourceVersion}
                 {preview.sourceVersion === "1.0" ? " → migrated to v1.1" : ""}
+                {preview.sourceVersion === "2.0" ? " (engine report — full trace)" : ""}
               </dd>
               <dt className="text-muted">Radar items</dt>
               <dd className="text-right">{preview.report.radar.length}</dd>
