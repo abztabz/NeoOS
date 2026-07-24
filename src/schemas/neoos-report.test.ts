@@ -73,3 +73,71 @@ describe("parseReport", () => {
     expect(result.ok).toBe(false);
   });
 });
+
+describe("v1.0 → v1.1 migration", () => {
+  function v10Text(): string {
+    const clone = JSON.parse(JSON.stringify(demoReport)) as Record<string, unknown>;
+    clone.schemaVersion = "1.0";
+    for (const key of [
+      "regime",
+      "commentary",
+      "markets",
+      "portfolio",
+      "gold",
+      "cash",
+      "timeline",
+      "tiers",
+      "deploymentPlan",
+    ]) {
+      delete clone[key];
+    }
+    return JSON.stringify(clone);
+  }
+
+  it("accepts a v1.0 report and lifts it to v1.1", () => {
+    const result = parseReport(v10Text());
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.sourceVersion).toBe("1.0");
+      expect(result.report.schemaVersion).toBe("1.1");
+      expect(result.report.markets).toBeUndefined();
+      expect(result.report.deployment.score).toBe(35);
+    }
+  });
+
+  it("reports the declared version for native v1.1 files", () => {
+    const result = parseReport(validText());
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.sourceVersion).toBe("1.1");
+  });
+
+  it("accepts a partial v1.1 report (subset of sections)", () => {
+    const result = parseReport(
+      validText((r) => {
+        delete r.markets;
+        delete r.gold;
+        delete r.timeline;
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.report.markets).toBeUndefined();
+      expect(result.report.cash).toBeDefined();
+    }
+  });
+
+  it("rejects a malformed v1.1 section with the failing path", () => {
+    const result = parseReport(
+      validText((r) => (((r.markets as Record<string, unknown>).regions as Record<string, unknown>[])[0]!.score = 300)),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/markets\.regions\.0\.score/);
+  });
+
+  it("rejects timeline kinds outside the enum", () => {
+    const result = parseReport(
+      validText((r) => (((r.timeline as Record<string, unknown>[])[0]!).kind = "party")),
+    );
+    expect(result.ok).toBe(false);
+  });
+});
