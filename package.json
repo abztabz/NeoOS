@@ -5,6 +5,7 @@
   "description": "NeoOS CIO — capital allocation operating system (Sprint 1)",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/gen-icons.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
