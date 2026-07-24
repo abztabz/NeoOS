@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "1.1",
+  "asOf": "2026-07-01T09:00:00Z",
+  "mode": "live",
+  "deployment": {
+    "score": 55,
+    "recommendation": "Selective Deployment",
+    "posture": "Measured Pressure",
+    "reasons": [
+      "Cash score 58 \u2014 yields no longer dominate the opportunity set.",
+      "Market score 70 \u2014 breadth improved across value sectors."
+    ]
+  },
+  "scores": {
+    "cash": 58,
+    "market": 70,
+    "opportunity": 66,
+    "confidence": 81,
+    "evidenceIntegrity": 94,
+    "reserveHealth": 90
+  },
+  "radar": [
+    {
+      "id": "radar-eu",
+      "severity": "positive",
+      "title": "Europe upgraded to Attractive",
+      "detail": "Earnings breadth improved for a second consecutive quarter."
+    }
+  ],
+  "assets": [
+    {
+      "id": "value-etf",
+      "ticker": "VLUE",
+      "name": "Developed-market value ETF",
+      "score": 84,
+      "rating": "Accumulate",
+      "confidence": 86,
+      "intrinsicValueLow": 48,
+      "intrinsicValueHigh": 56,
+      "buyBelow": 50,
+      "strongBuyBelow": 42
+    },
+    {
+      "id": "gold",
+      "ticker": "XAU",
+      "name": "Gold",
+      "score": 73,
+      "rating": "Accumulate",
+      "confidence": 88,
+      "intrinsicValueLow": 2050,
+      "intrinsicValueHigh": 2300,
+      "buyBelow": null,
+      "strongBuyBelow": null
+    }
+  ],
+  "regime": "Improving / Partly Clear",
+  "commentary": "Breadth is improving faster than prices. Deploy selectively into qualified value while reserves stay protected.",
+  "markets": {
+    "macroContext": "Disinflation is broadening while growth holds. Real yields drifted lower, easing pressure on long-duration value.",
+    "regions": [
+      {
+        "id": "us",
+        "name": "US",
+        "score": 64,
+        "stance": "Selective",
+        "note": "Equal-weight indices finally participating."
+      },
+      {
+        "id": "europe",
+        "name": "Europe",
+        "score": 81,
+        "stance": "Attractive",
+        "note": "Second consecutive quarter of improving earnings breadth."
+      },
+      {
+        "id": "japan",
+        "name": "Japan",
+        "score": 67,
+        "stance": "Balanced",
+        "note": "Reform momentum intact; currency stabilizing."
+      }
+    ]
+  },
+  "cash": {
+    "available": 50000,
+    "emergencyReserve": 18000,
+    "deployable": 32000,
+    "monthlySurplus": 2400,
+    "cashYieldPct": 3.6,
+    "opportunityCost": "The yield gap versus qualified equities has widened; idle cash now has a measurable cost.",
+    "recommendation": "Deploy the first tranche into the European value sleeve; keep the enlarged reserve untouched."
+  },
+  "timeline": [
+    {
+      "id": "t5",
+      "date": "Jul 26",
+      "title": "Deployment raised to 55%",
+      "kind": "deployment",
+      "cashScore": 58,
+      "deploymentPct": 55,
+      "detail": "Europe upgrade plus falling cash score justified selective deployment."
+    }
+  ],
+  "tiers": [
+    {
+      "id": "preservation",
+      "name": "Capital Preservation",
+      "score": 64,
+      "status": "Balanced"
+    },
+    {
+      "id": "compounders",
+      "name": "Compounders",
+      "score": 55,
+      "status": "Building"
+    },
+    {
+      "id": "value",
+      "name": "Opportunistic Value",
+      "score": 47,
+      "status": "Building"
+    },
+    {
+      "id": "hedges",
+      "name": "Strategic Hedges",
+      "score": 61,
+      "status": "Balanced"
+    },
+    {
+      "id": "optionality",
+      "name": "Optionality",
+      "score": 20,
+      "status": "Low by design"
+    }
+  ]
+}

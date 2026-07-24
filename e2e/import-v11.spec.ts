@@ -1,11 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
+import { FIXTURE_V10_PCT, FIXTURE_V11_PCT } from "./expected";
 
 const v11Fixture = path.join(__dirname, "fixtures", "report-v11.json");
 const v10Fixture = path.join(__dirname, "fixtures", "report-72.json");
 
 async function importFixture(page: Page, fixture: string) {
-  await page.getByRole("button", { name: "Data" }).click();
+  await page.getByRole("button", { name: "Data", exact: true }).click();
   const dialog = page.locator("dialog[open]", { hasText: "Import NeoOS JSON" });
   await dialog.locator('input[type="file"]').setInputFiles(fixture);
   await expect(dialog.getByText("Preview — not applied yet")).toBeVisible();
@@ -19,7 +20,7 @@ test("v1.1 report drives every workspace section", async ({ page }) => {
   await importFixture(page, v11Fixture);
 
   // Cockpit: gauge and regime come from the report.
-  await expect(page.getByTestId("deployment-score")).toHaveText("55%");
+  await expect(page.getByTestId("deployment-score")).toHaveText(FIXTURE_V11_PCT);
   await expect(page.getByText("Improving / Partly Clear")).toBeVisible();
   // Report-provided sections carry no demo badge on the home page.
   await expect(page.getByTestId("section-demo-badge")).toHaveCount(1); // deploymentPlan omitted on purpose
@@ -45,7 +46,7 @@ test("v1.1 report drives every workspace section", async ({ page }) => {
 
 test("v1.1 import preview names the provided workspace sections", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Data" }).click();
+  await page.getByRole("button", { name: "Data", exact: true }).click();
   const dialog = page.locator("dialog[open]", { hasText: "Import NeoOS JSON" });
   await dialog.locator('input[type="file"]').setInputFiles(v11Fixture);
   await expect(dialog.getByText("v1.1")).toBeVisible();
@@ -54,7 +55,7 @@ test("v1.1 import preview names the provided workspace sections", async ({ page 
 
 test("v1.0 report still imports via migration with demo-labeled workspaces", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Data" }).click();
+  await page.getByRole("button", { name: "Data", exact: true }).click();
   const dialog = page.locator("dialog[open]", { hasText: "Import NeoOS JSON" });
   await dialog.locator('input[type="file"]').setInputFiles(v10Fixture);
   await expect(dialog.getByText(/migrated to v1\.1/)).toBeVisible();
@@ -63,7 +64,7 @@ test("v1.0 report still imports via migration with demo-labeled workspaces", asy
   await dialog.getByRole("button", { name: /close import dialog/i }).click();
 
   // Core cockpit reflects the v1.0 report...
-  await expect(page.getByTestId("deployment-score")).toHaveText("72%");
+  await expect(page.getByTestId("deployment-score")).toHaveText(FIXTURE_V10_PCT);
   // ...while workspace sections fall back to demo content, visibly labeled.
   await page.goto("/cash");
   await expect(page.getByTestId("section-demo-badge").first()).toBeVisible();

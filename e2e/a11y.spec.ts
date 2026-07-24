@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { DEMO } from "./expected";
 
 test("primary touch targets are at least 44px tall", async ({ page }) => {
   await page.goto("/");
   const targets = [
     page.getByRole("button", { name: /why this score/i }),
-    page.getByRole("button", { name: "Data" }),
+    page.getByRole("button", { name: "Data", exact: true }),
   ];
   for (const target of targets) {
     const box = await target.boundingBox();
@@ -41,11 +42,13 @@ test("keyboard focus is visible on interactive elements", async ({ page }) => {
 test("reduced-motion preference is honored and content stays correct", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await expect(page.getByTestId("deployment-score")).toHaveText("35%");
+  await expect(page.getByTestId("deployment-score")).toHaveText(DEMO.deploymentPct);
+  // The bar carries the engine's full-precision score while the headline
+  // rounds it, so compare numerically rather than by formatted string.
   const width = await page
     .getByTestId("gauge-fill")
     .evaluate((el) => (el as HTMLElement).style.width);
-  expect(width).toBe("35%");
+  expect(Number.parseFloat(width)).toBeCloseTo(DEMO.deploymentScore, 3);
 });
 
 test("rating meaning is carried by text, not color alone", async ({ page }) => {

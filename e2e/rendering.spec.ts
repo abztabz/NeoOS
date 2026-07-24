@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DEMO } from "./expected";
 
 const routes = ["/", "/markets", "/portfolio", "/gold", "/cash", "/timeline"];
 
@@ -8,13 +9,14 @@ test.describe("pre-hydration rendering", () => {
   test("cockpit shows the deployment answer without JavaScript", async ({ page }) => {
     await page.goto("/");
     // The primary decision is server-rendered: score, recommendation, posture.
-    await expect(page.getByTestId("deployment-score")).toHaveText("35%");
-    await expect(page.locator("strong", { hasText: "Deploy Gradually" }).first()).toBeVisible();
-    await expect(page.locator("strong", { hasText: "Light Pressure" })).toBeVisible();
+    await expect(page.getByTestId("deployment-score")).toHaveText(DEMO.deploymentPct);
+    await expect(page.locator("strong", { hasText: DEMO.recommendation }).first()).toBeVisible();
+    await expect(page.locator("strong", { hasText: DEMO.posture })).toBeVisible();
     // Demo labeling is visible pre-hydration too.
     await expect(page.getByTestId("mode-badge")).toBeVisible();
-    // Not a blank shell: radar content is present.
-    await expect(page.getByText("Apple moved closer to Buy")).toBeVisible();
+    // Not a blank shell: the engine's radar content is present. The first item
+    // is engine-derived, so assert against it rather than a fixed headline.
+    await expect(page.getByText(DEMO.firstRadarTitle)).toBeVisible();
   });
 
   test("gauge is visible and not clipped without JavaScript", async ({ page }) => {
