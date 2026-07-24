@@ -4,11 +4,12 @@ import { SectionCard } from "@/components/neoos/SectionCard";
 import { RatingPill } from "@/components/neoos/RatingPill";
 import { useReport } from "@/data/report-store";
 import { isDemoFallback, portfolioView } from "@/domain/report-view";
+import { valuationProvenance } from "@/domain/provenance";
 import { confidenceTier } from "@/domain/scoring";
 import { formatRange } from "@/lib/format";
 
 export default function PortfolioPage() {
-  const { report } = useReport();
+  const { report, engine } = useReport();
   const portfolio = portfolioView(report);
 
   const holdings = portfolio.data
@@ -55,7 +56,9 @@ export default function PortfolioPage() {
                       </strong>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <span className="font-mono text-[13px] font-extrabold">{asset.score}</span>
+                      <span className="font-mono text-[13px] font-extrabold">
+                        {asset.score ?? "—"}
+                      </span>
                       <RatingPill rating={asset.rating} />
                     </div>
                   </summary>
@@ -72,7 +75,9 @@ export default function PortfolioPage() {
                       <div>
                         <dt className="microlabel text-[8px]">Intrinsic value</dt>
                         <dd className="mt-0.5 font-semibold">
-                          {formatRange(asset.intrinsicValueLow, asset.intrinsicValueHigh)}
+                          {valuationProvenance(engine, asset.id)
+                            ? formatRange(asset.intrinsicValueLow, asset.intrinsicValueHigh)
+                            : "Withheld — no valuation trace"}
                         </dd>
                       </div>
                       <div>
@@ -105,6 +110,16 @@ export default function PortfolioPage() {
                         ))}
                       </ul>
                     </div>
+                    {asset.status === "insufficient_evidence" ? (
+                      <div className="mt-3 rounded-xl border border-amber/40 bg-amber/10 p-3">
+                        <p className="microlabel text-[8px] text-amber">Insufficient evidence</p>
+                        <ul className="mt-1.5 space-y-1 text-[11px] leading-relaxed text-[#ffe1c2]">
+                          {(asset.insufficientReasons ?? []).map((reason) => (
+                            <li key={reason}>{reason}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
                     <p className="mt-3 text-[11px] text-[#8e9aa5]">
                       <span className="microlabel mr-1.5 text-[8px]">Next review</span>
                       {detail.reviewTrigger}

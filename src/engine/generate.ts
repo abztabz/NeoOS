@@ -348,11 +348,16 @@ function deriveRadar(engine: EngineReport): RadarItem[] {
 }
 
 export function deriveViewReport(engine: EngineReport, inputs: UniverseInputs): NeoosReport {
-  const rated = engine.recommendations.filter((r) => r.status === "rated");
-
-  const viewAssets: NeoosAsset[] = rated.map((rec) => {
+  // Every asset appears, including those the engine refused to rate —
+  // Insufficient Evidence is a visible outcome, not a hidden one.
+  const viewAssets: NeoosAsset[] = engine.recommendations.map((rec) => {
     const asset = engine.assets.find((a) => a.assetId === rec.assetId)!;
-    const thresholds = buyThresholds(rec.valuation?.conservativeValue ?? null);
+    const insufficient = rec.status === "insufficient_evidence";
+    // Price thresholds require a valuation trace; without one they are omitted
+    // entirely rather than shown without provenance.
+    const thresholds = insufficient
+      ? { buyBelow: null, strongBuyBelow: null }
+      : buyThresholds(rec.valuation?.conservativeValue ?? null);
     return {
       id: asset.assetId,
       kind: asset.kind,
@@ -363,11 +368,13 @@ export function deriveViewReport(engine: EngineReport, inputs: UniverseInputs): 
       assetClass: asset.assetClass,
       category: asset.category,
       region: asset.region,
-      score: Math.round(rec.totalScore as number),
-      rating: rec.finalRating!,
+      score: insufficient ? null : Math.round(rec.totalScore as number),
+      rating: insufficient ? null : rec.finalRating,
+      status: rec.status,
+      insufficientReasons: insufficient ? rec.insufficientReasons : undefined,
       confidence: Math.round(rec.confidence),
-      intrinsicValueLow: rec.valuation?.conservativeValue ?? null,
-      intrinsicValueHigh: rec.valuation?.optimisticValue ?? null,
+      intrinsicValueLow: insufficient ? null : (rec.valuation?.conservativeValue ?? null),
+      intrinsicValueHigh: insufficient ? null : (rec.valuation?.optimisticValue ?? null),
       buyBelow: thresholds.buyBelow,
       strongBuyBelow: thresholds.strongBuyBelow,
     };

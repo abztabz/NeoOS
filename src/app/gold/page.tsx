@@ -5,13 +5,15 @@ import { RatingPill } from "@/components/neoos/RatingPill";
 import { Bar } from "@/components/neoos/Bar";
 import { useReport } from "@/data/report-store";
 import { goldView, isDemoFallback } from "@/domain/report-view";
+import { provenanceLabel, valuationProvenance } from "@/domain/provenance";
 import { formatRange } from "@/lib/format";
 
 export default function GoldPage() {
-  const { report } = useReport();
+  const { report, engine } = useReport();
   const gold = goldView(report);
   const goldFallback = isDemoFallback(report, gold);
   const goldAsset = report.assets.find((a) => a.id === "gold" || a.ticker === "XAU");
+  const goldProvenance = valuationProvenance(engine, goldAsset?.id ?? "gold");
 
   return (
     <div className="grid gap-3.5 lg:grid-cols-[1.2fr_.8fr]">
@@ -36,16 +38,27 @@ export default function GoldPage() {
 
       <div className="grid content-start gap-3.5">
         <SectionCard title="FAIR VALUE MODEL" meta="CONSERVATIVE" demoFallback={goldFallback}>
-          <p className="text-[26px] font-extrabold tracking-[-0.03em]">
-            {goldAsset
-              ? formatRange(goldAsset.intrinsicValueLow, goldAsset.intrinsicValueHigh)
-              : formatRange(gold.data.fairValueLow, gold.data.fairValueHigh)}
-          </p>
+          {goldProvenance ? (
+            <>
+              <p className="text-[26px] font-extrabold tracking-[-0.03em]">
+                {goldAsset
+                  ? formatRange(goldAsset.intrinsicValueLow, goldAsset.intrinsicValueHigh)
+                  : formatRange(gold.data.fairValueLow, gold.data.fairValueHigh)}
+              </p>
+              <p className="mt-1 font-mono text-[9px] leading-snug text-faint">
+                {provenanceLabel(goldProvenance)}
+              </p>
+            </>
+          ) : (
+            <p data-testid="threshold-withheld" className="text-xs leading-relaxed text-amber">
+              Fair-value range withheld — this report carries no valuation trace for gold.
+            </p>
+          )}
           <div className="mt-3 flex items-center gap-2.5">
-            <RatingPill rating={goldAsset?.rating ?? "Accumulate"} />
+            <RatingPill rating={goldAsset?.rating ?? null} />
             {goldAsset ? (
               <span className="font-mono text-[11px] text-[#8e9aa5]">
-                Score {goldAsset.score} · Confidence {goldAsset.confidence}%
+                Score {goldAsset.score ?? "—"} · Confidence {goldAsset.confidence}%
               </span>
             ) : null}
           </div>

@@ -1,14 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { SectionCard } from "@/components/neoos/SectionCard";
 import { RatingPill } from "@/components/neoos/RatingPill";
+import { ScoreTrace } from "@/components/neoos/ScoreTrace";
 import { useReport } from "@/data/report-store";
 import { isDemoFallback, marketsView, regimeView } from "@/domain/report-view";
 import { opportunityLabel } from "@/domain/scoring";
 
 export default function MarketsPage() {
-  const { report } = useReport();
-  const ranked = [...report.assets].sort((a, b) => b.score - a.score);
+  const { report, engine } = useReport();
+  const [traceId, setTraceId] = useState<string | null>(null);
+  const traced = engine?.recommendations.find((r) => r.assetId === traceId) ?? null;
+  // Unrated assets sort last — they are listed, never silently dropped.
+  const ranked = [...report.assets].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
   const regime = regimeView(report);
   const markets = marketsView(report);
   const marketsFallback = isDemoFallback(report, markets);
@@ -60,7 +65,7 @@ export default function MarketsPage() {
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr className="bg-[#0b0f13] text-left">
-                    {["#", "Asset", "Score", "Rating", "Confidence"].map((h) => (
+                    {["#", "Asset", "Score", "Rating", "Confidence", ""].map((h) => (
                       <th
                         key={h}
                         scope="col"
@@ -85,11 +90,22 @@ export default function MarketsPage() {
                                 .join(" · ")}
                         </span>
                       </td>
-                      <td className="p-2.5 text-[15px] font-extrabold">{asset.score}</td>
+                      <td className="p-2.5 text-[15px] font-extrabold">{asset.score ?? "—"}</td>
                       <td className="p-2.5">
                         <RatingPill rating={asset.rating} />
                       </td>
                       <td className="p-2.5">{asset.confidence}%</td>
+                      <td className="p-2.5 text-right">
+                        {engine ? (
+                          <button
+                            type="button"
+                            onClick={() => setTraceId(asset.id)}
+                            className="rounded-full border border-cyan/40 px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider text-cyan transition-colors hover:bg-cyan/10"
+                          >
+                            Why?
+                          </button>
+                        ) : null}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -108,15 +124,33 @@ export default function MarketsPage() {
                     <RatingPill rating={asset.rating} />
                   </div>
                   <p className="mt-1.5 font-mono text-[10px] text-[#8e9aa5]">
-                    Score {asset.score} · Confidence {asset.confidence}%
+                    Score {asset.score ?? "—"} · Confidence {asset.confidence}%
                     {asset.kind === "category" ? " · Category" : asset.ticker ? ` · ${asset.ticker}` : ""}
                   </p>
+                  {engine ? (
+                    <button
+                      type="button"
+                      onClick={() => setTraceId(asset.id)}
+                      className="mt-2 inline-flex min-h-11 items-center rounded-full border border-cyan/40 px-3.5 font-mono text-[9px] uppercase tracking-wider text-cyan"
+                    >
+                      Why this score?
+                    </button>
+                  ) : null}
                 </li>
               ))}
             </ul>
           </>
         )}
       </SectionCard>
+
+      {traced ? (
+        <ScoreTrace
+          recommendation={traced}
+          assetName={report.assets.find((a) => a.id === traced.assetId)?.name ?? traced.assetId}
+          open={traceId !== null}
+          onClose={() => setTraceId(null)}
+        />
+      ) : null}
     </div>
   );
 }

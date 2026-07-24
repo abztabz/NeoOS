@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { deploymentBand, deploymentBands } from "@/domain/scoring";
 import { regimeView } from "@/domain/report-view";
+import type { CapitalPosture } from "@/engine/models";
 import type { NeoosReport } from "@/schemas/neoos-report";
 
 /**
@@ -11,7 +12,7 @@ import type { NeoosReport } from "@/schemas/neoos-report";
  * Server-rendered with the correct fill width so the answer is visible
  * before hydration; motion is decoration, never the content.
  */
-export function Gauge({ report }: { report: NeoosReport }) {
+export function Gauge({ report, posture }: { report: NeoosReport; posture?: CapitalPosture | null }) {
   const { deployment } = report;
   const band = deploymentBand(deployment.score);
   const [explainOpen, setExplainOpen] = useState(false);
@@ -128,16 +129,96 @@ export function Gauge({ report }: { report: NeoosReport }) {
             </button>
           </div>
 
-          <ul className="mt-4 space-y-2.5">
+          <div className="microlabel mt-4 mb-2">Primary drivers</div>
+          <ul className="space-y-2.5">
             {deployment.reasons.map((reason) => (
               <li
                 key={reason}
-                className="rounded-xl border border-[#222d36] bg-panel2 p-3 text-xs leading-relaxed text-[#c6d0d8]"
+                className={`rounded-xl border p-3 text-xs leading-relaxed ${
+                  reason.startsWith("CONSTRAINT:")
+                    ? "border-red/30 bg-red/5 text-[#ffd0d0]"
+                    : "border-[#222d36] bg-panel2 text-[#c6d0d8]"
+                }`}
               >
                 {reason}
               </li>
             ))}
           </ul>
+
+          {posture ? (
+            <>
+              <dl className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
+                {[
+                  ["Confidence", `${posture.confidence.toFixed(0)}`],
+                  ["Evidence integrity", `${posture.evidenceIntegrity.toFixed(0)}`],
+                  ["Opportunity index", `${posture.opportunityIndex.toFixed(0)}`],
+                  ["Qualified Strong Buys", `${posture.strongBuyCount}`],
+                  ["Concentration risk", `${posture.concentrationRisk.toFixed(0)}`],
+                  ["Liquidity risk", `${posture.liquidityRisk.toFixed(0)}`],
+                  ["Max initial tranche", `${Math.round(posture.maximumInitialTranche * 100)}%`],
+                  ["Engine", posture.engineVersion],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-[#222d36] bg-panel2 px-3 py-2"
+                  >
+                    <dt className="text-muted">{label}</dt>
+                    <dd className="font-mono font-bold">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              {posture.constraints.length > 0 ? (
+                <>
+                  <div className="microlabel mt-5 mb-2">Active constraints</div>
+                  <ul className="space-y-1.5">
+                    {posture.constraints.map((constraint) => (
+                      <li
+                        key={constraint.id}
+                        className="rounded-xl border border-red/30 bg-red/5 p-3 text-xs leading-relaxed text-[#ffd0d0]"
+                      >
+                        {constraint.description}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <div className="microlabel mb-2 text-green">What would increase deployment</div>
+                  <ul className="space-y-1.5">
+                    {posture.wouldIncrease.map((item) => (
+                      <li
+                        key={item}
+                        className="rounded-lg border border-green/25 bg-green/5 p-2.5 text-[11px] leading-relaxed text-[#bdfbd5]"
+                      >
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <div className="microlabel mb-2 text-amber">What would reduce deployment</div>
+                  <ul className="space-y-1.5">
+                    {posture.wouldDecrease.map((item) => (
+                      <li
+                        key={item}
+                        className="rounded-lg border border-amber/25 bg-amber/5 p-2.5 text-[11px] leading-relaxed text-[#ffe1c2]"
+                      >
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="mt-4 rounded-xl border border-[#222d36] bg-panel2 p-3 text-[11px] leading-relaxed text-[#8e9aa5]">
+              This report carries the presentation view only. Import a v2.0 engine report to see the
+              full posture trace: constraints, risk inputs, and what would move the score.
+            </p>
+          )}
 
           <div className="microlabel mt-5 mb-2">Deployment bands</div>
           <ol className="space-y-1">

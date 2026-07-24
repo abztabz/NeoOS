@@ -8,7 +8,8 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { demoReport } from "@/data/demo-report";
+import { demoEngineReport, demoReport } from "@/data/demo-report";
+import { engineReportSchema, type EngineReport } from "@/engine/models";
 import {
   parseReport,
   type NeoosReport,
@@ -24,6 +25,11 @@ export type ReportSource = "demo" | "imported" | "live";
 
 interface StoreState {
   report: NeoosReport;
+  /**
+   * Full calculation trace. Present for demo data and for imported v2.0
+   * engine reports; null for v1.0/v1.1 files, which carry only the view.
+   */
+  engine: EngineReport | null;
   source: ReportSource;
   storageStatus: StorageStatus;
   /**
@@ -69,6 +75,7 @@ function storageClear(): void {
  */
 const serverState: StoreState = {
   report: demoReport,
+  engine: demoEngineReport,
   source: "demo",
   storageStatus: "unknown",
   loadError: null,
@@ -87,6 +94,17 @@ function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
+/**
+ * Validate an imported v2.0 engine payload. A malformed trace never blocks the
+ * import: the view already validated, so the app degrades to "no trace
+ * available" rather than rejecting an otherwise-good report.
+ */
+function parseEngine(raw: unknown): EngineReport | null {
+  if (raw === undefined || raw === null) return null;
+  const result = engineReportSchema.safeParse(raw);
+  return result.success ? result.data : null;
+}
+
 function initFromStorage(): StoreState {
   const stored = storageRead();
   if (stored === null) {
@@ -95,6 +113,7 @@ function initFromStorage(): StoreState {
     storageClear();
     return {
       report: demoReport,
+      engine: demoEngineReport,
       source: "demo",
       storageStatus: writable ? "persisted" : "memory-only",
       loadError: null,
@@ -104,6 +123,7 @@ function initFromStorage(): StoreState {
   if (parsed.ok) {
     return {
       report: parsed.report,
+      engine: parseEngine(parsed.engine),
       source: "imported",
       storageStatus: "persisted",
       loadError: null,
@@ -116,6 +136,7 @@ function initFromStorage(): StoreState {
   storageClear();
   return {
     report: demoReport,
+    engine: demoEngineReport,
     source: "demo",
     storageStatus: "persisted",
     loadError: `Stored report could not be loaded (${parsed.error}) — the raw data was preserved for recovery. Demo content is shown instead.`,
@@ -131,6 +152,7 @@ export function _resetStoreForTests(): void {
   storageClear();
   clientState = {
     report: demoReport,
+    engine: demoEngineReport,
     source: "demo",
     storageStatus: "persisted",
     loadError: null,
@@ -140,6 +162,7 @@ export function _resetStoreForTests(): void {
 
 export interface ReportContextValue {
   report: NeoosReport;
+  engine: EngineReport | null;
   source: ReportSource;
   storageStatus: StorageStatus;
   loadError: string | null;
@@ -166,9 +189,12 @@ export function ReportProvider({ children }: { children: ReactNode }) {
   const importReport = useCallback((text: string): ParseReportResult => {
     const parsed = parseReport(text);
     if (!parsed.ok) return parsed;
-    const persisted = storageWrite(JSON.stringify(parsed.report));
+    // Persist the original text, not the derived view: a v2.0 file's
+    // calculation trace must survive a refresh, not be flattened away.
+    const persisted = storageWrite(text);
     setState({
       report: parsed.report,
+      engine: parseEngine(parsed.engine),
       source: "imported",
       storageStatus: persisted ? "persisted" : "memory-only",
       loadError: null,
@@ -178,7 +204,7 @@ export function ReportProvider({ children }: { children: ReactNode }) {
 
   const resetDemo = useCallback(() => {
     storageClear();
-    setState({ report: demoReport, source: "demo", loadError: null });
+    setState({ report: demoReport, engine: demoEngineReport, source: "demo", loadError: null });
   }, []);
 
   const dismissLoadError = useCallback(() => {

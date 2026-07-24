@@ -13,6 +13,7 @@ import {
   isDemoFallback,
   tiersView,
 } from "@/domain/report-view";
+import { provenanceLabel, valuationProvenance } from "@/domain/provenance";
 import { formatMoney } from "@/lib/format";
 import type { NeoosAsset } from "@/schemas/neoos-report";
 
@@ -23,6 +24,9 @@ const actionGroups = [
   { key: "Hold", ratings: ["Hold"], tone: "text-ink", empty: "None today" },
   { key: "Reduce", ratings: ["Reduce"], tone: "text-amber", empty: "None today" },
   { key: "Avoid", ratings: ["Sell", "Avoid"], tone: "text-red", empty: "None flagged" },
+  // A null rating is the engine refusing to rate — surfaced as its own group
+  // so unrated assets are never mistaken for a neutral Hold.
+  { key: "Insufficient Evidence", ratings: [null], tone: "text-amber", empty: "None — all assets rated" },
 ] as const;
 
 function watchlistAssets(assets: NeoosAsset[]): NeoosAsset[] {
@@ -30,7 +34,7 @@ function watchlistAssets(assets: NeoosAsset[]): NeoosAsset[] {
 }
 
 export default function CapitalPage() {
-  const { report } = useReport();
+  const { report, engine } = useReport();
   const { scores, assets } = report;
   const watchlist = watchlistAssets(assets);
   const tiers = tiersView(report);
@@ -39,7 +43,7 @@ export default function CapitalPage() {
 
   return (
     <>
-      <Gauge report={report} />
+      <Gauge report={report} posture={engine?.posture ?? null} />
 
       <section
         aria-label="Key scores"
@@ -63,7 +67,7 @@ export default function CapitalPage() {
             <div className="grid gap-2 sm:grid-cols-2">
               {actionGroups.map((group) => {
                 const members = report.assets.filter((a) =>
-                  (group.ratings as readonly string[]).includes(a.rating),
+                  (group.ratings as readonly (string | null)[]).includes(a.rating),
                 );
                 return (
                   <div
@@ -117,20 +121,40 @@ export default function CapitalPage() {
           <SectionCard title="WATCHLIST" meta="PRICE DISCIPLINE">
             {watchlist.length > 0 ? (
               <ul className="grid gap-2">
-                {watchlist.map((asset) => (
-                  <li key={asset.id} className="rounded-[14px] border border-[#222d36] bg-panel2 p-3">
-                    <div className="flex items-center justify-between gap-2.5">
-                      <strong className="text-[12px]">{asset.name}</strong>
-                      <em className="font-mono text-[11px] not-italic text-cyan">WATCH</em>
-                    </div>
-                    <p className="mt-1 text-[10px] text-[#8e9aa5]">
-                      {asset.buyBelow != null ? `Buy below ${formatMoney(asset.buyBelow)}` : "No buy level set"}
-                      {asset.strongBuyBelow != null
-                        ? ` · Strong Buy below ${formatMoney(asset.strongBuyBelow)}`
-                        : ""}
-                    </p>
-                  </li>
-                ))}
+                {watchlist.map((asset) => {
+                  const provenance = valuationProvenance(engine, asset.id);
+                  return (
+                    <li key={asset.id} className="rounded-[14px] border border-[#222d36] bg-panel2 p-3">
+                      <div className="flex items-center justify-between gap-2.5">
+                        <strong className="text-[12px]">{asset.name}</strong>
+                        <em className="font-mono text-[11px] not-italic text-cyan">WATCH</em>
+                      </div>
+                      {provenance ? (
+                        <>
+                          <p className="mt-1 text-[10px] text-[#8e9aa5]">
+                            {asset.buyBelow != null
+                              ? `Buy below ${formatMoney(asset.buyBelow)}`
+                              : "No buy level derived"}
+                            {asset.strongBuyBelow != null
+                              ? ` · Strong Buy below ${formatMoney(asset.strongBuyBelow)}`
+                              : ""}
+                          </p>
+                          <p className="mt-1 font-mono text-[9px] leading-snug text-faint">
+                            {provenanceLabel(provenance)}
+                          </p>
+                        </>
+                      ) : (
+                        <p
+                          data-testid="threshold-withheld"
+                          className="mt-1 text-[10px] leading-snug text-amber"
+                        >
+                          Price thresholds withheld — this report carries no valuation trace for
+                          this asset.
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="rounded-xl border border-[#222d36] bg-panel2 p-4 text-xs text-muted">

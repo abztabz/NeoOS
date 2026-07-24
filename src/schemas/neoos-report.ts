@@ -74,8 +74,15 @@ export const assetSchema = z.object({
   category: z.string().optional(),
   region: z.string().optional(),
   name: z.string(),
-  score: score0to100,
-  rating: z.enum(assetRatings),
+  /**
+   * Null when the engine returned Insufficient Evidence: the app shows that
+   * state rather than a fabricated number. Numeric values from v1.0/v1.1
+   * files remain valid — this is a widening, not a breaking change.
+   */
+  score: score0to100.nullable(),
+  rating: z.enum(assetRatings).nullable(),
+  status: z.enum(["rated", "insufficient_evidence"]).optional(),
+  insufficientReasons: z.array(z.string()).optional(),
   confidence: score0to100,
   intrinsicValueLow: z.number().nullable().optional(),
   intrinsicValueHigh: z.number().nullable().optional(),
