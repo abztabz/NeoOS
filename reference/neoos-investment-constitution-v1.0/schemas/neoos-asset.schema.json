@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "neoos-asset.schema.json",
+  "title": "NeoOS Asset Assessment",
+  "type": "object",
+  "required": [
+    "asset",
+    "tier",
+    "score",
+    "rating",
+    "decision",
+    "confidence",
+    "interpretation",
+    "evidence"
+  ],
+  "properties": {
+    "asset": {
+      "type": "string"
+    },
+    "ticker": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "region": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "asset_class": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tier": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "portfolio_role": {
+      "type": "string"
+    },
+    "current_price": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "currency": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "price_timestamp": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "intrinsic_value_low": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "intrinsic_value_high": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "margin_of_safety_pct": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "rating": {
+      "enum": [
+        "Strong Buy",
+        "Buy",
+        "Accumulate",
+        "Hold",
+        "Reduce",
+        "Sell / Avoid",
+        "Insufficient Evidence"
+      ]
+    },
+    "decision": {
+      "type": "string"
+    },
+    "interpretation": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "neoos-evidence.schema.json"
+      }
+    },
+    "key_risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "thesis": {
+      "type": "string"
+    },
+    "invalidation_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "deployment_method": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "position_limit_pct": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "review_date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

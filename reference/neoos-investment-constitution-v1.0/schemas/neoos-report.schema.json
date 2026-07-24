@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "neoos-report.schema.json",
+  "title": "NeoOS Investment Report",
+  "type": "object",
+  "required": [
+    "dashboard",
+    "audit"
+  ],
+  "properties": {
+    "dashboard": {
+      "$ref": "neoos-dashboard.schema.json"
+    },
+    "audit": {
+      "type": "object",
+      "required": [
+        "methodology",
+        "assumptions",
+        "limitations"
+      ],
+      "properties": {
+        "methodology": {
+          "type": "string"
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exceptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

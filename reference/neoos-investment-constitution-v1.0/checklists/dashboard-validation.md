@@ -1,0 +1,11 @@
+# Dashboard Validation Checklist
+- [ ] Timestamp and versions included
+- [ ] Market regime, cash score, market score, NOI, deployment gauge, Strong Buy count included
+- [ ] Reserve fields included or marked unavailable
+- [ ] Rankings are global, not familiarity-biased
+- [ ] Every asset has score, rating, decision, interpretation, confidence
+- [ ] Current price verified or unavailable
+- [ ] Filing date and validation status recorded
+- [ ] Risks and invalidation conditions stated
+- [ ] Deployment method stated
+- [ ] Commentary is sober and brief

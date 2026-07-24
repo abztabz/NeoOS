@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "neoos-evidence.schema.json",
+  "title": "NeoOS Evidence Item",
+  "type": "object",
+  "required": [
+    "source_type",
+    "source_name",
+    "as_of",
+    "supports"
+  ],
+  "properties": {
+    "source_type": {
+      "enum": [
+        "official",
+        "market_data",
+        "independent_research",
+        "macro",
+        "trusted_news",
+        "sentiment"
+      ]
+    },
+    "source_name": {
+      "type": "string"
+    },
+    "document_or_dataset": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "as_of": {
+      "type": "string"
+    },
+    "supports": {
+      "type": "string"
+    },
+    "url_or_reference": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "verified": {
+      "type": "boolean"
+    }
+  }
+}

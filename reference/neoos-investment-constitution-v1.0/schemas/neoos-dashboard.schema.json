@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "neoos-dashboard.schema.json",
+  "title": "NeoOS Investment Dashboard",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "constitution_version",
+    "analysis_timestamp",
+    "market_regime",
+    "capital_allocation",
+    "assets"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "constitution_version": {
+      "type": "string"
+    },
+    "analysis_timestamp": {
+      "type": "string"
+    },
+    "market_regime": {
+      "type": "string"
+    },
+    "neoos_opportunity_index": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "capital_allocation": {
+      "type": "object",
+      "required": [
+        "cash_score",
+        "market_score",
+        "deployment_gauge",
+        "strong_buy_count"
+      ],
+      "properties": {
+        "cash_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "market_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "deployment_gauge": {
+          "type": "string"
+        },
+        "strong_buy_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "available_cash": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "minimum_cash_reserve": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "preferred_cash_reserve": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "investable_cash": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "reserve_coverage": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deployment_status": {
+          "type": "string"
+        },
+        "opportunity_capacity": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "$ref": "neoos-asset.schema.json"
+      }
+    },
+    "material_changes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "morpheus_commentary": {
+      "type": "string"
+    }
+  }
+}

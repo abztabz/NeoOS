@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>NeoOS CIO Dashboard</title>
+<style>
+:root{
+  --bg:#050607;
+  --panel:#0d1115;
+  --panel2:#111820;
+  --line:#26313b;
+  --text:#f7fafc;
+  --muted:#8f9ba7;
+  --cyan:#54d6ff;
+  --green:#64f0a5;
+  --amber:#f2b56b;
+  --red:#ff7b7b;
+  --shadow:0 20px 60px rgba(0,0,0,.45);
+  --radius:22px;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{
+  margin:0;
+  min-height:100vh;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 85% -10%,rgba(84,214,255,.16),transparent 30%),
+    radial-gradient(circle at -10% 25%,rgba(100,240,165,.08),transparent 28%),
+    linear-gradient(180deg,#050607 0%,#080b0e 100%);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button,input{font:inherit}
+.wrap{max-width:1320px;margin:0 auto;padding:18px 16px 40px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
+.brand{display:flex;gap:11px;align-items:center;min-width:0}
+.mark{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;font-weight:900;color:#071015;background:linear-gradient(135deg,#dff8ff,#54d6ff 48%,#64f0a5);box-shadow:0 0 30px rgba(84,214,255,.24)}
+.brand h1{font-size:17px;line-height:1.1;margin:0;letter-spacing:.02em}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.status{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 14px rgba(242,181,107,.7)}
+.hero{
+  position:relative;overflow:hidden;
+  background:linear-gradient(160deg,rgba(18,25,32,.98),rgba(10,14,18,.98));
+  border:1px solid #293540;border-radius:28px;padding:20px;box-shadow:var(--shadow);margin-bottom:14px
+}
+.hero:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(84,214,255,.06),transparent 28%,transparent 72%,rgba(100,240,165,.04));pointer-events:none}
+.eyebrow{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#aab6c1;font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px}
+.hero-grid{display:grid;grid-template-columns:1.35fr .65fr;gap:20px;align-items:end}
+.hero h2{font-size:28px;line-height:1.03;margin:0 0 8px;letter-spacing:-.035em}
+.regime{display:inline-flex;align-items:center;gap:8px;color:#d8e1e8;font-size:12px}
+.regime b{color:var(--cyan)}
+.deploy-number{text-align:right}
+.deploy-number .num{font-size:58px;line-height:.9;font-weight:850;letter-spacing:-.07em;color:var(--amber);text-shadow:0 0 28px rgba(242,181,107,.16)}
+.deploy-number .label{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:8px}
+.gauge{margin-top:20px}
+.gauge-track{height:18px;border-radius:7px;background:#1b232b;border:1px solid #303d49;padding:3px;overflow:hidden;position:relative}
+.gauge-fill{height:100%;width:35%;border-radius:4px;background:linear-gradient(90deg,#9aa7b4 0%,#dce7f0 55%,#f2b56b 100%);box-shadow:0 0 18px rgba(242,181,107,.22)}
+.gauge-track:after{content:"";position:absolute;inset:3px;background:repeating-linear-gradient(90deg,transparent 0 5px,rgba(5,7,9,.55) 5px 7px);pointer-events:none}
+.scale{display:flex;justify-content:space-between;margin-top:7px;color:#65717d;font-size:9px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.recommendation{margin-top:15px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:end}
+.recommendation span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+.recommendation strong{font-size:22px;letter-spacing:-.02em;color:#fff}
+.recommendation small{display:block;color:#9aa7b3;font-size:12px;margin-top:4px;line-height:1.45}
+.metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+.metric{background:rgba(13,17,21,.92);border:1px solid var(--line);border-radius:18px;padding:14px;min-height:108px;box-shadow:0 10px 32px rgba(0,0,0,.2)}
+.metric .k{font-size:9px;color:var(--muted);letter-spacing:.13em;text-transform:uppercase;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.metric .v{font-size:29px;font-weight:820;margin-top:13px;letter-spacing:-.04em}
+.metric .s{font-size:10px;color:#7f8b96;margin-top:6px;line-height:1.3}
+.cyan{color:var(--cyan)} .green{color:var(--green)} .amber{color:var(--amber)} .red{color:var(--red)}
+.main{display:grid;grid-template-columns:1.45fr .55fr;gap:14px}
+.card{background:rgba(13,17,21,.94);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:0 12px 38px rgba(0,0,0,.22);margin-bottom:14px}
+.card-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
+.card-title h3{margin:0;font-size:13px;letter-spacing:.04em}
+.card-title span{color:var(--muted);font-size:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.table-wrap{overflow:auto;border-radius:13px;border:1px solid #202a33}
+table{width:100%;border-collapse:collapse;min-width:720px;font-size:12px}
+th{color:#84919d;font-size:9px;letter-spacing:.12em;text-transform:uppercase;text-align:left;padding:11px 10px;background:#0b0f13;border-bottom:1px solid #25303a}
+td{padding:12px 10px;border-bottom:1px solid #202a33;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.asset{font-weight:750}.ticker{display:block;font-size:9px;color:#6f7d89;margin-top:3px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.score{font-weight:850;font-size:15px}
+.pill{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;border:1px solid}
+.pill.buy{color:#bdfbd5;background:rgba(100,240,165,.08);border-color:rgba(100,240,165,.32)}
+.pill.acc{color:#c8f3ff;background:rgba(84,214,255,.08);border-color:rgba(84,214,255,.32)}
+.pill.hold{color:#d5dbe0;background:rgba(160,170,180,.08);border-color:rgba(160,170,180,.25)}
+.pill.avoid{color:#ffd0d0;background:rgba(255,123,123,.08);border-color:rgba(255,123,123,.28)}
+.stack{display:grid;gap:9px}
+.item{padding:12px;border-radius:14px;background:#10161c;border:1px solid #222d36}
+.item-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.item strong{font-size:12px}.item em{font-style:normal;color:var(--cyan);font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.item p{margin:6px 0 0;color:#8e9aa5;font-size:10px;line-height:1.45}
+.bar{height:6px;border-radius:999px;background:#202a33;margin-top:9px;overflow:hidden}.bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--cyan),var(--green))}
+.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.action{padding:13px;border-radius:15px;background:#10161c;border:1px solid #222d36}.action b{display:block;font-size:11px;margin-bottom:5px}.action span{font-size:10px;color:#8e9aa5;line-height:1.35}
+.commentary{font-size:13px;line-height:1.65;color:#d6dee5}
+.footer{padding:4px 2px 0;color:#61707d;font-size:9px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;letter-spacing:.08em}
+@media(max-width:980px){.metrics{grid-template-columns:repeat(3,1fr)}.main{grid-template-columns:1fr}}
+@media(max-width:620px){
+  .wrap{padding:14px 12px 30px}.topbar{margin-bottom:12px}.brand p{display:none}.status{font-size:9px}
+  .hero{padding:17px;border-radius:24px}.hero-grid{grid-template-columns:1fr auto;gap:10px}.hero h2{font-size:24px}.deploy-number .num{font-size:48px}
+  .recommendation{display:block}.recommendation strong{font-size:20px}.recommendation .right{margin-top:10px}
+  .metrics{grid-template-columns:repeat(2,1fr);gap:8px}.metric{min-height:96px;padding:12px}.metric .v{font-size:25px}
+  .card{padding:14px;border-radius:19px}.actions{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">N</div>
+      <div><h1>NeoOS CIO</h1><p>Capital Allocation Operating System</p></div>
+    </div>
+    <div class="status"><span class="dot"></span>DEMO MODE · NO LIVE DATA</div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">Primary Decision</div>
+    <div class="hero-grid">
+      <div>
+        <h2>Capital Deployment Gauge</h2>
+        <div class="regime">Market weather: <b>NEUTRAL / CLOUDY</b></div>
+      </div>
+      <div class="deploy-number"><div class="num">35%</div><div class="label">Deployment intensity</div></div>
+    </div>
+    <div class="gauge">
+      <div class="gauge-track"><div class="gauge-fill"></div></div>
+      <div class="scale"><span>PRESERVE CASH</span><span>GRADUAL</span><span>MAXIMUM</span></div>
+    </div>
+    <div class="recommendation">
+      <div><span>Recommendation</span><strong>Deploy Gradually</strong><small>Use selective tranches. Keep the majority of capital available for better prices.</small></div>
+      <div class="right"><span>Accelerator posture</span><strong class="amber">LIGHT PRESSURE</strong></div>
+    </div>
+  </section>
+
+  <section class="metrics">
+    <div class="metric"><div class="k">Cash Score</div><div class="v amber">76</div><div class="s">Cash remains competitive</div></div>
+    <div class="metric"><div class="k">Market Score</div><div class="v cyan">62</div><div class="s">Selective opportunity</div></div>
+    <div class="metric"><div class="k">Opportunity Index</div><div class="v">58</div><div class="s">Neutral regime</div></div>
+    <div class="metric"><div class="k">Confidence</div><div class="v green">78%</div><div class="s">Evidence weighted</div></div>
+    <div class="metric"><div class="k">Strong Buys</div><div class="v">0</div><div class="s">Rarity enforced</div></div>
+    <div class="metric"><div class="k">Evidence Integrity</div><div class="v green">91</div><div class="s">Current sources required</div></div>
+  </section>
+
+  <div class="main">
+    <div>
+      <section class="card">
+        <div class="card-title"><h3>GLOBAL OPPORTUNITY RANKING</h3><span>UPDATED 12:00 GST</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Asset</th><th>Role</th><th>Score</th><th>Rating</th><th>Action</th><th>Confidence</th></tr></thead>
+            <tbody>
+              <tr><td>01</td><td><span class="asset">Short-duration government bills</span><span class="ticker">TIER 1 · CAPITAL PRESERVATION</span></td><td>Liquidity</td><td class="score">87</td><td><span class="pill buy">Buy</span></td><td>Deploy gradually</td><td>92%</td></tr>
+              <tr><td>02</td><td><span class="asset">Developed-market value ETF</span><span class="ticker">TIER 2 · COMPOUNDER</span></td><td>Growth</td><td class="score">82</td><td><span class="pill acc">Accumulate</span></td><td>Three tranches</td><td>84%</td></tr>
+              <tr><td>03</td><td><span class="asset">Gold</span><span class="ticker">TIER 4 · STRATEGIC HEDGE</span></td><td>Protection</td><td class="score">73</td><td><span class="pill acc">Accumulate</span></td><td>Small allocation</td><td>88%</td></tr>
+              <tr><td>04</td><td><span class="asset">Broad US market ETF</span><span class="ticker">TIER 2 · COMPOUNDER</span></td><td>Core growth</td><td class="score">66</td><td><span class="pill hold">Hold</span></td><td>Wait for value</td><td>86%</td></tr>
+              <tr><td>05</td><td><span class="asset">Speculative AI basket</span><span class="ticker">TIER 5 · OPTIONALITY</span></td><td>Speculation</td><td class="score">34</td><td><span class="pill avoid">Avoid</span></td><td>No capital</td><td>76%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title"><h3>DECISION BOARD</h3><span>BUY / HOLD / SELL</span></div>
+        <div class="actions">
+          <div class="action"><b class="green">BUY</b><span>Short-duration government bills</span></div>
+          <div class="action"><b class="cyan">ACCUMULATE</b><span>Developed-market value ETF · Gold</span></div>
+          <div class="action"><b>HOLD</b><span>Broad US market ETF</span></div>
+          <div class="action"><b class="red">AVOID</b><span>Speculative AI momentum basket</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title"><h3>MORPHEUS COMMENTARY</h3><span>CIO VIEW</span></div>
+        <div class="commentary">The opportunity set is usable, not exceptional. Press the accelerator lightly: build positions only where price and evidence justify it, keep substantial liquidity, and refuse to chase assets that require perfect outcomes.</div>
+      </section>
+    </div>
+
+    <aside>
+      <section class="card">
+        <div class="card-title"><h3>FAMILY OFFICE HEALTH</h3><span>5 TIERS</span></div>
+        <div class="stack">
+          <div class="item"><div class="item-top"><strong>Capital Preservation</strong><em>70</em></div><p>Balanced</p><div class="bar"><i style="width:70%"></i></div></div>
+          <div class="item"><div class="item-top"><strong>Compounders</strong><em>48</em></div><p>Underweight</p><div class="bar"><i style="width:48%"></i></div></div>
+          <div class="item"><div class="item-top"><strong>Opportunistic Value</strong><em>35</em></div><p>Underweight</p><div class="bar"><i style="width:35%"></i></div></div>
+          <div class="item"><div class="item-top"><strong>Strategic Hedges</strong><em>62</em></div><p>Balanced</p><div class="bar"><i style="width:62%"></i></div></div>
+          <div class="item"><div class="item-top"><strong>Optionality</strong><em>18</em></div><p>Low by design</p><div class="bar"><i style="width:18%"></i></div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title"><h3>WATCHLIST</h3><span>PRICE DISCIPLINE</span></div>
+        <div class="stack">
+          <div class="item"><div class="item-top"><strong>Quality compounder</strong><em>WATCH</em></div><p>Buy below 100 · Strong Buy below 82</p></div>
+          <div class="item"><div class="item-top"><strong>Global value ETF</strong><em>WATCH</em></div><p>Buy below 50 · Strong Buy below 42</p></div>
+          <div class="item"><div class="item-top"><strong>Infrastructure</strong><em>VERIFY</em></div><p>Await latest filing and current price</p></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title"><h3>DEPLOYMENT PLAN</h3><span>EXECUTION</span></div>
+        <div class="stack">
+          <div class="item"><div class="item-top"><strong>Initial tranche</strong><em>20–25%</em></div><p>Of confirmed investable cash</p></div>
+          <div class="item"><div class="item-top"><strong>Method</strong><em>3 STEPS</em></div><p>Price and evidence triggered</p></div>
+          <div class="item"><div class="item-top"><strong>Reserve rule</strong><em>MANDATORY</em></div><p>Do not deploy required family capital</p></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="footer">NEOOS INVESTMENT CONSTITUTION v1.0 · DEMONSTRATION DATA ONLY</div>
+</div>
+</body>
+</html>

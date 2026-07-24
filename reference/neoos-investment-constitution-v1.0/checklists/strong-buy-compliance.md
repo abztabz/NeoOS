@@ -1,0 +1,16 @@
+# Strong Buy Compliance Checklist
+- [ ] Current official data
+- [ ] Verified current price
+- [ ] Independent NeoOS valuation
+- [ ] Conservative intrinsic-value range
+- [ ] Substantial margin of safety
+- [ ] Strong balance sheet or asset quality
+- [ ] Durable economics or cash-flow support
+- [ ] Independent external validation
+- [ ] Current material news reviewed
+- [ ] Acceptable downside
+- [ ] Governance acceptable
+- [ ] Portfolio fit confirmed
+- [ ] Position limit defined
+- [ ] Invalidation conditions defined
+- [ ] High or Very High confidence
