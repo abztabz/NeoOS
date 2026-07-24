@@ -83,10 +83,15 @@ export interface EngineReportFile {
 }
 
 /**
- * Price thresholds derive from the valuation trace (see SCORING_METHODOLOGY):
- * Buy Below = price where the valuation factor reaches Buy grade (raw 85 ⇒
- * MoS 25%); Strong Buy Below = Strong Buy grade (raw 95 ⇒ MoS ~32.1%).
+ * Price thresholds derive from the valuation trace (see SCORING_METHODOLOGY).
+ * valuationRawScore(mos) = 50 + mos × 140, so:
+ *   Buy grade (85)        ⇒ mos = 35/140 = 25.0%  ⇒ price = conservative × 0.750
+ *   Strong Buy grade (95) ⇒ mos = 45/140 ≈ 32.1%  ⇒ price = conservative × 0.679
+ * Both are expressed against the CONSERVATIVE value, never the base case.
  */
+const BUY_GRADE_MOS = 35 / 140;
+const STRONG_BUY_GRADE_MOS = 45 / 140;
+
 export function buyThresholds(conservativeValue: number | null): {
   buyBelow: number | null;
   strongBuyBelow: number | null;
@@ -95,8 +100,8 @@ export function buyThresholds(conservativeValue: number | null): {
     return { buyBelow: null, strongBuyBelow: null };
   }
   return {
-    buyBelow: conservativeValue * (1 - 25 / 140),
-    strongBuyBelow: conservativeValue * (1 - 45 / 140),
+    buyBelow: conservativeValue * (1 - BUY_GRADE_MOS),
+    strongBuyBelow: conservativeValue * (1 - STRONG_BUY_GRADE_MOS),
   };
 }
 
