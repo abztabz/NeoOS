@@ -357,6 +357,11 @@ function finish(draft: TrendDraft): TrendObservation {
   const direction: TrendDirection = flat ? "flat" : change > 0 ? "rising" : "falling";
 
   const caveats = [...draft.caveats];
+  if (draft.unit === "currency") {
+    caveats.unshift(
+      "Nominal. No purchasing-power series is connected, so NeoOS cannot say whether this is real growth or erosion.",
+    );
+  }
   if (sufficiency !== "established") {
     caveats.unshift(
       `${trendSufficiencyLabels[sufficiency]}. ${draft.series.length} recorded versions over ${spanDays} days.`,
@@ -395,6 +400,17 @@ function finish(draft: TrendDraft): TrendObservation {
  * A short series still signals. Suppressing a large move because the record is
  * thin would hide the threat and keep the caveat, which is the wrong way round —
  * the caveat travels with the observation instead.
+ *
+ * **A nominal magnitude never signals an opportunity.** Currency series are
+ * nominal, and no purchasing-power series is connected, so a position up 12% in
+ * a year with prices up 15% is erosion. NeoOS cannot tell which, and calling it
+ * an opportunity would assert something it has no basis for.
+ *
+ * The reverse direction is sound and stays: whenever inflation is non-negative,
+ * a nominal fall is a real fall of at least the same size. So a decline can be
+ * named a threat on the evidence available, and a rise cannot be named good
+ * news. That is provable rather than a convention, and it happens to point the
+ * same way as the asymmetry above.
  */
 function classify(
   direction: TrendDirection,
@@ -409,6 +425,7 @@ function classify(
   const opportunityAt = unit === "share" ? OPPORTUNITY_SHARE_POINTS : OPPORTUNITY_VALUE_RELATIVE;
 
   if (direction === adverse) return magnitude >= threatAt ? "threat" : "neutral";
+  if (unit === "currency") return "neutral";
   return magnitude >= opportunityAt ? "opportunity" : "neutral";
 }
 

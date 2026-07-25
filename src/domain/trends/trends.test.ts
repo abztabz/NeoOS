@@ -190,6 +190,53 @@ describe("threat and opportunity asymmetry", () => {
   });
 });
 
+describe("nominal figures are not real ones", () => {
+  /** Net position moving by the given multiple over one year. */
+  function netPositionOver(multiple: number) {
+    const profiles = [1, multiple].map((factor, index) =>
+      version(`profile-${index}`, index === 0 ? "2025-01-01T00:00:00.000Z" : "2026-01-01T00:00:00.000Z", [
+        asset({ assetHoldingId: "a", amount: 1_000_000 * factor }),
+      ]),
+    );
+    return computePositionTrends(profiles).trends.find((t) => t.trendId === "net-position-aed");
+  }
+
+  it("never calls a nominal rise an opportunity", () => {
+    // Up 12% in a year with prices up 15% is erosion. With no purchasing-power
+    // series connected, NeoOS cannot tell which happened, and asserting the good
+    // reading would be asserting something it has no basis for.
+    const rising = netPositionOver(1.12);
+    expect(rising?.direction).toBe("rising");
+    expect(rising?.signal).toBe("neutral");
+  });
+
+  it("still calls a nominal fall a threat", () => {
+    // Sound on the evidence available: whenever inflation is non-negative, a
+    // nominal fall is a real fall of at least the same size.
+    const falling = netPositionOver(0.88);
+    expect(falling?.direction).toBe("falling");
+    expect(falling?.signal).toBe("threat");
+  });
+
+  it("says the figure is nominal on every currency series", () => {
+    expect(netPositionOver(1.12)?.caveats.join(" ")).toMatch(/Nominal\..*real growth or erosion/i);
+  });
+
+  it("leaves share-based trends free to signal an opportunity", () => {
+    // Shares are ratios within one currency, so purchasing power cancels out.
+    const profiles = [0.75, 0.6].map((equityShare, index) =>
+      version(`profile-${index}`, index === 0 ? "2025-01-01T00:00:00.000Z" : "2026-01-01T00:00:00.000Z", [
+        asset({ assetHoldingId: "equities", kind: "listed_equity", amount: equityShare * 1_000_000 }),
+        asset({ assetHoldingId: "cash", kind: "cash", amount: (1 - equityShare) * 1_000_000 }),
+      ]),
+    );
+    const trend = computePositionTrends(profiles).trends.find(
+      (t) => t.trendId === "asset-kind-share-listed-equity-aed",
+    );
+    expect(trend?.signal).toBe("opportunity");
+  });
+});
+
 describe("currency discipline", () => {
   it("keeps each currency on its own line rather than summing them", () => {
     const profiles = [0, 1].map((index) =>
