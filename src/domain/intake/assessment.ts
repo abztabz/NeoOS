@@ -3,6 +3,7 @@ import {
   ASSET_KIND_PRICEABLE,
   type AssetHolding,
   type AssetKind,
+  type Dependent,
   type IntakeProfile,
 } from "@/domain/intake/types";
 
@@ -61,6 +62,8 @@ export function assessCompleteness(profile: IntakeProfile): CompletenessAssessme
   const hasAssets = profile.assets.length > 0;
   const hasIncome = profile.incomeSources.length > 0;
   const hasBaseCurrency = profile.objective.baseCurrency !== null;
+  const hasHousehold =
+    profile.household.dependents.length > 0 || profile.household.monthlyObligations !== null;
   const hasReserve = profile.objective.reserveMonths !== null;
   const hasHorizon = profile.objective.horizonYears !== null;
 
@@ -106,6 +109,22 @@ export function assessCompleteness(profile: IntakeProfile): CompletenessAssessme
       severity: "limiting",
     });
   }
+  if (!hasHousehold) {
+    missing.push({
+      field: "household",
+      unlocks:
+        "Who this capital is for. Dependents change the reserve, the horizon, and what preservation means.",
+      severity: "limiting",
+    });
+  }
+  if (profile.household.succession.structure === "unknown") {
+    missing.push({
+      field: "household.succession",
+      unlocks:
+        "Whether capital would actually reach your family. Wealth that cannot transfer is not generational, whatever its size.",
+      severity: "limiting",
+    });
+  }
   if (hasAssets && profile.liabilities.length === 0) {
     missing.push({
       field: "liabilities",
@@ -120,13 +139,15 @@ export function assessCompleteness(profile: IntakeProfile): CompletenessAssessme
 
   // Weighted by how much each input contributes to a personal answer.
   const weights: [boolean, number][] = [
-    [hasAssets, 30],
-    [hasIncome, 25],
-    [hasBaseCurrency, 15],
-    [hasReserve, 10],
-    [hasHorizon, 8],
-    [profile.objective.maxDrawdownTolerancePercent !== null, 6],
-    [profile.liabilities.length > 0, 6],
+    [hasAssets, 26],
+    [hasIncome, 22],
+    [hasBaseCurrency, 13],
+    [hasHousehold, 12],
+    [hasReserve, 9],
+    [hasHorizon, 7],
+    [profile.household.succession.structure !== "unknown", 6],
+    [profile.objective.maxDrawdownTolerancePercent !== null, 5],
+    [profile.liabilities.length > 0, 5],
   ];
   const completeness = weights.reduce((sum, [present, w]) => sum + (present ? w : 0), 0);
 
@@ -373,4 +394,84 @@ export function deployableCapital(profile: IntakeProfile): {
 /** Asset kinds the subject holds. Used to see what the position is missing. */
 export function heldKinds(profile: IntakeProfile): AssetKind[] {
   return [...new Set(profile.assets.map((a) => a.kind))];
+}
+
+
+/* ---------------- the family the capital is for ---------------- */
+
+/**
+ * Obligations that outlast the subject's working life.
+ *
+ * A dependent supported indefinitely turns a horizon into a perpetuity, which
+ * is a different problem from funding a finite goal: it cannot be solved by
+ * living long enough, only by capital that produces income without being
+ * consumed.
+ */
+export interface HouseholdAssessment {
+  dependentCount: number;
+  supportedCount: number;
+  /** Dependents whose support has no stated end. */
+  indefiniteSupport: Dependent[];
+  /**
+   * The year the last known finite support obligation ends. Null when there are
+   * none, or when any support is indefinite — in which case there is no such
+   * year, and reporting one would be false comfort.
+   */
+  lastSupportYear: number | null;
+  /** Costs the subject has already named as coming. */
+  anticipatedObligations: string[];
+  /** Whether capital would actually reach the family. */
+  successionInPlace: boolean;
+  /** Risks to that, whether structural or stated by the subject. */
+  successionConcerns: string[];
+}
+
+export function assessHousehold(profile: IntakeProfile): HouseholdAssessment {
+  const dependents = profile.household.dependents;
+  const supported = dependents.filter((d) => d.financiallySupported);
+  const indefinite = supported.filter((d) => d.supportIsIndefinite);
+
+  const finiteYears = supported
+    .filter((d) => !d.supportIsIndefinite)
+    .map((d) => d.supportExpectedUntilYear)
+    .filter((y): y is number => y !== null);
+
+  const structure = profile.household.succession.structure;
+  const concerns: string[] = [...profile.household.succession.knownTransferRisks];
+
+  if (structure === "none") {
+    concerns.push("No succession structure is in place, so distribution would follow default law.");
+  }
+  if (structure === "unknown") {
+    concerns.push("Succession arrangements have not been recorded, so transfer cannot be assessed.");
+  }
+  if (profile.household.succession.reviewedRecently === false) {
+    concerns.push("The succession structure has not been reviewed recently and may not reflect current intent.");
+  }
+  if (profile.household.continuityContactExists === false) {
+    concerns.push(
+      "Nobody else can take over these affairs. A single point of failure in a family's finances is a preservation risk no allocation offsets.",
+    );
+  }
+  // Assets NeoOS cannot price are also usually the hardest to transfer.
+  const illiquidShare = profile.assets.filter(
+    (a) => a.liquidity === "illiquid" || a.liquidity === "years",
+  );
+  if (illiquidShare.length > 0 && structure !== "trust" && structure !== "foundation") {
+    concerns.push(
+      `${illiquidShare.length} holding(s) would be slow or impossible to realise, with no structure holding them.`,
+    );
+  }
+
+  return {
+    dependentCount: dependents.length,
+    supportedCount: supported.length,
+    indefiniteSupport: indefinite,
+    lastSupportYear: indefinite.length > 0 || finiteYears.length === 0 ? null : Math.max(...finiteYears),
+    anticipatedObligations: dependents
+      .map((d) => d.anticipatedObligation)
+      .filter((o): o is string => o !== null && o.length > 0),
+    successionInPlace: structure !== "none" && structure !== "unknown",
+    successionConcerns: concerns,
+  };
 }

@@ -11,6 +11,9 @@ import {
   type IncomeSource,
   type IntakeProfile,
   type Liability,
+  type Dependent,
+  dependentRelationships,
+  emptyHousehold,
 } from "@/domain/intake/types";
 import {
   assessCompleteness,
@@ -21,6 +24,7 @@ import {
   deployableCapital,
   incomeBreakdown,
   priceableSplit,
+  assessHousehold,
 } from "@/domain/intake/assessment";
 
 const NOW = "2026-07-25T09:00:00.000Z";
@@ -316,5 +320,92 @@ describe("deployable capital", () => {
     const result = deployableCapital(p);
     expect(result.reserveApplied).toBe(false);
     expect(result.reason).toMatch(/cannot be sized/);
+  });
+});
+
+describe("who the capital is for", () => {
+  function dependent(overrides: Partial<Dependent> = {}): Dependent {
+    return {
+      dependentId: `dep-${Math.random().toString(36).slice(2, 8)}`,
+      relationship: "child",
+      label: "Child",
+      birthYear: 2018,
+      financiallySupported: true,
+      supportExpectedUntilYear: 2040,
+      supportIsIndefinite: false,
+      anticipatedObligation: null,
+      notes: null,
+      ...overrides,
+    };
+  }
+
+  it("does not assume dependents are children", () => {
+    // Support commonly flows to parents and siblings, not only downward.
+    for (const relationship of ["parent", "sibling", "spouse", "extended_family"] as const) {
+      expect(dependentRelationships).toContain(relationship);
+    }
+  });
+
+  it("finds the last year a finite support obligation ends", () => {
+    const p = profile({
+      household: {
+        ...emptyHousehold(),
+        dependents: [
+          dependent({ supportExpectedUntilYear: 2036 }),
+          dependent({ supportExpectedUntilYear: 2044 }),
+        ],
+      },
+    });
+    expect(assessHousehold(p).lastSupportYear).toBe(2044);
+  });
+
+  it("reports no last year when any support is indefinite", () => {
+    const p = profile({
+      household: {
+        ...emptyHousehold(),
+        dependents: [
+          dependent({ supportExpectedUntilYear: 2036 }),
+          dependent({ supportIsIndefinite: true, supportExpectedUntilYear: null }),
+        ],
+      },
+    });
+    const assessment = assessHousehold(p);
+    // Indefinite support turns a horizon into a perpetuity. Reporting an end
+    // year would be false comfort about a problem that has no end date.
+    expect(assessment.lastSupportYear).toBeNull();
+    expect(assessment.indefiniteSupport).toHaveLength(1);
+  });
+
+  it("flags an absent succession structure as a risk to the family", () => {
+    const p = profile({
+      household: { ...emptyHousehold(), succession: { ...emptyHousehold().succession, structure: "none" } },
+    });
+    const assessment = assessHousehold(p);
+    expect(assessment.successionInPlace).toBe(false);
+    expect(assessment.successionConcerns.join(" ")).toMatch(/default law/);
+  });
+
+  it("flags a single point of failure in the family's finances", () => {
+    const p = profile({
+      household: { ...emptyHousehold(), continuityContactExists: false },
+    });
+    expect(assessHousehold(p).successionConcerns.join(" ")).toMatch(/single point of failure/);
+  });
+
+  it("notices illiquid holdings with no structure holding them", () => {
+    const p = profile({
+      assets: [asset({ kind: "private_business", liquidity: "illiquid" })],
+      household: { ...emptyHousehold(), succession: { ...emptyHousehold().succession, structure: "will" } },
+    });
+    expect(assessHousehold(p).successionConcerns.join(" ")).toMatch(/slow or impossible to realise/);
+  });
+
+  it("treats not knowing the succession position as missing, not as none", () => {
+    const assessment = assessCompleteness(profile());
+    const fields = assessment.missing.map((m) => m.field);
+    expect(fields).toContain("household");
+    expect(fields).toContain("household.succession");
+    const succession = assessment.missing.find((m) => m.field === "household.succession");
+    expect(succession?.unlocks).toMatch(/not generational, whatever its size/);
   });
 });

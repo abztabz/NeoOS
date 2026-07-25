@@ -338,6 +338,124 @@ export const liabilitySchema = z.object({
 });
 export type Liability = z.infer<typeof liabilitySchema>;
 
+/* ---------------- household ---------------- */
+
+/**
+ * Who the capital is actually for.
+ *
+ * A generational objective is not about the subject. It is about the people who
+ * depend on them now and the people who inherit later, and neither is knowable
+ * from a balance sheet. Dependents change the reserve requirement, the horizon,
+ * the tolerable drawdown, and what "preservation" even means.
+ *
+ * In this region in particular, support commonly flows to parents and siblings
+ * as well as downward, so the model does not assume dependents are children.
+ */
+export const dependentRelationships = [
+  "child",
+  "spouse",
+  "parent",
+  "sibling",
+  "extended_family",
+  "other",
+] as const;
+export type DependentRelationship = (typeof dependentRelationships)[number];
+
+export const dependentSchema = z.object({
+  dependentId: z.string().min(1).max(64),
+  relationship: z.enum(dependentRelationships),
+  /** The subject's own label. Never required to be a real name. */
+  label: z.string().min(1).max(120),
+  /** Year of birth, where relevant to horizon. Null when not applicable. */
+  birthYear: z.number().int().min(1900).max(2200).nullable(),
+  /**
+   * Whether the subject currently supports them financially, and until when.
+   * A child at university and an adult sibling are different obligations.
+   */
+  financiallySupported: z.boolean(),
+  supportExpectedUntilYear: z.number().int().min(1900).max(2200).nullable(),
+  /**
+   * Support that does not end — a disability, a lifelong commitment. It changes
+   * the objective from a horizon to a perpetuity, which is a different problem.
+   */
+  supportIsIndefinite: z.boolean(),
+  /** Known future cost the subject is planning for: education, care, a home. */
+  anticipatedObligation: z.string().max(300).nullable(),
+  notes: z.string().max(1000).nullable(),
+});
+export type Dependent = z.infer<typeof dependentSchema>;
+
+/**
+ * How capital passes on.
+ *
+ * Wealth that cannot transfer is not generational, whatever its size. An estate
+ * that is large and unstructured can lose a great deal of itself in the passing,
+ * and that risk is invisible to any measure of return.
+ */
+export const successionStructures = [
+  "none",
+  "will",
+  "trust",
+  "foundation",
+  "company",
+  "mixed",
+  "unknown",
+] as const;
+export type SuccessionStructure = (typeof successionStructures)[number];
+
+export const successionStructureLabels: Record<SuccessionStructure, string> = {
+  none: "Nothing in place",
+  will: "Will",
+  trust: "Trust",
+  foundation: "Foundation",
+  company: "Holding company",
+  mixed: "More than one structure",
+  unknown: "Not established",
+};
+
+export const householdSchema = z.object({
+  dependents: z.array(dependentSchema),
+  /**
+   * Recurring household cost, separate from debt service. The other half of
+   * sizing a reserve: obligations are not only what is owed to lenders.
+   */
+  monthlyObligations: statedAmountSchema.nullable(),
+  succession: z.object({
+    structure: z.enum(successionStructures),
+    /** Where succession would be administered. Jurisdiction decides outcomes. */
+    jurisdiction: jurisdictionSchema.nullable(),
+    /** Whether the subject believes it reflects their current intent. */
+    reviewedRecently: z.boolean().nullable(),
+    /** Assets the subject knows would be hard to transfer. */
+    knownTransferRisks: z.array(z.string().max(300)),
+    notes: z.string().max(1000).nullable(),
+  }),
+  /**
+   * Whether anyone else could take over the subject's affairs if they could
+   * not. A single point of failure in a family's finances is a preservation
+   * risk that no allocation can offset.
+   */
+  continuityContactExists: z.boolean().nullable(),
+  notes: z.string().max(2000).nullable(),
+});
+export type Household = z.infer<typeof householdSchema>;
+
+export function emptyHousehold(): Household {
+  return {
+    dependents: [],
+    monthlyObligations: null,
+    succession: {
+      structure: "unknown",
+      jurisdiction: null,
+      reviewedRecently: null,
+      knownTransferRisks: [],
+      notes: null,
+    },
+    continuityContactExists: null,
+    notes: null,
+  };
+}
+
 /* ---------------- objectives and constraints ---------------- */
 
 export const objectiveSchema = z.object({
@@ -379,6 +497,7 @@ export const intakeProfileSchema = z.object({
   incomeSources: z.array(incomeSourceSchema),
   assets: z.array(assetHoldingSchema),
   liabilities: z.array(liabilitySchema),
+  household: householdSchema,
   objective: objectiveSchema,
 });
 export type IntakeProfile = z.infer<typeof intakeProfileSchema>;
@@ -394,6 +513,7 @@ export function emptyProfile(subjectId: SubjectId, profileId: string, recordedAt
     incomeSources: [],
     assets: [],
     liabilities: [],
+    household: emptyHousehold(),
     objective: {
       reserveMonths: null,
       horizonYears: null,
