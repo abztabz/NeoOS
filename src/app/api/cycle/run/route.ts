@@ -46,9 +46,16 @@ export async function POST(request: Request) {
     } catch {
       return Response.json({ error: "Request body is not valid JSON." }, { status: 400 });
     }
-    const result = parsePortfolioContext((parsed as { context?: unknown })?.context ?? parsed);
-    if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
-    context = result.context;
+    const supplied = (parsed as { context?: unknown })?.context ?? parsed;
+    // An empty object means the caller supplied no portfolio, which is the same
+    // statement as sending no body at all. Rejecting it as invalid would fail
+    // every client that sends `{}` by default — iOS Shortcuts among them — with
+    // a validation error about a field the caller never meant to send.
+    if (!isEmptyObject(supplied)) {
+      const result = parsePortfolioContext(supplied);
+      if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
+      context = result.context;
+    }
   }
 
   const outcome = await runCycleNow({ trigger: "manual_api", triggeredBy: auth.principal, context });
@@ -84,5 +91,15 @@ export async function POST(request: Request) {
       alerts: result.alerts,
     },
     { headers: { "cache-control": "no-store" } },
+  );
+}
+
+/** True for `{}` — an object carrying no information at all. */
+function isEmptyObject(value: unknown): boolean {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value as Record<string, unknown>).length === 0
   );
 }
