@@ -1,0 +1,362 @@
+{
+  "cik": 1234567,
+  "entityName": "Fixture Issuer Inc.",
+  "facts": {
+    "dei": {
+      "EntityCommonStockSharesOutstanding": {
+        "label": "Entity Common Stock, Shares Outstanding",
+        "description": "Indicate number of shares outstanding.",
+        "units": {
+          "shares": [
+            {
+              "end": "2024-09-28",
+              "val": 1000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            },
+            {
+              "end": "2023-09-30",
+              "val": 1020000000,
+              "accn": "0001234567-23-000010",
+              "fy": 2023,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2023-11-03"
+            }
+          ]
+        }
+      }
+    },
+    "us-gaap": {
+      "Revenues": {
+        "label": "Revenues",
+        "description": "Legacy tag retained by this filer with values it no longer maintains.",
+        "units": {
+          "USD": [
+            {
+              "start": "2021-10-03",
+              "end": "2022-10-01",
+              "val": 300000000000,
+              "accn": "0001234567-22-000010",
+              "fy": 2022,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2022-10-28"
+            }
+          ]
+        }
+      },
+      "RevenueFromContractWithCustomerExcludingAssessedTax": {
+        "label": "Revenue from Contract with Customer, Excluding Assessed Tax",
+        "description": "Amount, excluding tax collected from customer, of revenue from satisfaction of performance obligation.",
+        "units": {
+          "USD": [
+            {
+              "start": "2023-10-01",
+              "end": "2024-09-28",
+              "val": 400000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            },
+            {
+              "start": "2022-10-02",
+              "end": "2023-09-30",
+              "val": 380000000000,
+              "accn": "0001234567-23-000010",
+              "fy": 2023,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2023-11-03"
+            },
+            {
+              "start": "2021-10-03",
+              "end": "2022-10-01",
+              "val": 360000000000,
+              "accn": "0001234567-22-000010",
+              "fy": 2022,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2022-10-28"
+            }
+          ]
+        }
+      },
+      "NetIncomeLoss": {
+        "label": "Net Income (Loss)",
+        "description": "The portion of profit or loss attributable to the parent.",
+        "units": {
+          "USD": [
+            {
+              "start": "2023-10-01",
+              "end": "2024-09-28",
+              "val": 95000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            },
+            {
+              "start": "2022-10-02",
+              "end": "2023-09-30",
+              "val": 88000000000,
+              "accn": "0001234567-23-000010",
+              "fy": 2023,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2023-11-03"
+            },
+            {
+              "start": "2022-10-02",
+              "end": "2023-09-30",
+              "val": 90000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2023,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            }
+          ]
+        }
+      },
+      "EarningsPerShareDiluted": {
+        "label": "Earnings Per Share, Diluted",
+        "description": "The amount of net income or loss for the period per each share of common stock and dilutive common stock equivalents.",
+        "units": {
+          "USD/shares": [
+            {
+              "start": "2023-10-01",
+              "end": "2024-09-28",
+              "val": 6.25,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            },
+            {
+              "start": "2022-10-02",
+              "end": "2023-09-30",
+              "val": 5.8,
+              "accn": "0001234567-23-000010",
+              "fy": 2023,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2023-11-03"
+            }
+          ]
+        }
+      },
+      "NetCashProvidedByUsedInOperatingActivities": {
+        "label": "Net Cash Provided by (Used in) Operating Activities",
+        "description": "Amount of cash inflow (outflow) from operating activities.",
+        "units": {
+          "USD": [
+            {
+              "start": "2023-10-01",
+              "end": "2024-09-28",
+              "val": 110000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            },
+            {
+              "start": "2024-06-30",
+              "end": "2024-09-28",
+              "val": 28000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "Q4",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            },
+            {
+              "start": "2024-03-31",
+              "end": "2024-06-29",
+              "val": 26000000000,
+              "accn": "0001234567-24-000006",
+              "fy": 2024,
+              "fp": "Q3",
+              "form": "10-Q",
+              "filed": "2024-08-02"
+            },
+            {
+              "start": "2022-10-02",
+              "end": "2023-09-30",
+              "val": 105000000000,
+              "accn": "0001234567-23-000010",
+              "fy": 2023,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2023-11-03"
+            }
+          ]
+        }
+      },
+      "PaymentsToAcquirePropertyPlantAndEquipment": {
+        "label": "Payments to Acquire Property, Plant, and Equipment",
+        "description": "The cash outflow for purchases of and capital improvements on property, plant and equipment.",
+        "units": {
+          "USD": [
+            {
+              "start": "2023-10-01",
+              "end": "2024-09-28",
+              "val": 11000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            }
+          ]
+        }
+      },
+      "StockholdersEquity": {
+        "label": "Stockholders' Equity Attributable to Parent",
+        "description": "Total of all stockholders' equity items.",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-09-28",
+              "val": 60000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            },
+            {
+              "end": "2023-09-30",
+              "val": 62000000000,
+              "accn": "0001234567-23-000010",
+              "fy": 2023,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2023-11-03"
+            }
+          ]
+        }
+      },
+      "Assets": {
+        "label": "Assets",
+        "description": "Sum of the carrying amounts as of the balance sheet date of all assets.",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-09-28",
+              "val": 365000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            },
+            {
+              "end": "2023-09-30",
+              "val": 352000000000,
+              "accn": "0001234567-23-000010",
+              "fy": 2023,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2023-11-03"
+            }
+          ]
+        }
+      },
+      "AssetsCurrent": {
+        "label": "Assets, Current",
+        "description": "Sum of the carrying amounts of all current assets.",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-09-28",
+              "val": 152000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            }
+          ]
+        }
+      },
+      "LiabilitiesCurrent": {
+        "label": "Liabilities, Current",
+        "description": "Total obligations incurred that are payable within one year.",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-09-28",
+              "val": 176000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            }
+          ]
+        }
+      },
+      "CashAndCashEquivalentsAtCarryingValue": {
+        "label": "Cash and Cash Equivalents, at Carrying Value",
+        "description": "Amount of currency on hand as well as demand deposits with banks.",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-09-28",
+              "val": 30000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            }
+          ]
+        }
+      },
+      "LongTermDebtNoncurrent": {
+        "label": "Long-Term Debt, Excluding Current Maturities",
+        "description": "Amount of long-term debt due after one year.",
+        "units": {
+          "USD": [
+            {
+              "end": "2024-09-28",
+              "val": 86000000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            }
+          ]
+        }
+      },
+      "WeightedAverageNumberOfDilutedSharesOutstanding": {
+        "label": "Weighted Average Number of Diluted Shares Outstanding",
+        "description": "The average number of shares issued and outstanding, adjusted for dilution.",
+        "units": {
+          "shares": [
+            {
+              "start": "2023-10-01",
+              "end": "2024-09-28",
+              "val": 1005000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2024,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-11-01"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
