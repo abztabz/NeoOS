@@ -49,7 +49,7 @@ export default function PortfolioPage() {
                       <strong className="truncate text-[12px]">
                         {asset.name}
                         {asset.ticker ? (
-                          <span className="ml-1.5 font-mono text-[9px] text-[#6f7d89]">
+                          <span className="ml-1.5 font-mono text-[9px] text-faint">
                             {asset.ticker}
                           </span>
                         ) : null}

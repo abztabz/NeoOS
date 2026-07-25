@@ -1,4 +1,4 @@
-import { fnv1a64, stableStringify } from "@/engine/hash";
+import { computeRawChecksum } from "@/intelligence/ingestion/ingest";
 import type {
   ProviderAdapter,
   ProviderDescriptor,
@@ -93,7 +93,7 @@ export class ManualEvidenceImportAdapter implements ProviderAdapter {
         },
         supersedesRawEvidenceId: null,
       };
-      return { ...base, checksum: fnv1a64(stableStringify(base)) };
+      return { ...base, checksum: computeRawChecksum(base) };
     });
 
     return {

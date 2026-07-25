@@ -8,7 +8,10 @@
   --color-line-strong: #303d49;
   --color-ink: #f7fafc;
   --color-muted: #8f9ba7;
-  --color-faint: #65717d;
+  /* 4.61:1 on the panel background — the previous #65717d measured 3.58:1,
+     below the WCAG AA 4.5:1 minimum, which axe-core caught on the provenance
+     and metadata labels that use this token. */
+  --color-faint: #768390;
   --color-cyan: #54d6ff;
   --color-green: #64f0a5;
   --color-amber: #f2b56b;

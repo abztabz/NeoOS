@@ -4,7 +4,9 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -23,11 +25,14 @@ import { exampleHttpProvider } from "@/intelligence/adapters/http-provider";
 import type { ProviderAdapter } from "@/intelligence/types/provider";
 import {
   appendJournalEntry,
+  appendRunSummary,
   browserStorage,
   readDecisions,
   readJournal,
+  readRunHistory,
   recordDecision,
   type JournalStorage,
+  type RunSummary,
 } from "@/intelligence/journal/journal-store";
 import type { DecisionCapture } from "@/intelligence/types/decision";
 import { useReport } from "@/data/report-store";
@@ -46,6 +51,8 @@ export interface IntelligenceContextValue {
   history: DailyCycleResult[];
   journal: DecisionJournalEntry[];
   decisions: DecisionCapture[];
+  /** Durable run history, rehydrated across page loads. */
+  runHistory: RunSummary[];
   storagePersists: boolean;
   runFixtureDay: (day: 1 | 2) => Promise<DailyCycleResult>;
   runManualEvidence: (text: string) => Promise<DailyCycleResult | { error: string }>;
@@ -69,31 +76,54 @@ export function IntelligenceProvider({
   const [history, setHistory] = useState<DailyCycleResult[]>([]);
   const [journal, setJournal] = useState<DecisionJournalEntry[]>([]);
   const [decisions, setDecisions] = useState<DecisionCapture[]>([]);
+  const [runHistory, setRunHistory] = useState<RunSummary[]>([]);
   const [storagePersists, setStoragePersists] = useState(true);
   const [previousReport, setPreviousReport] = useState<EngineReport | null>(null);
 
-  // Journal and decisions load lazily on first access so the provider never
-  // touches storage during server rendering.
-  const ensureLoaded = useCallback(() => {
-    if (journal.length === 0 && decisions.length === 0) {
+  // Rehydrate persisted state after mount. Storage is never touched during
+  // server rendering, and a page load must show the journal that already
+  // exists rather than an empty Timeline.
+  const hydrated = useRef(false);
+  useEffect(() => {
+    if (hydrated.current) return;
+    hydrated.current = true;
+    const id = setTimeout(() => {
       setJournal(readJournal(storage));
       setDecisions(readDecisions(storage));
-    }
-  }, [journal.length, decisions.length, storage]);
+      setRunHistory(readRunHistory(storage));
+    }, 0);
+    return () => clearTimeout(id);
+  }, [storage]);
 
-  const record = useCallback((run: DailyCycleResult) => {
-    setLastRun(run);
-    setHistory((prev) => [run, ...prev].slice(0, 20));
-    // Only a run that produced a report advances the comparison baseline; a
-    // failed run must not become the thing the next run is compared against.
-    if (run.report) setPreviousReport(run.report.engine);
-    return run;
-  }, []);
+  const record = useCallback(
+    (run: DailyCycleResult) => {
+      setLastRun(run);
+      setHistory((prev) => [run, ...prev].slice(0, 20));
+      // A compact summary persists so run history survives a page load.
+      setRunHistory(
+        appendRunSummary(storage, {
+          runId: run.runId,
+          state: run.state,
+          dataLabel: run.dataLabel,
+          startedAt: run.startedAt,
+          completedAt: run.completedAt,
+          rawIngested: run.evidenceCounts.rawIngested,
+          normalized: run.evidenceCounts.normalized,
+          rawRejected: run.evidenceCounts.rawRejected,
+          conflictsUnresolved: run.evidenceCounts.conflictsUnresolved,
+        }),
+      );
+      // Only a run that produced a report advances the comparison baseline; a
+      // failed run must not become the thing the next run is compared against.
+      if (run.report) setPreviousReport(run.report.engine);
+      return run;
+    },
+    [storage],
+  );
 
   const runFixtureDay = useCallback(
     async (day: 1 | 2) => {
       setRunning(true);
-      ensureLoaded();
       try {
         const run = await runDailyMorpheusCycle({
           runId: `fixture-day-${day}-${Date.now()}`,
@@ -111,7 +141,7 @@ export function IntelligenceProvider({
         setRunning(false);
       }
     },
-    [ensureLoaded, previousReport, record, storage],
+    [previousReport, record, storage],
   );
 
   const runManualEvidence = useCallback(
@@ -120,7 +150,6 @@ export function IntelligenceProvider({
       if (!parsed.ok) return { error: parsed.error };
 
       setRunning(true);
-      ensureLoaded();
       try {
         // Manual evidence runs alongside the fixture providers so the operator
         // supplements the universe rather than having to supply all of it.
@@ -146,7 +175,7 @@ export function IntelligenceProvider({
         setRunning(false);
       }
     },
-    [ensureLoaded, previousReport, record, storage],
+    [previousReport, record, storage],
   );
 
   /** Apply a run's report to the cockpit, reusing the validated import path. */
@@ -185,6 +214,7 @@ export function IntelligenceProvider({
       history,
       journal,
       decisions,
+      runHistory,
       storagePersists,
       runFixtureDay,
       runManualEvidence,
@@ -198,6 +228,7 @@ export function IntelligenceProvider({
       history,
       journal,
       decisions,
+      runHistory,
       storagePersists,
       runFixtureDay,
       runManualEvidence,

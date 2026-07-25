@@ -17,6 +17,7 @@ import { z } from "zod";
 
 const JOURNAL_KEY = "neoos.journal.v3";
 const DECISIONS_KEY = "neoos.decisions.v3";
+const RUN_HISTORY_KEY = "neoos.runs.v3";
 
 /** Storage port. Swapping this is how the journal becomes durable later. */
 export interface JournalStorage {
@@ -62,6 +63,49 @@ const decisionFileSchema = z.object({
   schemaVersion: z.literal("3.0"),
   decisions: z.array(decisionCaptureSchema),
 });
+
+/**
+ * Compact run summary. The full cycle result is large and session-scoped; this
+ * is the durable record of what ran and how it went.
+ */
+export const runSummarySchema = z.object({
+  runId: z.string(),
+  state: z.string(),
+  dataLabel: z.string(),
+  startedAt: z.string(),
+  completedAt: z.string(),
+  rawIngested: z.number().int(),
+  normalized: z.number().int(),
+  rawRejected: z.number().int(),
+  conflictsUnresolved: z.number().int(),
+});
+export type RunSummary = z.infer<typeof runSummarySchema>;
+
+const runHistoryFileSchema = z.object({
+  schemaVersion: z.literal("3.0"),
+  runs: z.array(runSummarySchema),
+});
+
+export function readRunHistory(storage: JournalStorage): RunSummary[] {
+  const raw = storage.read(RUN_HISTORY_KEY);
+  if (raw === null) return [];
+  try {
+    const parsed = runHistoryFileSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data.runs : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Append a run summary, newest first, capped so storage cannot grow without bound. */
+export function appendRunSummary(storage: JournalStorage, summary: RunSummary): RunSummary[] {
+  const next = [summary, ...readRunHistory(storage).filter((r) => r.runId !== summary.runId)].slice(
+    0,
+    50,
+  );
+  storage.write(RUN_HISTORY_KEY, JSON.stringify({ schemaVersion: "3.0", runs: next }));
+  return next;
+}
 
 export function readJournal(storage: JournalStorage): DecisionJournalEntry[] {
   const raw = storage.read(JOURNAL_KEY);

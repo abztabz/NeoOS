@@ -82,7 +82,7 @@ export default function MarketsPage() {
                       <td className="p-2.5 font-mono text-faint">{String(i + 1).padStart(2, "0")}</td>
                       <td className="p-2.5">
                         <span className="font-bold">{asset.name}</span>
-                        <span className="mt-0.5 block font-mono text-[9px] text-[#6f7d89]">
+                        <span className="mt-0.5 block font-mono text-[9px] text-faint">
                           {asset.kind === "category"
                             ? `Category${asset.assetClass ? ` · ${asset.assetClass}` : ""}`
                             : [asset.ticker, asset.exchange, asset.currency]

@@ -217,6 +217,8 @@ export const neoosReportV11Schema = z.object({
   evidenceUpdatedAt: z.iso.datetime({ offset: true }).optional(),
   /** Version of the scoring engine that produced the report, e.g. "2.0.0". */
   engineVersion: z.string().optional(),
+  /** Provenance label from the intelligence pipeline, e.g. "Fixture intelligence". */
+  provenanceLabel: z.string().optional(),
   regime: z.string().optional(),
   commentary: z.string().optional(),
   markets: marketsSectionSchema.optional(),

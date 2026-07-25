@@ -14,17 +14,17 @@ import { decisionKindLabels, postureDecisionLabels } from "@/intelligence/types/
  * hiding them.
  */
 export function JournalList() {
-  const { journal, decisions, history, storagePersists } = useIntelligence();
+  const { journal, decisions, runHistory, storagePersists } = useIntelligence();
   const superseded = supersededIds(journal);
 
-  if (journal.length === 0 && decisions.length === 0 && history.length === 0) return null;
+  if (journal.length === 0 && decisions.length === 0 && runHistory.length === 0) return null;
 
   return (
     <>
-      {history.length > 0 ? (
-        <SectionCard title="INTELLIGENCE RUNS" meta={`${history.length} THIS SESSION`}>
+      {runHistory.length > 0 ? (
+        <SectionCard title="INTELLIGENCE RUNS" meta={`${runHistory.length} RECORDED`}>
           <ol className="grid gap-2">
-            {history.map((run) => (
+            {runHistory.map((run) => (
               <li
                 key={run.runId}
                 data-testid="timeline-run"
@@ -32,12 +32,13 @@ export function JournalList() {
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <strong className="font-mono text-[11px]">{run.runId}</strong>
-                  <span className="microlabel text-[8px]">{cycleStateLabels[run.state]}</span>
+                  <span className="microlabel text-[8px]">
+                    {cycleStateLabels[run.state as keyof typeof cycleStateLabels] ?? run.state}
+                  </span>
                 </div>
                 <p className="mt-1 text-[11px] leading-snug text-[#8e9aa5]">
-                  {run.dataLabel} · {run.evidenceCounts.rawIngested} raw,{" "}
-                  {run.evidenceCounts.normalized} normalized, {run.evidenceCounts.rawRejected}{" "}
-                  rejected · {run.evidenceCounts.conflictsUnresolved} unresolved conflict(s)
+                  {run.dataLabel} · {run.rawIngested} raw, {run.normalized} normalized,{" "}
+                  {run.rawRejected} rejected · {run.conflictsUnresolved} unresolved conflict(s)
                 </p>
               </li>
             ))}

@@ -14,7 +14,14 @@ import type { ValidationIssue } from "@/intelligence/types/validation";
  * arriving twice is a duplicate and is dropped once, with a note.
  */
 
-/** Fields that define a record's identity for duplicate detection. */
+/**
+ * Fields that define a record's identity for duplicate detection.
+ *
+ * Exported as `computeRawChecksum` because every construction site — fixtures,
+ * the manual-import adapter, future provider mappers — must use THIS function.
+ * A record whose checksum was computed differently would fail verification and
+ * raise a false integrity alarm.
+ */
 function checksumOf(record: Omit<RawEvidenceRecord, "checksum">): string {
   return fnv1a64(
     stableStringify({
@@ -31,6 +38,8 @@ function checksumOf(record: Omit<RawEvidenceRecord, "checksum">): string {
     }),
   );
 }
+
+export const computeRawChecksum = checksumOf;
 
 export interface IngestionResult {
   records: RawEvidenceRecord[];

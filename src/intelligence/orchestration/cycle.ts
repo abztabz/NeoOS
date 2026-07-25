@@ -357,7 +357,19 @@ export async function runDailyMorpheusCycle(input: DailyCycleInput): Promise<Dai
 
   /* ---------- 8/9. score + generate ---------- */
   stepStart = new Date().toISOString();
-  const reportFile = generateReport(built.inputs);
+  const generated = generateReport(built.inputs);
+  // Stamp provenance onto the report. The engine cannot do this: it knows
+  // nothing about providers. The label then travels with the report so the
+  // cockpit states where its numbers came from.
+  const runLabel = labelForModes(contributingModes);
+  const reportFile = {
+    ...generated,
+    engine: {
+      ...generated.engine,
+      metadata: { ...generated.engine.metadata, provenanceLabel: runLabel },
+    },
+    view: { ...generated.view, provenanceLabel: runLabel },
+  };
   const reportIssues = validateGeneratedReport(reportFile);
   issues.push(...reportIssues);
   audit.push(
@@ -378,7 +390,7 @@ export async function runDailyMorpheusCycle(input: DailyCycleInput): Promise<Dai
 
   /* ---------- 11. briefing ---------- */
   stepStart = new Date().toISOString();
-  const dataLabel = labelForModes(contributingModes);
+  const dataLabel = runLabel;
   const briefing = generateBriefing({
     runId: input.runId,
     report: reportFile.engine,

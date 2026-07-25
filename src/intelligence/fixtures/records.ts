@@ -1,4 +1,4 @@
-import { fnv1a64, stableStringify } from "@/engine/hash";
+import { computeRawChecksum } from "@/intelligence/ingestion/ingest";
 import type {
   EvidenceCategory,
   RawAssetIdentifier,
@@ -73,7 +73,7 @@ function record(spec: RecordSpec, asOf: string): RawEvidenceRecord {
     },
     supersedesRawEvidenceId: null,
   };
-  return { ...base, checksum: fnv1a64(stableStringify(base)) };
+  return { ...base, checksum: computeRawChecksum(base) };
 }
 
 const ticker = (value: string): RawAssetIdentifier => ({ scheme: "ticker", value });

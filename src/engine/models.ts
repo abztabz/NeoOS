@@ -254,6 +254,13 @@ export const engineReportSchema = z.object({
     engineVersion: z.string(),
     mode: z.enum(["demo", "live"]),
     previousReportHash: z.string().nullable(),
+    /**
+     * Honest provenance label stamped by the intelligence pipeline, e.g.
+     * "Fixture intelligence". The engine never sets this — it knows nothing
+     * about providers — but it travels with the report so the UI can state
+     * where the numbers came from.
+     */
+    provenanceLabel: z.string().optional(),
   }),
   assets: z.array(canonicalAssetSchema),
   evidence: z.array(evidenceRecordSchema),

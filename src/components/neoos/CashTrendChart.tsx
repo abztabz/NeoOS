@@ -30,9 +30,17 @@ export function CashTrendChart({ events }: { events: TimelineEvent[] }) {
   }
 
   return (
-    <div aria-hidden="true" className="h-52 w-full">
+    // The wrapper is aria-hidden because the list below carries the same
+    // information. Recharts marks its own surface tabbable, which would leave a
+    // focusable element inside hidden content — reachable by keyboard but never
+    // announced. tabIndex={-1} takes it back out of the tab order.
+    <div aria-hidden="true" className="h-52 w-full [&_.recharts-surface]:outline-none">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -22 }}>
+        <LineChart
+          data={data}
+          margin={{ top: 8, right: 8, bottom: 0, left: -22 }}
+          tabIndex={-1}
+        >
           <CartesianGrid stroke="#202a33" strokeDasharray="3 3" />
           <XAxis dataKey="date" stroke="#65717d" fontSize={10} tickLine={false} />
           <YAxis domain={[0, 100]} stroke="#65717d" fontSize={10} tickLine={false} />
