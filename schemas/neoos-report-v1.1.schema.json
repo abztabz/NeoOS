@@ -4,36 +4,102 @@
   "title": "NeoOS Daily Report v1.1",
   "description": "Extends v1.0 with optional workspace sections. Missing sections fall back to labeled demo content in the UI. v1.0 reports remain importable via migration.",
   "type": "object",
-  "required": ["schemaVersion", "asOf", "mode", "deployment", "scores", "radar", "assets"],
+  "required": [
+    "schemaVersion",
+    "asOf",
+    "mode",
+    "deployment",
+    "scores",
+    "radar",
+    "assets"
+  ],
   "properties": {
-    "schemaVersion": { "const": "1.1" },
-    "asOf": { "type": "string", "format": "date-time" },
-    "mode": { "enum": ["demo", "live"] },
+    "schemaVersion": {
+      "const": "1.1"
+    },
+    "asOf": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mode": {
+      "enum": [
+        "demo",
+        "live"
+      ]
+    },
     "deployment": {
       "type": "object",
-      "required": ["score", "recommendation", "posture", "reasons"],
+      "required": [
+        "score",
+        "recommendation",
+        "posture",
+        "reasons"
+      ],
       "properties": {
-        "score": { "type": "number", "minimum": 0, "maximum": 100 },
-        "recommendation": { "type": "string" },
-        "posture": { "type": "string" },
-        "reasons": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "posture": {
+          "type": "string"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
       }
     },
     "scores": {
       "type": "object",
-      "required": ["cash", "market", "opportunity", "confidence", "evidenceIntegrity", "reserveHealth"],
-      "additionalProperties": { "type": "number", "minimum": 0, "maximum": 100 }
+      "required": [
+        "cash",
+        "market",
+        "opportunity",
+        "confidence",
+        "evidenceIntegrity",
+        "reserveHealth"
+      ],
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100
+      }
     },
     "radar": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "severity", "title", "detail"],
+        "required": [
+          "id",
+          "severity",
+          "title",
+          "detail"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "severity": { "enum": ["info", "positive", "caution", "risk"] },
-          "title": { "type": "string" },
-          "detail": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "info",
+              "positive",
+              "caution",
+              "risk"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
         }
       }
     },
@@ -41,39 +107,156 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "name", "score", "rating", "confidence"],
+        "required": [
+          "id",
+          "name",
+          "score",
+          "rating",
+          "confidence"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "ticker": { "type": "string" },
-          "name": { "type": "string" },
-          "score": { "type": "number", "minimum": 0, "maximum": 100 },
-          "rating": { "enum": ["Strong Buy", "Buy", "Accumulate", "Hold", "Reduce", "Sell", "Avoid"] },
-          "confidence": { "type": "number", "minimum": 0, "maximum": 100 },
-          "intrinsicValueLow": { "type": ["number", "null"] },
-          "intrinsicValueHigh": { "type": ["number", "null"] },
-          "buyBelow": { "type": ["number", "null"] },
-          "strongBuyBelow": { "type": ["number", "null"] }
+          "id": {
+            "type": "string"
+          },
+          "ticker": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Null when the engine returned Insufficient Evidence. No fabricated score is ever emitted."
+          },
+          "rating": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "Strong Buy",
+              "Buy",
+              "Accumulate",
+              "Hold",
+              "Reduce",
+              "Sell",
+              "Avoid",
+              null
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "intrinsicValueLow": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "intrinsicValueHigh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "buyBelow": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "strongBuyBelow": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "rated",
+              "insufficient_evidence"
+            ]
+          },
+          "insufficientReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kind": {
+            "enum": [
+              "instrument",
+              "category"
+            ],
+            "description": "A category must not carry a ticker."
+          },
+          "exchange": {
+            "type": "string"
+          },
+          "assetClass": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          }
         }
       }
     },
-    "regime": { "type": "string" },
-    "commentary": { "type": "string" },
+    "regime": {
+      "type": "string"
+    },
+    "commentary": {
+      "type": "string"
+    },
     "markets": {
       "type": "object",
-      "required": ["macroContext", "regions"],
+      "required": [
+        "macroContext",
+        "regions"
+      ],
       "properties": {
-        "macroContext": { "type": "string" },
+        "macroContext": {
+          "type": "string"
+        },
         "regions": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["id", "name", "score", "stance", "note"],
+            "required": [
+              "id",
+              "name",
+              "score",
+              "stance",
+              "note"
+            ],
             "properties": {
-              "id": { "type": "string" },
-              "name": { "type": "string" },
-              "score": { "type": "number", "minimum": 0, "maximum": 100 },
-              "stance": { "type": "string" },
-              "note": { "type": "string" }
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "stance": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              }
             }
           }
         }
@@ -83,67 +266,183 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["assetId", "allocation", "targetRange", "thesisStatus", "keyRisks", "reviewTrigger", "role", "tier"],
+        "required": [
+          "assetId",
+          "allocation",
+          "targetRange",
+          "thesisStatus",
+          "keyRisks",
+          "reviewTrigger",
+          "role",
+          "tier"
+        ],
         "properties": {
-          "assetId": { "type": "string" },
-          "allocation": { "type": "string" },
-          "targetRange": { "type": "string" },
-          "thesisStatus": { "type": "string" },
-          "keyRisks": { "type": "array", "items": { "type": "string" } },
-          "reviewTrigger": { "type": "string" },
-          "role": { "type": "string" },
-          "tier": { "type": "string" }
+          "assetId": {
+            "type": "string"
+          },
+          "allocation": {
+            "type": "string"
+          },
+          "targetRange": {
+            "type": "string"
+          },
+          "thesisStatus": {
+            "type": "string"
+          },
+          "keyRisks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reviewTrigger": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          }
         }
       }
     },
     "gold": {
       "type": "object",
-      "required": ["factors", "fairValueLow", "fairValueHigh", "role"],
+      "required": [
+        "factors",
+        "fairValueLow",
+        "fairValueHigh",
+        "role"
+      ],
       "properties": {
         "factors": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["id", "name", "score", "note"],
+            "required": [
+              "id",
+              "name",
+              "score",
+              "note"
+            ],
             "properties": {
-              "id": { "type": "string" },
-              "name": { "type": "string" },
-              "score": { "type": "number", "minimum": 0, "maximum": 100 },
-              "note": { "type": "string" }
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "note": {
+                "type": "string"
+              }
             }
           }
         },
-        "fairValueLow": { "type": ["number", "null"] },
-        "fairValueHigh": { "type": ["number", "null"] },
-        "role": { "type": "string" }
+        "fairValueLow": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fairValueHigh": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "role": {
+          "type": "string"
+        }
       }
     },
     "cash": {
       "type": "object",
-      "required": ["available", "emergencyReserve", "deployable", "monthlySurplus", "cashYieldPct", "opportunityCost", "recommendation"],
+      "required": [
+        "available",
+        "emergencyReserve",
+        "deployable",
+        "monthlySurplus",
+        "cashYieldPct",
+        "opportunityCost",
+        "recommendation"
+      ],
       "properties": {
-        "available": { "type": "number" },
-        "emergencyReserve": { "type": "number" },
-        "deployable": { "type": "number" },
-        "monthlySurplus": { "type": "number" },
-        "cashYieldPct": { "type": "number" },
-        "opportunityCost": { "type": "string" },
-        "recommendation": { "type": "string" }
+        "available": {
+          "type": "number"
+        },
+        "emergencyReserve": {
+          "type": "number"
+        },
+        "deployable": {
+          "type": "number"
+        },
+        "monthlySurplus": {
+          "type": "number"
+        },
+        "cashYieldPct": {
+          "type": "number"
+        },
+        "opportunityCost": {
+          "type": "string"
+        },
+        "recommendation": {
+          "type": "string"
+        }
       }
     },
     "timeline": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "date", "title", "kind", "cashScore", "deploymentPct", "detail"],
+        "required": [
+          "id",
+          "date",
+          "title",
+          "kind",
+          "cashScore",
+          "deploymentPct",
+          "detail"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "date": { "type": "string" },
-          "title": { "type": "string" },
-          "kind": { "enum": ["deployment", "cash", "rating", "decision", "evidence"] },
-          "cashScore": { "type": ["number", "null"] },
-          "deploymentPct": { "type": ["number", "null"] },
-          "detail": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "deployment",
+              "cash",
+              "rating",
+              "decision",
+              "evidence"
+            ]
+          },
+          "cashScore": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "deploymentPct": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
         }
       }
     },
@@ -151,12 +450,27 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "name", "score", "status"],
+        "required": [
+          "id",
+          "name",
+          "score",
+          "status"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "name": { "type": "string" },
-          "score": { "type": "number", "minimum": 0, "maximum": 100 },
-          "status": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "status": {
+            "type": "string"
+          }
         }
       }
     },
@@ -164,14 +478,34 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "label", "value", "note"],
+        "required": [
+          "id",
+          "label",
+          "value",
+          "note"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "label": { "type": "string" },
-          "value": { "type": "string" },
-          "note": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
         }
       }
+    },
+    "evidenceUpdatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "engineVersion": {
+      "type": "string"
     }
   }
 }

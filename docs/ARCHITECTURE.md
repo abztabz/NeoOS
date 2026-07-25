@@ -40,3 +40,12 @@ Browser storage is optional, never required for first render. Wrap persistence i
 - No arbitrary HTML rendering
 - Enforce file size limit
 - Do not execute imported content
+
+---
+
+## Sprint 2 update
+
+This document is the original handoff specification. For the architecture as
+actually built — the evidence and decision engine, the v2.0 engine report, the
+six data states, and the architecture decisions behind them — see
+[`ENGINE_ARCHITECTURE.md`](./ENGINE_ARCHITECTURE.md).
