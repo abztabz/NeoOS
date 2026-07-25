@@ -109,3 +109,41 @@ engineering control, not a disclaimer.
   recovery rather than discarded.
 - Fabricate citations, prices, thresholds, or fundamentals.
 - Substitute a disclaimer for an engineering control.
+
+
+## Reporting cadence and explicit expiry
+
+The per-tier freshness horizons assume a **quarterly** reporting rhythm.
+`officialFiling` is 120 days, expiring at 240.
+
+That is wrong for annual accounts, and wrong in a way that only real data
+exposes. A 10-K is filed once a year, so for most of any given year a company's
+most recent annual figures are older than 240 days. Under the age heuristic
+alone they would be discarded as expired — meaning no company could be valued
+from its own audited accounts for roughly two-thirds of the year, while the
+figures being discarded were the most current ones in existence.
+
+**A provider that knows a fact's reporting cadence may state its own expiry.**
+When `expiresAt` is present it overrides the age heuristic:
+
+| | Behaviour |
+|---|---|
+| Past the stated expiry | `expired` — contributes nothing |
+| Before it | `fresh`, `aging`, or `stale` by the usual age thresholds |
+
+So the record still ages. A ten-month-old 10-K is reported **stale**, its
+confidence decays by the usual multiplier, and the interface says it is old. It
+is simply not thrown away while it remains the most current fact available.
+Keeping it and marking it stale is more honest than discarding it and reporting
+nothing.
+
+Nothing invents an expiry. Only a provider that knows the cadence sets one, and
+the SEC EDGAR adapter is currently the only one that does:
+`ANNUAL_FACT_AUTHORITATIVE_DAYS = 455` from the period end, on the reasoning
+that annual accounts are superseded roughly fifteen months later. Past that with
+nothing newer filed, the issuer is delinquent or no longer reporting and the
+figures should expire.
+
+Prior fiscal years expire on schedule and drop out. That is intended: they have
+been superseded. When the growth series expires, the valuation reports that it
+could not measure growth rather than assuming a rate.

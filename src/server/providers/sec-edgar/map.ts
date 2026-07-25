@@ -31,6 +31,21 @@ export const SEC_EDGAR_ADAPTER_VERSION = "1.0.0";
 /** How many annual periods to carry, beyond the latest, for the growth trend. */
 export const ANNUAL_HISTORY_PERIODS = 4;
 
+/**
+ * How long an annual figure stays authoritative, measured from its period end.
+ *
+ * A 10-K covers a fiscal year and the next one is due roughly two to three
+ * months after the following year end, so about fifteen months separates one
+ * set of annual accounts from its replacement. Past that with nothing newer,
+ * the issuer is delinquent or no longer reporting, and the figures should
+ * expire.
+ *
+ * This is stated explicitly because the engine's per-tier freshness horizon
+ * assumes quarterly reporting. Without it, annual accounts are treated as
+ * expired for most of every year and no company can be valued from its filings.
+ */
+export const ANNUAL_FACT_AUTHORITATIVE_DAYS = 455;
+
 export interface MappedFacts {
   records: RawEvidenceRecord[];
   warnings: string[];
@@ -197,6 +212,8 @@ export function mapCompanyFacts(
           purpose: spec.purpose,
           claimKey: `${spec.key}:${point.end}`,
           isLatestAnnual: isLatest,
+          // Stated because this figure's cadence is annual, not quarterly.
+          expiresAt: expiryFor(point.end),
           sourceName: "U.S. Securities and Exchange Commission — EDGAR",
           adapterVersion: SEC_EDGAR_ADAPTER_VERSION,
         },
@@ -315,6 +332,13 @@ export function mapSubmissions(
     warnings.push("EDGAR returned no periodic filings for this issuer in the recent window.");
   }
   return { records, warnings, tagsUsed: {} };
+}
+
+/** When an annual figure with this period end stops being authoritative. */
+function expiryFor(periodEnd: string): string | null {
+  const end = Date.parse(periodEnd);
+  if (Number.isNaN(end)) return null;
+  return new Date(end + ANNUAL_FACT_AUTHORITATIVE_DAYS * 86_400_000).toISOString();
 }
 
 /** EDGAR dates are `YYYY-MM-DD`. Anything else is left for the caller to notice. */

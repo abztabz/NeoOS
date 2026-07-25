@@ -235,6 +235,12 @@ export function normalizeRecord(
     );
   }
 
+  const statedExpiryRaw = raw.payloadMetadata.expiresAt;
+  const statedExpiry =
+    typeof statedExpiryRaw === "string" && !Number.isNaN(Date.parse(statedExpiryRaw))
+      ? new Date(statedExpiryRaw).toISOString()
+      : null;
+
   const evidenceType = CATEGORY_TO_TYPE[raw.evidenceCategory];
   const claimKey = (raw.payloadMetadata.claimKey as string | undefined) ?? null;
 
@@ -248,7 +254,9 @@ export function normalizeRecord(
     publicationDate: publishedAt ?? retrievedAt,
     retrievedAt,
     effectiveDate: publishedAt,
-    expiresAt: null,
+    // A provider that knows the fact's reporting cadence may state when it
+    // stops being authoritative. Nothing invents one.
+    expiresAt: statedExpiry,
     factor: normalizedValue === null || isMagnitude ? null : factor,
     claimKey,
     factualClaim: raw.rawTitle,

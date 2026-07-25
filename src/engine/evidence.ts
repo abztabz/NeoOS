@@ -19,14 +19,33 @@ const tierNameByNumber: Record<number, SourceTierName> = Object.fromEntries(
  * 2×). Invalid dates are expired — never silently fresh.
  */
 export function freshnessOf(record: EvidenceRecord, now: Date): FreshnessStatus {
-  if (record.expiresAt) {
-    const expires = new Date(record.expiresAt).getTime();
-    if (Number.isNaN(expires) || now.getTime() > expires) return "expired";
-  }
   const published = new Date(record.effectiveDate ?? record.publicationDate).getTime();
   if (Number.isNaN(published)) return "expired";
   const horizonDays = FRESHNESS_HORIZON_DAYS[tierNameByNumber[record.sourceTier] ?? "sentiment"];
   const ageDays = (now.getTime() - published) / DAY_MS;
+
+  if (record.expiresAt) {
+    const expires = new Date(record.expiresAt).getTime();
+    if (Number.isNaN(expires) || now.getTime() > expires) return "expired";
+    /**
+     * An explicit expiry from a source that knows the fact's reporting cadence
+     * OVERRIDES the per-tier age heuristic, which assumes quarterly reporting.
+     *
+     * Annual accounts are the case that forces this. A 10-K is filed once a
+     * year, so for most of any year the most recent one is older than the
+     * 120-day official-filing horizon and past the 240-day expiry — meaning the
+     * only annual figures that exist would be discarded as expired, and no
+     * company could be valued from its filings for two-thirds of the year.
+     *
+     * The record still ages: it is reported stale or aging by the same
+     * thresholds, so its confidence decays and the UI says it is old. It is
+     * simply not thrown away while it remains the most current fact available.
+     */
+    if (ageDays > horizonDays) return "stale";
+    if (ageDays > (horizonDays * 2) / 3) return "aging";
+    return "fresh";
+  }
+
   if (ageDays > horizonDays * 2) return "expired";
   if (ageDays > horizonDays) return "stale";
   if (ageDays > (horizonDays * 2) / 3) return "aging";
