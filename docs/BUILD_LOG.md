@@ -137,3 +137,30 @@
 ### Gates
 `lint` ✓ · `typecheck` ✓ · `test` 242/242 ✓ · `test:e2e` 232/232 ✓ (incl. 9 axe-core scans) ·
 `build` ✓
+
+
+## Sprint 4 — Live evidence foundation (2026-07-25)
+
+Added `src/server/`: the credentialed layer. The engine and intelligence pipeline
+are unchanged; every score still comes from the engine.
+
+- SEC EDGAR provider at evidence tier 1 — free, public, no key, citable to the
+  filing. Fair-access terms enforced in the client rather than left to callers.
+- Fundamental analysis from filed accounts, with multiples anchored to a required
+  earnings yield rather than to comparables.
+- Vendor-neutral price adapter that ships unconfigured and substitutes nothing.
+- Gold price basis made explicit; gold's ceiling documented as permanently
+  `partial_live`.
+- UAE assets capped at manual evidence by source policy, enforced in code.
+- Append-only Postgres storage behind a port, with a memory fallback that reports
+  itself non-durable.
+- Ed25519 signing, verified on read rather than trusted from write time.
+- Scheduled and operator API routes with constant-time authorisation.
+- Outcome review separating result from reasoning quality.
+- Nine static security invariants pinning the credential boundary.
+
+Gates: lint, typecheck, 421 unit tests, 232 Playwright tests, production build.
+
+Not complete: `live_verified` unreached (needs a licensed price feed), no live
+EDGAR fetch verified (sandbox has no outbound network), deployment unverified.
+See `docs/SPRINT4_COMPLETION_REPORT.md` §7.
