@@ -8,6 +8,7 @@ import {
 } from "@/intelligence/types/validation";
 import {
   convertCurrency,
+  isFactorScaleUnit,
   isSupportedUnit,
   toFactorScale,
   toUtcIso,
@@ -148,6 +149,17 @@ export function normalizeRecord(
   }
 
   // Units and currency.
+  //
+  // Two families, and the difference decides everything downstream. A
+  // FACTOR-SCALE unit maps onto the engine's 0–100 scale and may feed a factor.
+  // A MAGNITUDE — a currency amount, a share count, an index level — cannot,
+  // and must never reach a factor. Magnitudes keep their value and feed
+  // valuation inputs; `factor` is forced to null so scoring cannot select them.
+  const isCurrencyDenominated =
+    raw.rawUnit === "currency" ||
+    raw.rawUnit === "currency_per_share" ||
+    raw.rawUnit === "currency_per_troy_ounce";
+  const isMagnitude = raw.rawUnit !== null && isSupportedUnit(raw.rawUnit) && !isFactorScaleUnit(raw.rawUnit);
   let normalizedValue: number | null = null;
   let conversion: ConversionRecord | null = null;
   let unit = raw.rawUnit;
@@ -164,14 +176,13 @@ export function normalizeRecord(
       return { normalized: null, issues };
     }
 
-    // Currency-denominated values are preserved in their own currency; they
-    // feed valuation inputs rather than the 0–100 factor scale.
-    const currencyUnit =
-      raw.rawUnit === "currency" ||
-      raw.rawUnit === "currency_per_share" ||
-      raw.rawUnit === "currency_per_troy_ounce";
-
-    if (currencyUnit) {
+    // Currency-denominated values feed valuation inputs, never the 0–100 factor
+    // scale. The VALUE is carried through — an evidence record asserting that
+    // revenue was 400bn but holding no number is useless to the valuation that
+    // needs it — and the record is instead kept out of factor scoring by
+    // forcing `factor` to null below. Scoring selects on a non-null factor, so
+    // a currency amount is structurally incapable of being read as a score.
+    if (isCurrencyDenominated) {
       const from = raw.rawCurrency;
       if (from === null) {
         issues.push(
@@ -179,6 +190,7 @@ export function normalizeRecord(
         );
         return { normalized: null, issues };
       }
+      normalizedValue = raw.rawValue;
       if (from !== ctx.baseCurrency) {
         const outcome = convertCurrency(raw.rawValue, from, ctx.baseCurrency, ctx.fxTable);
         if (!outcome.ok) {
@@ -187,9 +199,18 @@ export function normalizeRecord(
           issues.push(issue("incompatible_currency", "blocking", outcome.reason ?? "", raw, assetId));
           return { normalized: null, issues };
         }
+        // `ok` guarantees a conversion record; narrow explicitly rather than
+        // asserting, so a future change to the outcome type fails here.
+        if (outcome.conversion === null) {
+          issues.push(issue("incompatible_currency", "blocking", "Conversion reported success without a rate.", raw, assetId));
+          return { normalized: null, issues };
+        }
         conversion = outcome.conversion;
+        normalizedValue = outcome.conversion.normalizedValue;
       }
-      normalizedValue = null; // not a factor score
+    } else if (isMagnitude) {
+      // A count, a multiple, or an index level. Real evidence, not a score.
+      normalizedValue = raw.rawValue;
     } else {
       normalizedValue = toFactorScale(raw.rawValue, raw.rawUnit);
       if (normalizedValue === null) {
@@ -208,7 +229,7 @@ export function normalizeRecord(
   }
 
   const factor = resolveFactor(raw);
-  if (factor === null && normalizedValue !== null) {
+  if (factor === null && normalizedValue !== null && !isMagnitude) {
     warnings.push(
       "No scoring factor supplied; the record is retained for provenance but contributes no factor score.",
     );
@@ -228,7 +249,7 @@ export function normalizeRecord(
     retrievedAt,
     effectiveDate: publishedAt,
     expiresAt: null,
-    factor: normalizedValue === null ? null : factor,
+    factor: normalizedValue === null || isMagnitude ? null : factor,
     claimKey,
     factualClaim: raw.rawTitle,
     normalizedValue,

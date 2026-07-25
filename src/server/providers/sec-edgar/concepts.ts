@@ -25,8 +25,18 @@ export interface EdgarConceptSpec {
   taxonomy: "us-gaap" | "dei";
   /** Candidate XBRL tags, most preferred first. */
   candidates: string[];
-  /** Unit key inside the concept's `units` map. */
+  /** Unit key inside the concept's `units` map, as EDGAR names it. */
   unit: string;
+  /**
+   * The same unit in the pipeline's vocabulary.
+   *
+   * EDGAR's key ("USD", "USD/shares", "shares") is a source-side label; the
+   * normalizer only understands its own canonical set and rejects anything
+   * else outright, which is correct — silently accepting an unknown unit is
+   * how basis points get read as percent. Translating the NAME here changes no
+   * value and preserves EDGAR's original string on the record for audit.
+   */
+  canonicalUnit: "currency" | "currency_per_share" | "count";
   periodType: PeriodType;
   /** Scoring factor this measure informs. */
   factorHint:
@@ -50,6 +60,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
       "SalesRevenueNet",
     ],
     unit: "USD",
+    canonicalUnit: "currency",
     periodType: "duration",
     factorHint: "growth",
     purpose: "Top-line scale and growth trend",
@@ -60,6 +71,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
     taxonomy: "us-gaap",
     candidates: ["NetIncomeLoss", "ProfitLoss"],
     unit: "USD",
+    canonicalUnit: "currency",
     periodType: "duration",
     factorHint: "valuation",
     purpose: "Earnings base for earnings-power valuation",
@@ -70,6 +82,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
     taxonomy: "us-gaap",
     candidates: ["EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted"],
     unit: "USD/shares",
+    canonicalUnit: "currency_per_share",
     periodType: "duration",
     factorHint: "valuation",
     purpose: "Per-share earnings for multiple-based valuation",
@@ -83,6 +96,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
       "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations",
     ],
     unit: "USD",
+    canonicalUnit: "currency",
     periodType: "duration",
     factorHint: "valuation",
     purpose: "Cash generation, and the base for free cash flow",
@@ -96,6 +110,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
       "PaymentsToAcquireProductiveAssets",
     ],
     unit: "USD",
+    canonicalUnit: "currency",
     periodType: "duration",
     factorHint: "valuation",
     purpose: "Subtracted from operating cash flow to reach free cash flow",
@@ -109,6 +124,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
       "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
     ],
     unit: "USD",
+    canonicalUnit: "currency",
     periodType: "instant",
     factorHint: "valuation",
     purpose: "Book value for asset-based valuation and return on equity",
@@ -119,6 +135,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
     taxonomy: "us-gaap",
     candidates: ["Assets"],
     unit: "USD",
+    canonicalUnit: "currency",
     periodType: "instant",
     factorHint: "financialStrength",
     purpose: "Balance-sheet size and leverage denominator",
@@ -129,6 +146,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
     taxonomy: "us-gaap",
     candidates: ["Liabilities"],
     unit: "USD",
+    canonicalUnit: "currency",
     periodType: "instant",
     factorHint: "financialStrength",
     purpose: "Leverage numerator",
@@ -139,6 +157,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
     taxonomy: "us-gaap",
     candidates: ["AssetsCurrent"],
     unit: "USD",
+    canonicalUnit: "currency",
     periodType: "instant",
     factorHint: "financialStrength",
     purpose: "Liquidity — current ratio numerator",
@@ -149,6 +168,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
     taxonomy: "us-gaap",
     candidates: ["LiabilitiesCurrent"],
     unit: "USD",
+    canonicalUnit: "currency",
     periodType: "instant",
     factorHint: "financialStrength",
     purpose: "Liquidity — current ratio denominator",
@@ -162,6 +182,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
       "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
     ],
     unit: "USD",
+    canonicalUnit: "currency",
     periodType: "instant",
     factorHint: "financialStrength",
     purpose: "Net debt calculation and downside cushion",
@@ -172,6 +193,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
     taxonomy: "us-gaap",
     candidates: ["LongTermDebtNoncurrent", "LongTermDebt"],
     unit: "USD",
+    canonicalUnit: "currency",
     periodType: "instant",
     factorHint: "financialStrength",
     purpose: "Structural leverage",
@@ -182,6 +204,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
     taxonomy: "dei",
     candidates: ["EntityCommonStockSharesOutstanding"],
     unit: "shares",
+    canonicalUnit: "count",
     periodType: "instant",
     factorHint: "valuation",
     purpose: "Converts company-level figures to per-share terms",
@@ -192,6 +215,7 @@ export const EDGAR_CONCEPTS: EdgarConceptSpec[] = [
     taxonomy: "us-gaap",
     candidates: ["WeightedAverageNumberOfDilutedSharesOutstanding"],
     unit: "shares",
+    canonicalUnit: "count",
     periodType: "duration",
     factorHint: "businessQuality",
     purpose: "Dilution trend — whether per-share gains are real",

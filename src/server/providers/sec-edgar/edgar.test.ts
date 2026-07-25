@@ -7,6 +7,7 @@ import { mapCompanyFacts, mapSubmissions } from "@/server/providers/sec-edgar/ma
 import { SecEdgarAdapter, EDGAR_NON_COVERAGE } from "@/server/providers/sec-edgar/adapter";
 import { companyFactsSchema, submissionsSchema, padCik, filingUrl } from "@/server/providers/sec-edgar/types";
 import { verifyChecksum } from "@/intelligence/ingestion/ingest";
+import { isSupportedUnit } from "@/intelligence/normalization/units";
 
 /**
  * Contract tests for the EDGAR provider.
@@ -207,13 +208,32 @@ describe("mapCompanyFacts", () => {
     expect(valuesFor("sharesOutstanding").map((v) => v.val)).toContain(1000000000);
   });
 
-  it("preserves EDGAR's own units and never converts them", () => {
+  it("preserves EDGAR's values exactly and translates only the unit's name", () => {
     const eps = mapped.records.find((r) => r.payloadMetadata.conceptKey === "epsDiluted");
-    expect(eps?.rawUnit).toBe("USD/shares");
+    // The value is untouched; the unit is stated in the pipeline's vocabulary,
+    // because the normalizer refuses any unit outside its canonical set.
     expect(eps?.rawValue).toBe(6.25);
+    expect(eps?.rawUnit).toBe("currency_per_share");
+    expect((eps?.rawPayload as { edgarUnit: string }).edgarUnit).toBe("USD/shares");
+
     const shares = mapped.records.find((r) => r.payloadMetadata.conceptKey === "sharesOutstanding");
-    expect(shares?.rawUnit).toBe("shares");
+    expect(shares?.rawUnit).toBe("count");
+    expect((shares?.rawPayload as { edgarUnit: string }).edgarUnit).toBe("shares");
     expect(shares?.rawCurrency).toBeNull();
+
+    const revenue = mapped.records.find((r) => r.payloadMetadata.conceptKey === "revenue");
+    expect(revenue?.rawUnit).toBe("currency");
+    expect(revenue?.rawCurrency).toBe("USD");
+  });
+
+  it("emits only units the normalizer accepts", () => {
+    // The whole record set is worthless if the pipeline rejects it, which is
+    // exactly what happened on the first live run: every valued record was
+    // dropped as unsupported_unit and only the value-less filings survived.
+    for (const record of mapped.records) {
+      if (record.rawValue === null) continue;
+      expect(isSupportedUnit(record.rawUnit), `${record.rawEvidenceId} unit ${record.rawUnit}`).toBe(true);
+    }
   });
 
   it("cites the filing every value came from", () => {

@@ -97,7 +97,8 @@ export function readFundamentals(evidence: EvidenceRecord[]): Fundamentals {
     const bucket = byConcept.get(conceptKey) ?? [];
     bucket.push({ end: periodEnd, value: record.normalizedValue, evidenceId: record.evidenceId });
     byConcept.set(conceptKey, bucket);
-    if (record.unit === "USD" || record.unit === "USD/shares") currency = "USD";
+    // Units arrive canonicalised by the pipeline, not as EDGAR's own labels.
+    if (record.unit === "currency" || record.unit === "currency_per_share") currency = "USD";
   }
 
   for (const bucket of byConcept.values()) bucket.sort((a, b) => (a.end < b.end ? 1 : -1));

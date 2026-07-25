@@ -150,6 +150,23 @@ export function toPercent(value: number, unit: SupportedUnit): number | null {
  * currency amount has no intrinsic 0–100 meaning, so this returns null rather
  * than inventing one — those records inform valuation inputs instead.
  */
+/**
+ * Whether a unit expresses a 0–100 factor score, or a magnitude.
+ *
+ * The distinction is load-bearing. A factor-scale unit (a score, a percent, a
+ * ratio) can be mapped onto the engine's 0–100 scale and fed to a factor. A
+ * magnitude — 400 billion dollars, a billion shares, an index level — cannot,
+ * and letting one through would put a raw quantity where a bounded score is
+ * expected, which is silently catastrophic.
+ *
+ * Magnitudes are still real evidence and keep their value; they feed valuation
+ * inputs instead of factor scores, and the normalizer forces their `factor` to
+ * null so scoring cannot select them.
+ */
+export function isFactorScaleUnit(unit: SupportedUnit): boolean {
+  return unit === "score" || unit === "percent" || unit === "basis_points" || unit === "ratio";
+}
+
 export function toFactorScale(value: number, unit: SupportedUnit): number | null {
   switch (unit) {
     case "score":

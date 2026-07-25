@@ -166,6 +166,7 @@ export function mapCompanyFacts(
         rawPayload: {
           taxonomy: spec.taxonomy,
           tag: selected.tag,
+          edgarUnit: spec.unit,
           accessionNumber: point.accn,
           form: point.form,
           fiscalYear: point.fy ?? null,
@@ -178,8 +179,12 @@ export function mapCompanyFacts(
         assetIdentifiers: identifiers,
         evidenceCategory: "fundamental" as const,
         rawValue: point.val,
-        // Preserved exactly as EDGAR states it. No unit conversion happens here.
-        rawUnit: spec.unit,
+        // The VALUE is preserved exactly as EDGAR states it — no conversion
+        // happens here. Only the unit's NAME is translated into the pipeline's
+        // vocabulary, because the normalizer rejects any unit outside its
+        // canonical set, and rightly so. EDGAR's own string is kept on the
+        // payload above (`edgarUnit`) so the original label survives an audit.
+        rawUnit: spec.canonicalUnit,
         rawCurrency: spec.unit.startsWith("USD") ? "USD" : null,
         geographicScope: null,
         // EDGAR states no confidence; inventing one would be fabrication.

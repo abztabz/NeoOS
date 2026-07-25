@@ -18,8 +18,13 @@ import {
 
 const CALC_DATE = "2026-07-25T09:00:00.000Z";
 
-/** Minimal normalized evidence, shaped as the EDGAR path produces it. */
-function fact(conceptKey: string, periodEnd: string, value: number, unit = "USD"): EvidenceRecord {
+/**
+ * Units here are the CANONICAL ones the normalizer emits, not EDGAR's own
+ * labels. An earlier version of this fixture used EDGAR's vocabulary, which
+ * meant this suite and the mapper suite agreed with each other while neither
+ * matched what the pipeline actually produces.
+ */
+function fact(conceptKey: string, periodEnd: string, value: number, unit = "currency"): EvidenceRecord {
   return {
     evidenceId: `ev-${conceptKey}-${periodEnd}`,
     assetId: "apple",
@@ -49,13 +54,13 @@ function healthyAccounts(): EvidenceRecord[] {
     fact("revenue", "2024-09-28", 400_000_000_000),
     fact("revenue", "2023-09-30", 380_000_000_000),
     fact("revenue", "2022-10-01", 360_000_000_000),
-    fact("epsDiluted", "2024-09-28", 6.25, "USD/shares"),
+    fact("epsDiluted", "2024-09-28", 6.25, "currency_per_share"),
     fact("netIncome", "2024-09-28", 95_000_000_000),
     fact("operatingCashFlow", "2024-09-28", 110_000_000_000),
     fact("capitalExpenditure", "2024-09-28", 11_000_000_000),
     fact("stockholdersEquity", "2024-09-28", 60_000_000_000),
-    fact("sharesOutstanding", "2024-09-28", 1_000_000_000, "shares"),
-    fact("dilutedShares", "2024-09-28", 1_005_000_000, "shares"),
+    fact("sharesOutstanding", "2024-09-28", 1_000_000_000, "count"),
+    fact("dilutedShares", "2024-09-28", 1_005_000_000, "count"),
     fact("assetsCurrent", "2024-09-28", 152_000_000_000),
     fact("liabilitiesCurrent", "2024-09-28", 176_000_000_000),
     fact("cashAndEquivalents", "2024-09-28", 30_000_000_000),
@@ -236,7 +241,7 @@ describe("valuation from filings", () => {
 
   it("states every assumption it made, including the ones it declined to make", () => {
     const sparse = [
-      fact("epsDiluted", "2024-09-28", 6.25, "USD/shares"),
+      fact("epsDiluted", "2024-09-28", 6.25, "currency_per_share"),
       fact("revenue", "2024-09-28", 400),
     ];
     const result = valuationFromFilings(sparse, 200, CALC_DATE);
@@ -247,7 +252,7 @@ describe("valuation from filings", () => {
   it("scores confidence by how much is measured rather than defaulted", () => {
     const full = valuationFromFilings(healthyAccounts(), 212.5, CALC_DATE);
     const sparse = valuationFromFilings(
-      [fact("epsDiluted", "2024-09-28", 6.25, "USD/shares")],
+      [fact("epsDiluted", "2024-09-28", 6.25, "currency_per_share")],
       212.5,
       CALC_DATE,
     );
