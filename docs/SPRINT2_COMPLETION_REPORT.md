@@ -146,8 +146,22 @@ valuation 13 (108 total). Application tests: 48.
 | 10 | Posture constrained by reserves, evidence, concentration, liquidity | Met — every cap tested individually and in combination |
 | 11 | All six workspaces work on desktop and mobile | Met — including 320px |
 | 12 | Lint, typecheck, tests, accessibility, build pass | Met |
-| 13 | Production deployment succeeds | Met |
+| 13 | Production deployment succeeds | **Unverified from this session** — see below |
 | 14 | Written completion report | This document |
+
+### On criterion 13
+
+The production build passes locally and all six commits are pushed to the branch
+Vercel deploys from. Git-based auto-deploy on this project was confirmed working
+earlier (a prior push built and reached Ready without intervention), so the
+deployment is expected to succeed.
+
+It is recorded as unverified rather than met because this session could not
+observe it: the sandbox egress proxy returns 403 for `*.vercel.app`, and the
+Vercel API tool is blocked pending an approval prompt that does not reach the
+operator. Confirming the deployment requires opening the project's Deployments
+tab. Stating otherwise would be the kind of unearned claim this sprint exists to
+prevent.
 
 ---
 
