@@ -105,3 +105,35 @@
 
 ### Gates
 `lint` ✓ · `typecheck` ✓ · `test` 156/156 ✓ · `test:e2e` 151/151 ✓ · `build` ✓
+
+## 2026-07-25 — Sprint 3: Morpheus intelligence layer
+
+- New `src/intelligence/` layer: provider adapters, raw evidence ingestion, identity resolution,
+  normalization, staged validation, conflict extension, the UniverseInputs generator, the daily
+  cycle orchestrator, report comparison, the Morpheus briefing, and the append-only journal.
+- NeoOS now produces a daily report from structured evidence without a human assembling the
+  report JSON. The operator supplies source records; the pipeline does everything downstream.
+- Six-asset proof universe (Apple, SPY, gold, cash/bills, a UAE listing, a value-ETF category)
+  with a complete two-day fixture run exercising a stale record, a duplicate, an unresolvable
+  identity, a category label, a tier-resolved conflict, an unresolved peer conflict, an
+  evidence-poor asset, and a material day-over-day change.
+- Provider modes are enforced, not just documented: a record claiming a mode its provider is not
+  in is a blocking validation failure. Only genuinely retrieved data may be labelled live.
+- Reports carry a provenance label stamped by the orchestrator; the header states it.
+- UI additions only where the loop needs operating: Intelligence panel, daily briefing on
+  Capital, decision capture, and journal plus run history on Timeline.
+
+### Defects found by the new tests
+- Records built outside ingestion computed their checksum over all fields while ingestion's
+  canonical checksum covers only the identity-defining subset, so verifying a fixture or manual
+  record raised a false integrity alarm.
+- `text-faint` measured 3.58:1 against the panel background, below WCAG AA 4.5:1, on the
+  provenance and metadata labels added in Sprint 2.
+- Recharts marks its own SVG tabbable inside an `aria-hidden` wrapper, leaving an element
+  reachable by keyboard but never announced.
+- The journal persisted but was never rehydrated on mount, so the Timeline looked empty after
+  any page load; run history was session-only.
+
+### Gates
+`lint` ✓ · `typecheck` ✓ · `test` 242/242 ✓ · `test:e2e` 232/232 ✓ (incl. 9 axe-core scans) ·
+`build` ✓

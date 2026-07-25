@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoos.local/schemas/cycle-result-v3.0.json",
+  "title": "NeoOS Daily Cycle Result v3.0",
+  "description": "Outcome of one daily Morpheus cycle. A run with any rejection is partial_success, never success. On failed there is no report, so the caller keeps the last valid one. Authoritative definition: src/intelligence/types/cycle.ts.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "runId",
+    "state",
+    "startedAt",
+    "completedAt",
+    "providers",
+    "contributingModes",
+    "dataLabel",
+    "evidenceCounts",
+    "rejectedRecords",
+    "identityTraces",
+    "issues",
+    "excludedAssets",
+    "auditTrace"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "3.0"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "success",
+        "partial_success",
+        "insufficient_evidence",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "providers": {
+      "type": "array",
+      "items": {
+        "$ref": "https://neoos.local/schemas/provider-metadata-v3.0.json"
+      }
+    },
+    "contributingModes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "live",
+          "fixture",
+          "manual_import",
+          "disabled",
+          "error"
+        ]
+      }
+    },
+    "dataLabel": {
+      "type": "string",
+      "description": "Honest run-level provenance label, e.g. 'Fixture intelligence'."
+    },
+    "evidenceCounts": {
+      "type": "object",
+      "required": [
+        "rawIngested",
+        "rawRejected",
+        "duplicatesDropped",
+        "normalized",
+        "identityMatched",
+        "identityAmbiguous",
+        "identityUnmatched",
+        "identityConflicted",
+        "conflictsDetected",
+        "conflictsUnresolved"
+      ],
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "rejectedRecords": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rawEvidenceId",
+          "providerId",
+          "reasons"
+        ],
+        "properties": {
+          "rawEvidenceId": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "severity",
+                "stage",
+                "message",
+                "subjectType",
+                "subjectId",
+                "assetId",
+                "detail"
+              ],
+              "properties": {
+                "code": {
+                  "enum": [
+                    "unknown_asset_identity",
+                    "ambiguous_asset_identity",
+                    "conflicting_asset_identity",
+                    "unsupported_unit",
+                    "impossible_date",
+                    "future_publication_date",
+                    "stale_critical_evidence",
+                    "incompatible_currency",
+                    "duplicate_source_record",
+                    "unsupported_evidence_type",
+                    "conflicting_fiscal_period",
+                    "provider_mode_misrepresented",
+                    "missing_provenance",
+                    "malformed_numeric_value",
+                    "non_reproducible_valuation_input",
+                    "schema_violation",
+                    "unresolved_conflict",
+                    "no_usable_evidence"
+                  ]
+                },
+                "severity": {
+                  "enum": [
+                    "blocking",
+                    "warning",
+                    "informational"
+                  ]
+                },
+                "stage": {
+                  "enum": [
+                    "raw_input",
+                    "identity",
+                    "normalized_evidence",
+                    "universe_inputs",
+                    "generated_report",
+                    "journal_entry"
+                  ]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "subjectType": {
+                  "enum": [
+                    "raw_evidence",
+                    "evidence",
+                    "asset",
+                    "report",
+                    "run"
+                  ]
+                },
+                "subjectId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "assetId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "detail": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "identityTraces": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "stage",
+          "message",
+          "subjectType",
+          "subjectId",
+          "assetId",
+          "detail"
+        ],
+        "properties": {
+          "code": {
+            "enum": [
+              "unknown_asset_identity",
+              "ambiguous_asset_identity",
+              "conflicting_asset_identity",
+              "unsupported_unit",
+              "impossible_date",
+              "future_publication_date",
+              "stale_critical_evidence",
+              "incompatible_currency",
+              "duplicate_source_record",
+              "unsupported_evidence_type",
+              "conflicting_fiscal_period",
+              "provider_mode_misrepresented",
+              "missing_provenance",
+              "malformed_numeric_value",
+              "non_reproducible_valuation_input",
+              "schema_violation",
+              "unresolved_conflict",
+              "no_usable_evidence"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "blocking",
+              "warning",
+              "informational"
+            ]
+          },
+          "stage": {
+            "enum": [
+              "raw_input",
+              "identity",
+              "normalized_evidence",
+              "universe_inputs",
+              "generated_report",
+              "journal_entry"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "subjectType": {
+            "enum": [
+              "raw_evidence",
+              "evidence",
+              "asset",
+              "report",
+              "run"
+            ]
+          },
+          "subjectId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "assetId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "excludedAssets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "assetId",
+          "reason"
+        ],
+        "properties": {
+          "assetId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "auditTrace": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "step",
+          "startedAt",
+          "completedAt",
+          "ok",
+          "detail",
+          "counts"
+        ],
+        "properties": {
+          "step": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "counts": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "reportRef": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

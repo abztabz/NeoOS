@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoos.local/schemas/raw-evidence-import-v3.0.json",
+  "title": "NeoOS Manual Evidence Import v3.0",
+  "description": "Operator-supplied source records. The pipeline performs identity resolution, normalization, validation, conflict detection, scoring, and report generation; the submitter never writes the final report schema. Authoritative definition: src/intelligence/types/raw-evidence.ts.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "provider",
+    "asOf",
+    "records"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "3.0"
+    },
+    "provider": {
+      "type": "object",
+      "required": [
+        "providerId",
+        "providerName",
+        "providerType",
+        "sourceTier"
+      ],
+      "properties": {
+        "providerId": {
+          "type": "string"
+        },
+        "providerName": {
+          "type": "string"
+        },
+        "providerType": {
+          "type": "string"
+        },
+        "sourceTier": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "legalNotes": {
+          "type": "string"
+        }
+      }
+    },
+    "asOf": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "sourceRef",
+          "title",
+          "identifiers",
+          "category"
+        ],
+        "properties": {
+          "providerRecordId": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sourceRef": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "identifiers": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "scheme",
+                "value"
+              ],
+              "properties": {
+                "scheme": {
+                  "enum": [
+                    "ticker",
+                    "exchange",
+                    "isin",
+                    "cusip",
+                    "figi",
+                    "commodity",
+                    "provider_id",
+                    "name",
+                    "fund_name",
+                    "category"
+                  ]
+                },
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "category": {
+            "enum": [
+              "price",
+              "fundamental",
+              "filing",
+              "macro_indicator",
+              "research_opinion",
+              "news",
+              "sentiment",
+              "reference"
+            ]
+          },
+          "factorHint": {
+            "enum": [
+              "valuation",
+              "financialStrength",
+              "businessQuality",
+              "growth",
+              "macro",
+              "technical",
+              "portfolioFit",
+              "governance"
+            ]
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unit": {
+            "enum": [
+              "score",
+              "percent",
+              "basis_points",
+              "ratio",
+              "currency_per_share",
+              "currency_per_troy_ounce",
+              "currency",
+              "multiple",
+              "count",
+              "index_level"
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "geographicScope": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "claimKey": {
+            "type": "string",
+            "description": "Records sharing a claimKey assert the same fact; this is what enables conflict detection."
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

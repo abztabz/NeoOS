@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoos.local/schemas/provider-metadata-v3.0.json",
+  "title": "NeoOS Provider Descriptor v3.0",
+  "description": "Provider status as reported by an adapter. Only mode 'live' may be described as live. Authoritative definition: src/intelligence/types/provider.ts.",
+  "type": "object",
+  "required": [
+    "providerId",
+    "providerName",
+    "providerType",
+    "sourceTier",
+    "capabilities",
+    "supportedAssetClasses",
+    "mode",
+    "configured",
+    "authenticated",
+    "health",
+    "lastSuccessfulRetrieval",
+    "failureReason",
+    "legalNotes",
+    "rateLimit"
+  ],
+  "properties": {
+    "providerId": {
+      "type": "string"
+    },
+    "providerName": {
+      "type": "string"
+    },
+    "providerType": {
+      "enum": [
+        "official_filing",
+        "market_data",
+        "institutional_research",
+        "macro",
+        "news",
+        "sentiment",
+        "manual"
+      ]
+    },
+    "sourceTier": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "prices",
+          "fundamentals",
+          "filings",
+          "macro_series",
+          "news",
+          "reference_data"
+        ]
+      }
+    },
+    "supportedAssetClasses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mode": {
+      "enum": [
+        "live",
+        "fixture",
+        "manual_import",
+        "disabled",
+        "error"
+      ]
+    },
+    "configured": {
+      "type": "boolean"
+    },
+    "authenticated": {
+      "type": "boolean"
+    },
+    "health": {
+      "enum": [
+        "ok",
+        "degraded",
+        "unconfigured",
+        "failing"
+      ]
+    },
+    "lastSuccessfulRetrieval": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "failureReason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "legalNotes": {
+      "type": "string"
+    },
+    "rateLimit": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "requestsPerMinute",
+        "remaining"
+      ],
+      "properties": {
+        "requestsPerMinute": {
+          "type": "integer"
+        },
+        "remaining": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

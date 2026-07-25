@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoos.local/schemas/decision-capture-v3.0.json",
+  "title": "NeoOS Decision Capture v3.0",
+  "description": "A user decision, recorded separately from the recommendation it responds to. NeoOS never infers execution. Authoritative definition: src/intelligence/types/decision.ts.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "decisionId",
+    "runId",
+    "reportHash",
+    "recordedAt",
+    "assetId",
+    "kind",
+    "postureDecision",
+    "recommendationSnapshot",
+    "constraints",
+    "attachmentRefs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "3.0"
+    },
+    "decisionId": {
+      "type": "string"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "reportHash": {
+      "type": "string",
+      "description": "Pins the report that was on screen when the decision was made."
+    },
+    "recordedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "assetId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Null for a capital-posture decision."
+    },
+    "kind": {
+      "enum": [
+        "no_action",
+        "accepted",
+        "partially_accepted",
+        "rejected",
+        "deferred",
+        "custom_action"
+      ]
+    },
+    "postureDecision": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "preserve_cash",
+        "deploy_10",
+        "deploy_25",
+        "rebalance",
+        "hold_existing",
+        "reduce_exposure",
+        "no_decision",
+        null
+      ]
+    },
+    "recommendationSnapshot": {
+      "type": "string",
+      "description": "What the engine said, copied so the record stands alone."
+    },
+    "amount": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "amountUnit": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "currency",
+        "percent",
+        null
+      ]
+    },
+    "intendedExecutionDate": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "actualExecutionDate": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "executionPrice": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "decisionConfidence": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "attachmentRefs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reviewDate": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

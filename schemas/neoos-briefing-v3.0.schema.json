@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoos.local/schemas/briefing-v3.0.json",
+  "title": "NeoOS Morpheus Briefing v3.0",
+  "description": "Structured daily CIO briefing. Every statement is typed by epistemic status and carries the references it rests on; there are no free-form claims. Authoritative definition: src/intelligence/types/briefing.ts.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "runId",
+    "generatedAt",
+    "dataLabel",
+    "headline",
+    "summary",
+    "sections"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "3.0"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "dataLabel": {
+      "type": "string"
+    },
+    "headline": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "statements"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "executive_posture",
+              "what_changed",
+              "why_it_changed",
+              "requires_action",
+              "requires_patience",
+              "missing_or_uncertain",
+              "capital_guidance",
+              "asset_actions",
+              "reserve_and_risk",
+              "evidence_health",
+              "watch_conditions",
+              "questions_for_user"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "statements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "text",
+                "references",
+                "assetId"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "fact",
+                    "engine_output",
+                    "inference",
+                    "warning",
+                    "decision_needed"
+                  ]
+                },
+                "text": {
+                  "type": "string"
+                },
+                "references": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "assetId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

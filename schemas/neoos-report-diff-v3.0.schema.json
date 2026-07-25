@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoos.local/schemas/report-diff-v3.0.json",
+  "title": "NeoOS Report Diff v3.0",
+  "description": "Deterministic comparison between two engine reports. A cause is asserted only when the calculation trace or an evidence change proves it; otherwise it is 'unknown'. Authoritative definition: src/intelligence/types/diff.ts.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "previousReportHash",
+    "currentReportHash",
+    "previousGeneratedAt",
+    "currentGeneratedAt",
+    "isFirstReport",
+    "changes",
+    "summary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "3.0"
+    },
+    "previousReportHash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "currentReportHash": {
+      "type": "string"
+    },
+    "previousGeneratedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "currentGeneratedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "isFirstReport": {
+      "type": "boolean"
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "severity",
+          "assetId",
+          "scope",
+          "label",
+          "previousValue",
+          "currentValue",
+          "absoluteChange",
+          "percentageChange",
+          "cause",
+          "causeDetail",
+          "supportingEvidenceIds",
+          "explanation"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "score",
+              "rating",
+              "confidence",
+              "evidence_integrity",
+              "valuation",
+              "margin_of_safety",
+              "threshold",
+              "new_evidence",
+              "expired_evidence",
+              "conflict_resolved",
+              "conflict_new",
+              "deployment_posture",
+              "reserve_constraint",
+              "concentration",
+              "newly_insufficient",
+              "restored_from_insufficient",
+              "engine_version",
+              "schema_version"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "critical",
+              "material",
+              "minor",
+              "informational"
+            ]
+          },
+          "assetId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scope": {
+            "enum": [
+              "asset",
+              "global"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "previousValue": {
+            "type": [
+              "string",
+              "number",
+              "null"
+            ]
+          },
+          "currentValue": {
+            "type": [
+              "string",
+              "number",
+              "null"
+            ]
+          },
+          "absoluteChange": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "percentageChange": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "cause": {
+            "enum": [
+              "evidence_added",
+              "evidence_expired",
+              "valuation_input_changed",
+              "conflict_state_changed",
+              "constraint_applied",
+              "constraint_released",
+              "engine_version_changed",
+              "unknown"
+            ]
+          },
+          "causeDetail": {
+            "type": "string"
+          },
+          "supportingEvidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "explanation": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "total",
+        "critical",
+        "material",
+        "minor",
+        "informational"
+      ],
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  }
+}
