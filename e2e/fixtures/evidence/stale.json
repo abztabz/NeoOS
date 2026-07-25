@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "3.0",
+  "provider": {
+    "providerId": "operator-manual",
+    "providerName": "Operator manual evidence",
+    "providerType": "manual",
+    "sourceTier": 2
+  },
+  "asOf": "2026-07-26T08:00:00Z",
+  "records": [
+    {
+      "sourceRef": "https://example.invalid/market/aapl-old-quote",
+      "title": "Closing price from an old session",
+      "identifiers": [{ "scheme": "ticker", "value": "AAPL" }, { "scheme": "exchange", "value": "NASDAQ" }],
+      "category": "price",
+      "value": 180,
+      "unit": "currency_per_share",
+      "currency": "USD",
+      "confidence": 90,
+      "publishedAt": "2026-05-01T00:00:00Z"
+    }
+  ]
+}

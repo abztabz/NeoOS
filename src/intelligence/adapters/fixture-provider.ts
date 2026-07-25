@@ -48,21 +48,11 @@ export class FixtureProviderAdapter implements ProviderAdapter {
       };
     }
 
-    const requested = new Set(request.assetIds);
-    const records = this.records.filter((record) => {
-      // Macro records carry no asset identifiers and always apply.
-      if (record.evidenceCategory === "macro_indicator") return true;
-      return record.assetIdentifiers.some((identifier) =>
-        [...requested].some((assetId) =>
-          identifier.value.toLowerCase().includes(assetId.toLowerCase()),
-        ),
-      );
-    });
-
-    // Fixture records are pre-scoped to the proof universe; when the caller's
-    // asset filter matches nothing by string, serve the whole set rather than
-    // silently returning an empty run.
-    const payload = records.length > 0 ? records : this.records;
+    // A fixture set is already scoped to the proof universe, and matching a
+    // canonical assetId against a source identifier is exactly the guesswork
+    // the identity resolver exists to do properly. So the adapter serves its
+    // whole set and lets resolution decide what belongs to what.
+    const payload = this.records;
 
     return {
       providerId: this.descriptor.providerId,

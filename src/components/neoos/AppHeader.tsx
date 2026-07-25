@@ -4,10 +4,12 @@ import { useState } from "react";
 import { useReport } from "@/data/report-store";
 import { ImportDialog } from "@/components/neoos/ImportDialog";
 import { DataStateBadge } from "@/components/neoos/DataStateBadge";
+import { IntelligencePanel } from "@/components/neoos/IntelligencePanel";
 
 export function AppHeader() {
   const { storageStatus } = useReport();
   const [importOpen, setImportOpen] = useState(false);
+  const [intelOpen, setIntelOpen] = useState(false);
 
   return (
     <header className="mb-4 flex items-center justify-between gap-3.5">
@@ -30,6 +32,13 @@ export function AppHeader() {
         <DataStateBadge />
         <button
           type="button"
+          onClick={() => setIntelOpen(true)}
+          className="inline-flex min-h-11 items-center rounded-full border border-cyan/40 px-4 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-cyan transition-colors hover:bg-cyan/10"
+        >
+          Run
+        </button>
+        <button
+          type="button"
           onClick={() => setImportOpen(true)}
           className="inline-flex min-h-11 items-center rounded-full border border-line px-4 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[#8896a1] transition-colors hover:border-line-strong hover:text-ink"
         >
@@ -44,6 +53,7 @@ export function AppHeader() {
       ) : null}
 
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
+      <IntelligencePanel open={intelOpen} onClose={() => setIntelOpen(false)} />
     </header>
   );
 }

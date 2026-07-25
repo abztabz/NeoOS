@@ -3,6 +3,8 @@
 import { Gauge } from "@/components/neoos/Gauge";
 import { ScoreCard } from "@/components/neoos/ScoreCard";
 import { SectionCard } from "@/components/neoos/SectionCard";
+import { BriefingCard } from "@/components/neoos/BriefingCard";
+import { DecisionCaptureCard } from "@/components/neoos/DecisionCapture";
 import { RadarList } from "@/components/neoos/RadarList";
 import { Bar } from "@/components/neoos/Bar";
 import { useReport } from "@/data/report-store";
@@ -59,6 +61,8 @@ export default function CapitalPage() {
 
       <div className="grid gap-3.5 lg:grid-cols-[1.45fr_.55fr]">
         <div className="grid content-start gap-3.5">
+          <BriefingCard />
+
           <SectionCard title="CAPITAL RADAR" meta="WHAT CHANGED">
             <RadarList items={report.radar} />
           </SectionCard>
@@ -99,6 +103,8 @@ export default function CapitalPage() {
         </div>
 
         <aside className="grid content-start gap-3.5">
+          <DecisionCaptureCard />
+
           <SectionCard
             title="FAMILY OFFICE HEALTH"
             meta={`${tiers.data.length} TIERS`}

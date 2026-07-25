@@ -221,6 +221,22 @@ export async function runDailyMorpheusCycle(input: DailyCycleInput): Promise<Dai
   const identityTraces: IdentityTrace[] = [];
   const identityByRecord = new Map<string, IdentityTrace["resolution"]>();
   for (const record of rawRecords) {
+    // Macro evidence is global by design and carries no asset identifiers, so
+    // it is not put through identity resolution at all.
+    if (record.evidenceCategory === "macro_indicator") {
+      identityByRecord.set(record.rawEvidenceId, {
+        outcome: "matched",
+        assetId: null,
+        method: null,
+        confidence: 100,
+        matchedIdentifiers: [],
+        candidates: [],
+        warnings: [],
+        conflictingAssetIds: [],
+      });
+      continue;
+    }
+
     const resolution = resolveIdentity(record.assetIdentifiers);
     identityByRecord.set(record.rawEvidenceId, resolution);
     identityTraces.push({
@@ -228,43 +244,30 @@ export async function runDailyMorpheusCycle(input: DailyCycleInput): Promise<Dai
       suppliedIdentifiers: record.assetIdentifiers.map((i) => `${i.scheme}:${i.value}`),
       resolution,
     });
-    // Ambiguity on a non-macro record is material: it blocks the candidate
-    // assets rather than being attached to a guess.
-    if (record.evidenceCategory !== "macro_indicator" && resolution.outcome !== "matched") {
-      const affected =
-        resolution.outcome === "conflicted"
-          ? resolution.conflictingAssetIds
-          : resolution.candidates.map((c) => c.assetId).slice(0, 2);
-      for (const assetId of affected) {
-        issues.push({
-          code:
-            resolution.outcome === "ambiguous"
-              ? "ambiguous_asset_identity"
-              : resolution.outcome === "conflicted"
-                ? "conflicting_asset_identity"
-                : "unknown_asset_identity",
-          severity: "blocking",
-          stage: "identity",
-          message: `Evidence ${record.rawEvidenceId} could not be attributed: ${resolution.warnings.join(" ")}`,
-          subjectType: "asset",
-          subjectId: record.rawEvidenceId,
-          assetId,
-          detail: `candidates: ${resolution.candidates.map((c) => `${c.assetId}@${c.confidence}`).join(", ") || "none"}`,
-        });
-      }
-      if (affected.length === 0) {
-        issues.push({
-          code: "unknown_asset_identity",
-          severity: "warning",
-          stage: "identity",
-          message: `Evidence ${record.rawEvidenceId} matched no asset in the universe and was dropped.`,
-          subjectType: "raw_evidence",
-          subjectId: record.rawEvidenceId,
-          assetId: null,
-          detail: resolution.warnings.join(" "),
-        });
-      }
-    }
+
+    if (resolution.outcome === "matched") continue;
+
+    // The record is NOT attached to any asset — never a guess. It is dropped
+    // with a warning naming the candidates considered. Whether that shortfall
+    // matters is then decided by the engine's own insufficient-evidence gate:
+    // an asset left without critical-factor coverage cannot be rated, while an
+    // asset with ample other evidence is unaffected by one unusable record.
+    const candidates = resolution.candidates.map((c) => `${c.assetId}@${c.confidence}`);
+    issues.push({
+      code:
+        resolution.outcome === "ambiguous"
+          ? "ambiguous_asset_identity"
+          : resolution.outcome === "conflicted"
+            ? "conflicting_asset_identity"
+            : "unknown_asset_identity",
+      severity: "warning",
+      stage: "identity",
+      message: `Evidence ${record.rawEvidenceId} was not attributed to any asset (${resolution.outcome}): ${resolution.warnings.join(" ")}`,
+      subjectType: "raw_evidence",
+      subjectId: record.rawEvidenceId,
+      assetId: null,
+      detail: `candidates considered: ${candidates.join(", ") || "none"}`,
+    });
   }
   const identityCounts = {
     matched: identityTraces.filter((t) => t.resolution.outcome === "matched").length,

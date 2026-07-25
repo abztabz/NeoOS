@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "3.0",
+  "provider": {
+    "providerId": "operator-manual",
+    "providerName": "Operator manual evidence",
+    "providerType": "manual",
+    "sourceTier": 1
+  },
+  "asOf": "2026-07-26T08:00:00Z",
+  "records": [
+    {
+      "sourceRef": "https://example.invalid/filings/aapl-services-official",
+      "title": "Services segment growth rate",
+      "identifiers": [{ "scheme": "ticker", "value": "AAPL" }, { "scheme": "exchange", "value": "NASDAQ" }],
+      "category": "filing",
+      "factorHint": "growth",
+      "claimKey": "aapl-services-growth-manual",
+      "value": 82,
+      "unit": "score",
+      "confidence": 92,
+      "publishedAt": "2026-07-20T00:00:00Z"
+    },
+    {
+      "sourceRef": "https://example.invalid/research/aapl-services-estimate",
+      "title": "Services segment growth rate, independent estimate",
+      "identifiers": [{ "scheme": "ticker", "value": "AAPL" }, { "scheme": "exchange", "value": "NASDAQ" }],
+      "category": "filing",
+      "factorHint": "growth",
+      "claimKey": "aapl-services-growth-manual",
+      "value": 44,
+      "unit": "score",
+      "confidence": 88,
+      "publishedAt": "2026-07-21T00:00:00Z"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "3.0",
+  "provider": {
+    "providerId": "operator-manual",
+    "providerName": "Operator manual evidence",
+    "providerType": "manual",
+    "sourceTier": 3
+  },
+  "asOf": "2026-07-26T08:00:00Z",
+  "records": [
+    {
+      "sourceRef": "https://example.invalid/quotes/sp500",
+      "title": "Quote for an S&P 500 tracking fund, issuer unspecified",
+      "identifiers": [{ "scheme": "category", "value": "s&p 500 etf" }],
+      "category": "price",
+      "value": 544,
+      "unit": "currency_per_share",
+      "currency": "USD",
+      "confidence": 70
+    },
+    {
+      "sourceRef": "https://example.invalid/quotes/value-cohort",
+      "title": "Developed-market value cohort trades below book",
+      "identifiers": [{ "scheme": "category", "value": "developed-market value etf" }],
+      "category": "reference",
+      "factorHint": "businessQuality",
+      "value": 72,
+      "unit": "score",
+      "confidence": 70
+    }
+  ]
+}

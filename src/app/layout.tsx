@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ReportProvider } from "@/data/report-store";
+import { IntelligenceProvider } from "@/data/intelligence-store";
 import { AppHeader } from "@/components/neoos/AppHeader";
 import { DesktopNav, MobileNav } from "@/components/neoos/WorkspaceNav";
 
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="overflow-x-hidden">
         <ReportProvider>
+          <IntelligenceProvider>
           <div className="mx-auto max-w-[1320px] px-4 pt-4 pb-24 md:pb-10">
             <AppHeader />
             <DesktopNav />
@@ -46,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </footer>
           </div>
           <MobileNav />
+          </IntelligenceProvider>
         </ReportProvider>
       </body>
     </html>

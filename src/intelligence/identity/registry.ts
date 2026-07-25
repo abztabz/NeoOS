@@ -96,7 +96,10 @@ export const ASSET_REGISTRY: RegistryEntry[] = [
       // so that phrase must stay ambiguous without a provider identifier.
       aliases: ["SPDR S&P 500 ETF Trust", "SPDR S&P 500"],
       providerIds: { "fixture-market": "SPY.ARCA" },
-      categoryLabels: ["broad us market index fund"],
+      // "S&P 500 ETF" is a CATEGORY of funds, not this instrument. Listing it
+      // here scores it below the confidence floor, so the phrase surfaces as
+      // ambiguous rather than silently resolving to SPY.
+      categoryLabels: ["broad us market index fund", "s&p 500 etf"],
     },
   ),
 

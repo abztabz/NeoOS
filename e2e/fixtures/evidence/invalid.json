@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "3.0",
+  "provider": {
+    "providerId": "operator-manual",
+    "providerName": "Operator manual evidence",
+    "providerType": "manual",
+    "sourceTier": 1
+  },
+  "asOf": "2026-07-26T08:00:00Z",
+  "records": [
+    {
+      "sourceRef": "https://example.invalid/broken",
+      "title": "Record with an unsupported unit and an impossible date",
+      "identifiers": [{ "scheme": "ticker", "value": "AAPL" }, { "scheme": "exchange", "value": "NASDAQ" }],
+      "category": "filing",
+      "factorHint": "financialStrength",
+      "value": 88,
+      "unit": "furlongs_per_fortnight",
+      "confidence": 90,
+      "publishedAt": "2027-12-31T00:00:00Z"
+    }
+  ]
+}

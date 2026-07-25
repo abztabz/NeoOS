@@ -2,6 +2,7 @@
 
 import { SectionCard } from "@/components/neoos/SectionCard";
 import { CashTrendChart } from "@/components/neoos/CashTrendChart";
+import { JournalList } from "@/components/neoos/JournalList";
 import { useReport } from "@/data/report-store";
 import { isDemoFallback, timelineView } from "@/domain/report-view";
 
@@ -20,6 +21,8 @@ export default function TimelinePage() {
 
   return (
     <div className="grid gap-3.5">
+      <JournalList />
+
       <SectionCard title="CASH SCORE VS DEPLOYMENT" meta="TREND" demoFallback={timelineFallback}>
         <CashTrendChart events={timeline.data} />
       </SectionCard>

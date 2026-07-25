@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "3.0",
+  "provider": {
+    "providerId": "operator-manual",
+    "providerName": "Operator manual evidence",
+    "providerType": "manual",
+    "sourceTier": 1,
+    "legalNotes": "Operator-supplied source records. NeoOS did not retrieve or verify these."
+  },
+  "asOf": "2026-07-26T08:00:00Z",
+  "records": [
+    {
+      "sourceRef": "https://example.invalid/filings/aapl-q4",
+      "title": "Balance sheet strength from the latest issuer filing",
+      "identifiers": [{ "scheme": "ticker", "value": "AAPL" }, { "scheme": "exchange", "value": "NASDAQ" }],
+      "category": "filing",
+      "factorHint": "financialStrength",
+      "value": 93,
+      "unit": "score",
+      "confidence": 94,
+      "publishedAt": "2026-07-20T00:00:00Z"
+    },
+    {
+      "sourceRef": "https://example.invalid/filings/aapl-moat",
+      "title": "Ecosystem switching costs remain durable",
+      "identifiers": [{ "scheme": "ticker", "value": "AAPL" }, { "scheme": "exchange", "value": "NASDAQ" }],
+      "category": "filing",
+      "factorHint": "businessQuality",
+      "value": 89,
+      "unit": "score",
+      "confidence": 90,
+      "publishedAt": "2026-07-18T00:00:00Z"
+    },
+    {
+      "sourceRef": "https://example.invalid/macro/cpi",
+      "title": "Headline inflation continues to ease",
+      "identifiers": [{ "scheme": "category", "value": "macro" }],
+      "category": "macro_indicator",
+      "factorHint": "macro",
+      "value": 75,
+      "unit": "score",
+      "confidence": 88,
+      "publishedAt": "2026-07-15T00:00:00Z"
+    }
+  ]
+}
