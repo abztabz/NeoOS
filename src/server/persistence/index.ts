@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { databaseUrl } from "@/server/config/env";
+import type { IntakeStore } from "@/server/persistence/intake-store";
 import { MemoryReportStore } from "@/server/persistence/memory-store";
 import { PostgresReportStore } from "@/server/persistence/postgres-store";
 import type { ReportStore } from "@/server/persistence/store";
@@ -17,14 +18,21 @@ import type { ReportStore } from "@/server/persistence/store";
  * connection pool instead of opening a new one on every request.
  */
 
-let cached: ReportStore | null = null;
+/**
+ * Both implementations satisfy both ports over one connection. Callers ask for
+ * the port they need, so a module that only reads intake cannot reach the
+ * report journal by accident.
+ */
+type CombinedStore = ReportStore & IntakeStore;
+
+let cached: CombinedStore | null = null;
 let cachedFor: string | null = null;
 
 export function migrationSql(): string {
   return readFileSync(join(process.cwd(), "src/server/persistence/schema.sql"), "utf8");
 }
 
-export function getReportStore(): ReportStore {
+function getStore(): CombinedStore {
   const url = databaseUrl();
   const key = url ?? "memory";
   if (cached && cachedFor === key) return cached;
@@ -34,8 +42,16 @@ export function getReportStore(): ReportStore {
   return cached;
 }
 
+export function getReportStore(): ReportStore {
+  return getStore();
+}
+
+export function getIntakeStore(): IntakeStore {
+  return getStore();
+}
+
 /** Test seam. Never called by application code. */
-export function __setReportStoreForTests(store: ReportStore | null): void {
+export function __setReportStoreForTests(store: CombinedStore | null): void {
   cached = store;
   cachedFor = store ? "test" : null;
 }

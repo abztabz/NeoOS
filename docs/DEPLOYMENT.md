@@ -93,8 +93,8 @@ DATABASE_URL=postgresql://user:password@host:6543/postgres?sslmode=require
 
 The schema is created on first use (`migrate()` runs on every cold start and is
 idempotent). It is defined in `src/server/persistence/schema.sql` and is
-append-only throughout: no `UPDATE`, no `DELETE`, and both are revoked from the
-application role where the host permits it.
+append-only throughout: no `UPDATE`, no `DELETE`, and a trigger on every table
+rejects both if anything ever tries.
 
 Without a database the application still runs. It reports `durable: false` in
 the UI and says entries will be lost, which is the honest description of holding

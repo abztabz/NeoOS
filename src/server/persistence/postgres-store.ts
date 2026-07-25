@@ -1,4 +1,11 @@
 import { Pool, type PoolConfig, type QueryResultRow } from "pg";
+import { intakeProfileSchema, type IntakeProfile, type SubjectId } from "@/domain/intake/types";
+import {
+  profileIntegrityHash,
+  summariseProfile,
+  type IntakeStore,
+  type StoredProfileSummary,
+} from "@/server/persistence/intake-store";
 import { reportEnvelopeSchema, type ReportEnvelope } from "@/server/types/report-envelope";
 import type {
   DecisionRecord,
@@ -32,7 +39,7 @@ const DEFAULT_POOL: Partial<PoolConfig> = {
   connectionTimeoutMillis: 8_000,
 };
 
-export class PostgresReportStore implements ReportStore {
+export class PostgresReportStore implements ReportStore, IntakeStore {
   private readonly pool: Pool;
   private migrated = false;
 
@@ -234,6 +241,96 @@ export class PostgresReportStore implements ReportStore {
     return rows.map(toDecision);
   }
 
+  /* ---------------- intake ---------------- */
+
+  async saveProfile(profile: IntakeProfile): Promise<{ stored: boolean; reason: string }> {
+    if (profile.supersedes !== null) {
+      const { rows } = await this.pool.query<{ subject_id: string }>(
+        "SELECT subject_id FROM intake_profiles WHERE profile_id = $1",
+        [profile.supersedes],
+      );
+      const target = rows[0];
+      if (!target) {
+        return {
+          stored: false,
+          reason: `Profile ${profile.supersedes} was not found, so this correction has nothing to correct.`,
+        };
+      }
+      if (target.subject_id !== profile.subjectId) {
+        return { stored: false, reason: "A profile may only supersede another profile of the same subject." };
+      }
+    }
+
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO intake_profiles (
+           profile_id, subject_id, schema_version, recorded_at, supersedes, content, integrity_hash
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7)
+         ON CONFLICT (profile_id) DO NOTHING`,
+        [
+          profile.profileId,
+          profile.subjectId,
+          profile.schemaVersion,
+          profile.recordedAt,
+          profile.supersedes,
+          JSON.stringify(profile),
+          profileIntegrityHash(profile),
+        ],
+      );
+      return result.rowCount === 1
+        ? { stored: true, reason: "Stored." }
+        : {
+            stored: false,
+            reason: `Profile ${profile.profileId} already exists. Declared positions are never overwritten; record a correction instead.`,
+          };
+    } catch (error) {
+      // The unique index on `supersedes` is what stops two corrections claiming
+      // to replace the same version, which would leave the current position
+      // ambiguous. Report it as the conflict it is rather than as a crash.
+      if (isUniqueViolation(error)) {
+        return {
+          stored: false,
+          reason: `Profile ${profile.supersedes} has already been superseded. Correct the current version instead.`,
+        };
+      }
+      throw error;
+    }
+  }
+
+  async getCurrentProfile(subjectId: SubjectId): Promise<IntakeProfile | null> {
+    const { rows } = await this.pool.query<ProfileRow>(
+      `SELECT p.content, p.integrity_hash
+         FROM intake_profiles p
+        WHERE p.subject_id = $1
+          AND NOT EXISTS (SELECT 1 FROM intake_profiles q WHERE q.supersedes = p.profile_id)
+        ORDER BY p.recorded_at DESC, p.stored_at DESC
+        LIMIT 1`,
+      [subjectId],
+    );
+    return rows[0] ? toProfile(rows[0]) : null;
+  }
+
+  async getProfile(subjectId: SubjectId, profileId: string): Promise<IntakeProfile | null> {
+    const { rows } = await this.pool.query<ProfileRow>(
+      "SELECT content, integrity_hash FROM intake_profiles WHERE subject_id = $1 AND profile_id = $2",
+      [subjectId, profileId],
+    );
+    return rows[0] ? toProfile(rows[0]) : null;
+  }
+
+  async listProfileHistory(subjectId: SubjectId, limit: number): Promise<StoredProfileSummary[]> {
+    const { rows } = await this.pool.query<ProfileRow & { superseded: boolean }>(
+      `SELECT p.content, p.integrity_hash,
+              EXISTS (SELECT 1 FROM intake_profiles q WHERE q.supersedes = p.profile_id) AS superseded
+         FROM intake_profiles p
+        WHERE p.subject_id = $1
+        ORDER BY p.recorded_at DESC, p.stored_at DESC
+        LIMIT $2`,
+      [subjectId, limit],
+    );
+    return rows.map((r) => summariseProfile(toProfile(r), r.superseded));
+  }
+
   async close(): Promise<void> {
     await this.pool.end();
   }
@@ -275,6 +372,41 @@ interface OutcomeRow extends QueryResultRow {
   decision_id: string;
   reviewed_at: string;
   payload: unknown;
+}
+
+interface ProfileRow extends QueryResultRow {
+  content: unknown;
+  integrity_hash: string;
+}
+
+/** PostgreSQL unique_violation. */
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === "object" && error !== null && (error as { code?: unknown }).code === "23505";
+}
+
+/**
+ * Rebuild a profile from storage.
+ *
+ * Two checks, both of which throw rather than degrade. A profile that no longer
+ * parses, or whose content no longer matches the hash written with it, has been
+ * changed outside the application. Serving it anyway would put an unverified
+ * financial position into every number downstream, which is the one thing this
+ * system exists not to do.
+ */
+function toProfile(row: ProfileRow): IntakeProfile {
+  const parsed = intakeProfileSchema.safeParse(row.content);
+  if (!parsed.success) {
+    throw new Error(
+      `A stored intake profile does not match the schema: ${parsed.error.issues[0]?.message ?? "unknown"}`,
+    );
+  }
+  const actual = profileIntegrityHash(parsed.data);
+  if (actual !== row.integrity_hash) {
+    throw new Error(
+      `Stored intake profile ${parsed.data.profileId} does not match its integrity hash. It was modified outside NeoOS and is not being used.`,
+    );
+  }
+  return parsed.data;
 }
 
 function toDecision(r: DecisionRow): DecisionRecord {

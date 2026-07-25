@@ -138,11 +138,10 @@ marketing.
   integrity, not honesty.
 - **Deletion is not prevented.** Append-only stops rewriting, not removal. Someone
   with database access can drop a row; they cannot alter one undetectably.
-- **The append-only revoke does nothing against a superuser connection.**
-  Verified: a non-superuser is blocked from UPDATE and DELETE even when it owns
-  the tables, but a superuser bypasses privilege checks entirely. If the
-  deployment connects as a superuser-equivalent role, append-only is enforced in
-  application code only. See PERSISTENCE_AND_SIGNING.md.
+- **Append-only can be switched off by anyone who can `ALTER TABLE`.** It is
+  enforced by a trigger on each table, which does block a superuser — unlike the
+  privilege revoke it replaced — but a role that can disable the trigger can
+  disable the guarantee. See PERSISTENCE_AND_SIGNING.md §5.
 - **No secret rotation automation.** Rotation is manual and documented.
 - **The dependency audit reports pre-existing advisories** in eslint, postcss, and
   sharp — build-time tooling, not runtime request paths. They predate this sprint

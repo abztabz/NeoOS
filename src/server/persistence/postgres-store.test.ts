@@ -2,6 +2,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { emptyProfile } from "@/domain/intake/types";
+import { profileIntegrityHash } from "@/server/persistence/intake-store";
 import { PostgresReportStore } from "@/server/persistence/postgres-store";
 import { PIPELINE_VERSION, REPORT_ENVELOPE_SCHEMA_VERSION, type ReportEnvelope } from "@/server/types/report-envelope";
 
@@ -82,7 +84,7 @@ suite("PostgresReportStore against a real database", () => {
     // Truncate rather than drop: proves the schema survives reuse, which is
     // what a serverless cold start actually does to it.
     await store["pool"].query(
-      "TRUNCATE outcomes, decisions, journal_entries, reports RESTART IDENTITY CASCADE",
+      "TRUNCATE outcomes, decisions, journal_entries, reports, intake_profiles RESTART IDENTITY CASCADE",
     );
   });
 
@@ -251,29 +253,139 @@ suite("PostgresReportStore against a real database", () => {
     ).rejects.toThrow();
   });
 
-  it("revokes UPDATE and DELETE from the application role", async () => {
-    // The grant list is the mechanism. Whether it BITES depends on the role:
-    // a non-superuser is blocked even when it owns the tables; a superuser
-    // bypasses privilege checks entirely. Both verified against a real
-    // instance — see docs/PERSISTENCE_AND_SIGNING.md.
-    const { rows } = await store["pool"].query<{ privilege_type: string }>(
-      `SELECT privilege_type FROM information_schema.role_table_grants
-        WHERE table_name = 'reports' AND grantee = current_user`,
-    );
-    const granted = rows.map((r) => r.privilege_type);
-    expect(granted).toContain("INSERT");
-    expect(granted).toContain("SELECT");
-    expect(granted).not.toContain("UPDATE");
-    expect(granted).not.toContain("DELETE");
+  it("blocks UPDATE on every append-only table", async () => {
+    // Enforced by trigger, not by privilege. A trigger also stops a superuser,
+    // and — unlike REVOKE — it leaves the row-lock privilege that foreign keys
+    // require, which is the defect the next test pins down.
+    for (const table of ["reports", "journal_entries", "decisions", "outcomes", "intake_profiles"]) {
+      await expect(store["pool"].query(`UPDATE ${table} SET stored_at = now()`)).rejects.toThrow(
+        /append-only/i,
+      );
+    }
   });
 
-  it("revokes UPDATE and DELETE on every table, not just reports", async () => {
-    const { rows } = await store["pool"].query<{ table_name: string; privilege_type: string }>(
-      `SELECT table_name, privilege_type FROM information_schema.role_table_grants
-        WHERE table_name IN ('reports','journal_entries','decisions','outcomes')
-          AND grantee = current_user AND privilege_type IN ('UPDATE','DELETE')`,
+  it("blocks DELETE on every append-only table", async () => {
+    for (const table of ["outcomes", "decisions", "journal_entries", "reports", "intake_profiles"]) {
+      await expect(store["pool"].query(`DELETE FROM ${table}`)).rejects.toThrow(/append-only/i);
+    }
+  });
+
+  it("still permits the row locks foreign keys take", async () => {
+    // The regression test for the REVOKE defect. Enforcing append-only by
+    // revoking UPDATE and DELETE also revoked SELECT ... FOR KEY SHARE, so every
+    // insert carrying a foreign key failed for a non-superuser role — the exact
+    // role production is told to use. Superuser connections hid it entirely.
+    await expect(
+      store["pool"].query(`SELECT 1 FROM ONLY reports x WHERE report_id = 'report-a' FOR KEY SHARE OF x`),
+    ).resolves.toBeDefined();
+  });
+
+  /* ---------------- intake ---------------- */
+
+  it("round-trips a profile through JSONB without losing structure", async () => {
+    const base = emptyProfile("subject-operator", "profile-1", "2026-07-01T09:00:00.000Z");
+    const result = await store.saveProfile({
+      ...base,
+      assets: [
+        {
+          assetHoldingId: "asset-1",
+          subjectId: "subject-operator",
+          kind: "real_estate",
+          label: "Dubai flat",
+          value: {
+            amount: 2_000_000,
+            currency: "AED",
+            basis: "professional_appraisal",
+            asOf: "2026-01-10",
+            note: null,
+          },
+          registryAssetId: null,
+          identifier: null,
+          quantity: null,
+          liquidity: "months",
+          jurisdiction: "AE",
+          custodian: null,
+          encumberedBy: null,
+          restricted: false,
+          notes: null,
+        },
+      ],
+      objective: { ...base.objective, baseCurrency: "AED", excludedAssetKinds: ["crypto"] },
+    });
+    expect(result.stored).toBe(true);
+
+    const read = await store.getCurrentProfile("subject-operator");
+    expect(read?.assets[0]?.value.amount).toBe(2_000_000);
+    // Nulls, arrays and nested objects all survive.
+    expect(read?.assets[0]?.custodian).toBeNull();
+    expect(read?.objective.excludedAssetKinds).toEqual(["crypto"]);
+    expect(read?.household.dependents).toEqual([]);
+  });
+
+  it("makes a correction current and leaves the original readable", async () => {
+    const result = await store.saveProfile({
+      ...emptyProfile("subject-operator", "profile-2", "2026-07-20T09:00:00.000Z"),
+      supersedes: "profile-1",
+    });
+    expect(result.stored).toBe(true);
+    expect((await store.getCurrentProfile("subject-operator"))?.profileId).toBe("profile-2");
+    expect((await store.getProfile("subject-operator", "profile-1"))?.assets[0]?.value.amount).toBe(2_000_000);
+
+    const history = await store.listProfileHistory("subject-operator", 10);
+    expect(history.map((h) => h.profileId)).toEqual(["profile-2", "profile-1"]);
+    expect(history[1]?.superseded).toBe(true);
+  });
+
+  it("rejects a second correction to the same version at the database", async () => {
+    // The partial unique index is the mechanism, and it must surface as a
+    // refusal rather than an unhandled constraint error.
+    const clash = await store.saveProfile({
+      ...emptyProfile("subject-operator", "profile-3", "2026-07-21T09:00:00.000Z"),
+      supersedes: "profile-1",
+    });
+    expect(clash.stored).toBe(false);
+    expect(clash.reason).toMatch(/already been superseded/);
+    expect((await store.getCurrentProfile("subject-operator"))?.profileId).toBe("profile-2");
+  });
+
+  it("refuses to overwrite a stored profile", async () => {
+    const second = await store.saveProfile(
+      emptyProfile("subject-operator", "profile-1", "2026-07-01T09:00:00.000Z"),
     );
-    expect(rows).toEqual([]);
+    expect(second.stored).toBe(false);
+    expect(second.reason).toMatch(/never overwritten/);
+  });
+
+  it("keeps subjects apart in SQL, not only in memory", async () => {
+    await store.saveProfile(emptyProfile("subject-other", "profile-other", "2026-07-22T09:00:00.000Z"));
+    expect((await store.getCurrentProfile("subject-operator"))?.profileId).toBe("profile-2");
+    expect(await store.getProfile("subject-operator", "profile-other")).toBeNull();
+    expect(await store.listProfileHistory("subject-other", 10)).toHaveLength(1);
+  });
+
+  it("refuses to use a profile edited outside the application", async () => {
+    // A declared position that no longer matches the hash written with it has
+    // been changed by something that is not NeoOS. Using it anyway would put an
+    // unverified figure into every number downstream.
+    //
+    // Written as a direct INSERT with a hash that does not match, because
+    // UPDATE is revoked on this table — the append-only rule and this check are
+    // two independent defences and the test must not depend on breaking one to
+    // exercise the other.
+    const tampered = emptyProfile("subject-tamper", "profile-tampered", "2026-07-23T09:00:00.000Z");
+    await store["pool"].query(
+      `INSERT INTO intake_profiles (profile_id, subject_id, schema_version, recorded_at, supersedes, content, integrity_hash)
+       VALUES ($1,$2,$3,$4,NULL,$5,$6)`,
+      [
+        tampered.profileId,
+        tampered.subjectId,
+        tampered.schemaVersion,
+        tampered.recordedAt,
+        JSON.stringify({ ...tampered, objective: { ...tampered.objective, horizonYears: 40 } }),
+        profileIntegrityHash(tampered),
+      ],
+    );
+    await expect(store.getCurrentProfile("subject-tamper")).rejects.toThrow(/integrity hash/i);
   });
 
   it("throws rather than returning a row that no longer matches the schema", async () => {

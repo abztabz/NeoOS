@@ -71,31 +71,104 @@ CREATE TABLE IF NOT EXISTS outcomes (
 
 CREATE INDEX IF NOT EXISTS outcomes_decision_idx ON outcomes (decision_id);
 
--- Belt and braces on the append-only rule. The application never issues these
--- statements; revoking them means a future mistake fails loudly at the database
--- rather than quietly rewriting history.
+-- The subject's declared financial position.
 --
--- Verified against PostgreSQL 16, and the result depends on the connecting role:
+-- Append-only for the same reason as the journal, and with more at stake. A
+-- correction to a position is itself information: a property revalued down, an
+-- income source that ended, a dependent added. A table that permitted UPDATE
+-- would destroy exactly the history that makes drift visible.
 --
---   * A NON-SUPERUSER role is blocked. UPDATE and DELETE return "permission
---     denied" even when that role OWNS the tables. INSERT still works.
---   * A SUPERUSER is not blocked. Superusers bypass privilege checks entirely,
---     so for them these statements are decorative.
+-- Every row carries subject_id from this first migration even though there is
+-- one subject today. Adding tenancy later to a single-tenant table means
+-- rewriting every query and backfilling every row; carrying an unused column is
+-- free.
+CREATE TABLE IF NOT EXISTS intake_profiles (
+  profile_id     TEXT PRIMARY KEY,
+  subject_id     TEXT        NOT NULL,
+  schema_version TEXT        NOT NULL,
+  recorded_at    TIMESTAMPTZ NOT NULL,
+  -- The profile version this one replaces. The replaced row stays and is
+  -- reported as superseded, so a correction is visible as a correction.
+  supersedes     TEXT        NULL REFERENCES intake_profiles (profile_id),
+  -- The full profile, verbatim. Read back through the Zod schema, because
+  -- storage is not inside the trust boundary.
+  content        JSONB       NOT NULL,
+  -- Detects an edit made outside the application. Not a signature: the subject
+  -- is the author here, so there is no third party to prove anything to.
+  integrity_hash TEXT        NOT NULL,
+  stored_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS intake_profiles_subject_idx
+  ON intake_profiles (subject_id, recorded_at DESC);
+-- One profile may only be superseded once. Two corrections claiming to replace
+-- the same version would make "current" ambiguous, and an ambiguous current
+-- position is worse than a stale one.
+CREATE UNIQUE INDEX IF NOT EXISTS intake_profiles_supersedes_idx
+  ON intake_profiles (supersedes) WHERE supersedes IS NOT NULL;
+
+-- Append-only enforcement at the database.
 --
--- Connect as a dedicated non-superuser role in production. The revoke is also a
--- guardrail rather than a wall: an owner can GRANT the privileges back to
--- itself. It stops accidents and casual edits, not a determined operator.
+-- This was originally REVOKE UPDATE, DELETE. That was wrong, and the way it was
+-- wrong is worth recording, because it only appears under the configuration the
+-- documentation recommends.
+--
+-- PostgreSQL enforces a foreign key by taking a row lock on the referenced row:
+--
+--   SELECT 1 FROM ONLY "reports" x WHERE report_id = $1 FOR KEY SHARE OF x
+--
+-- and `FOR KEY SHARE` requires SELECT *plus* one of UPDATE, DELETE or TRUNCATE.
+-- Revoking UPDATE and DELETE therefore made every insert carrying a foreign key
+-- fail with "permission denied for table reports" — report lineage, journal
+-- corrections, decisions, outcomes, and profile corrections all of them — for
+-- exactly the dedicated non-superuser role production is meant to use. A
+-- superuser connection masked it completely, which is why it survived a sprint.
+--
+-- Triggers are better on both counts. They leave the privileges that foreign
+-- keys depend on intact, and unlike a REVOKE they also stop a superuser, who
+-- bypasses privilege checks entirely.
+--
+-- Still a guardrail, not a wall: anyone who can ALTER TABLE can disable the
+-- trigger. It stops accidents, careless queries, and a future mistake in this
+-- codebase. It does not stop a determined operator, and nothing in a database
+-- the operator controls could.
+
+CREATE OR REPLACE FUNCTION neoos_append_only() RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION
+    'NeoOS storage is append-only: % is not permitted on %. Record a correction that supersedes the original instead.',
+    TG_OP, TG_TABLE_NAME
+    USING ERRCODE = 'restrict_violation';
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE
+  t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['reports','journal_entries','decisions','outcomes','intake_profiles'] LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS %I ON %I', t || '_append_only', t);
+    -- FOR EACH STATEMENT, not FOR EACH ROW: a row-level trigger never fires when
+    -- the statement matches nothing, so `DELETE FROM reports` against an empty
+    -- table would report success and teach the operator the wrong lesson about
+    -- what this database permits.
+    EXECUTE format(
+      'CREATE TRIGGER %I BEFORE UPDATE OR DELETE ON %I FOR EACH STATEMENT EXECUTE FUNCTION neoos_append_only()',
+      t || '_append_only', t);
+  END LOOP;
+END $$;
+
+-- Undo the privilege revoke if an earlier version of this schema applied it.
+-- Without this, a database migrated before the fix keeps failing every
+-- foreign-key insert, and the failure looks like an application bug.
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = current_user) THEN
-    EXECUTE format('REVOKE UPDATE, DELETE ON reports         FROM %I', current_user);
-    EXECUTE format('REVOKE UPDATE, DELETE ON journal_entries FROM %I', current_user);
-    EXECUTE format('REVOKE UPDATE, DELETE ON decisions       FROM %I', current_user);
-    EXECUTE format('REVOKE UPDATE, DELETE ON outcomes        FROM %I', current_user);
+    EXECUTE format(
+      'GRANT UPDATE, DELETE ON reports, journal_entries, decisions, outcomes, intake_profiles TO %I',
+      current_user);
   END IF;
 EXCEPTION
-  -- A managed database may not permit a role to revoke from itself. The
-  -- application-level guarantee still holds; note it rather than fail startup.
   WHEN insufficient_privilege THEN
-    RAISE NOTICE 'Could not revoke UPDATE/DELETE; append-only is enforced in application code only.';
+    RAISE NOTICE 'Could not restore UPDATE/DELETE grants; foreign-key inserts may fail for this role.';
 END $$;

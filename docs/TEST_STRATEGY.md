@@ -142,22 +142,34 @@ guard firing under jsdom is the control working as designed.
 `src/server/persistence/store.test.ts` runs the storage contract against the
 memory implementation, so it proves the interface without needing a server.
 
-`src/server/persistence/postgres-store.test.ts` runs 17 tests against a real
+`src/server/persistence/postgres-store.test.ts` runs 24 tests against a real
 PostgreSQL instance and is **skipped unless `TEST_DATABASE_URL` is set**. It is
 the only thing that exercises the SQL: JSONB round-tripping without structural
-loss, report immutability, lineage foreign keys rejecting an orphan parent,
-timestamps returned as ISO strings rather than `Date` objects, the review queue,
-a corrupt row throwing rather than reaching the render path, and the privilege
-grants after the append-only revoke.
+loss, report and profile immutability, lineage foreign keys rejecting an orphan
+parent, the partial unique index that stops two corrections claiming the same
+version, timestamps returned as ISO strings rather than `Date` objects, the
+review queue, a corrupt row throwing rather than reaching the render path, an
+intake profile whose content no longer matches its hash, and the append-only
+triggers.
 
 ```bash
 TEST_DATABASE_URL=postgresql://user@127.0.0.1:5432/db npx vitest run postgres-store
 ```
 
-It found a documentation overclaim: the revoke succeeds, but a **superuser
-bypasses privilege checks entirely**, so append-only is enforced at the database
-only for a non-superuser connection — which is blocked even when it owns the
-tables. Corrected in three places.
+**Run it as a non-superuser as well as a superuser.** Both are cheap and they do
+not agree. Two findings came from exactly that:
+
+1. A superuser bypasses privilege checks entirely, so the original `REVOKE
+   UPDATE, DELETE` enforced nothing for a superuser connection.
+2. Worse, the revoke *broke* foreign keys for a non-superuser: PostgreSQL takes a
+   `SELECT ... FOR KEY SHARE` lock to check a foreign key, and that lock requires
+   UPDATE or DELETE privilege. Every insert carrying a foreign key failed for the
+   dedicated role production is told to use, and a superuser connection masked it
+   for a whole sprint.
+
+Both are fixed by enforcing append-only with a statement-level trigger instead.
+The suite now passes under both roles, and carries a regression test that takes
+the row lock directly.
 
 ## Live-provider testing
 

@@ -1,3 +1,9 @@
+import type { IntakeProfile, SubjectId } from "@/domain/intake/types";
+import {
+  summariseProfile,
+  type IntakeStore,
+  type StoredProfileSummary,
+} from "@/server/persistence/intake-store";
 import type {
   DecisionRecord,
   JournalRecord,
@@ -20,12 +26,14 @@ import type { ReportEnvelope } from "@/server/types/report-envelope";
  * On Vercel this survives roughly as long as one warm instance, which is to say
  * unpredictably and not long.
  */
-export class MemoryReportStore implements ReportStore {
+export class MemoryReportStore implements ReportStore, IntakeStore {
   private reports = new Map<string, ReportEnvelope>();
   private order: string[] = [];
   private journal: JournalRecord[] = [];
   private decisions: DecisionRecord[] = [];
   private outcomes: OutcomeRecord[] = [];
+  /** Newest first, matching the order the Postgres queries return. */
+  private profiles: IntakeProfile[] = [];
 
   async health(): Promise<StoreHealth> {
     return {
@@ -104,5 +112,64 @@ export class MemoryReportStore implements ReportStore {
   async listDecisionsAwaitingReview(olderThan: string): Promise<DecisionRecord[]> {
     const reviewed = new Set(this.outcomes.map((o) => o.decisionId));
     return this.decisions.filter((d) => !reviewed.has(d.decisionId) && d.recordedAt <= olderThan);
+  }
+
+  /* ---------------- intake ---------------- */
+
+  async saveProfile(profile: IntakeProfile): Promise<{ stored: boolean; reason: string }> {
+    if (this.profiles.some((p) => p.profileId === profile.profileId)) {
+      return {
+        stored: false,
+        reason: `Profile ${profile.profileId} already exists. Declared positions are never overwritten; record a correction instead.`,
+      };
+    }
+    if (profile.supersedes !== null) {
+      const target = this.profiles.find((p) => p.profileId === profile.supersedes);
+      if (!target) {
+        return {
+          stored: false,
+          reason: `Profile ${profile.supersedes} was not found, so this correction has nothing to correct.`,
+        };
+      }
+      if (target.subjectId !== profile.subjectId) {
+        return { stored: false, reason: "A profile may only supersede another profile of the same subject." };
+      }
+      if (this.profiles.some((p) => p.supersedes === profile.supersedes)) {
+        return {
+          stored: false,
+          reason: `Profile ${profile.supersedes} has already been superseded. Correct the current version instead.`,
+        };
+      }
+    }
+    this.profiles.unshift(profile);
+    return { stored: true, reason: "Stored in memory. Not durable." };
+  }
+
+  async getCurrentProfile(subjectId: SubjectId): Promise<IntakeProfile | null> {
+    const mine = this.forSubject(subjectId);
+    const replaced = new Set(mine.map((p) => p.supersedes).filter((id): id is string => id !== null));
+    return mine.find((p) => !replaced.has(p.profileId)) ?? null;
+  }
+
+  async getProfile(subjectId: SubjectId, profileId: string): Promise<IntakeProfile | null> {
+    return this.forSubject(subjectId).find((p) => p.profileId === profileId) ?? null;
+  }
+
+  async listProfileHistory(subjectId: SubjectId, limit: number): Promise<StoredProfileSummary[]> {
+    const mine = this.forSubject(subjectId);
+    const replaced = new Set(mine.map((p) => p.supersedes).filter((id): id is string => id !== null));
+    return mine.slice(0, limit).map((p) => summariseProfile(p, replaced.has(p.profileId)));
+  }
+
+  /**
+   * Newest first. Insertion order breaks ties, so two profiles recorded in the
+   * same millisecond still resolve to the one written later.
+   */
+  private forSubject(subjectId: SubjectId): IntakeProfile[] {
+    return this.profiles
+      .filter((p) => p.subjectId === subjectId)
+      .map((p, index) => ({ p, index }))
+      .sort((a, b) => (a.p.recordedAt === b.p.recordedAt ? a.index - b.index : a.p.recordedAt < b.p.recordedAt ? 1 : -1))
+      .map(({ p }) => p);
   }
 }

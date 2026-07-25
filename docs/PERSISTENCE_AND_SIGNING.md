@@ -82,37 +82,53 @@ does.
 
 ## 5. Append-only storage
 
-`src/server/persistence/schema.sql`. Four tables: reports, journal entries,
-decisions, outcomes.
+`src/server/persistence/schema.sql`. Five tables: reports, journal entries,
+decisions, outcomes, and intake profiles.
 
-Every method on the storage port is append or read. **There is no update and no
-delete anywhere in the application's SQL**, and the schema revokes both from the
-application role — so a future mistake fails at the database rather than quietly
-rewriting history.
+Every method on both storage ports is append or read. **There is no update and no
+delete anywhere in the application's SQL**, and the schema installs a trigger on
+each table that raises on `UPDATE` and `DELETE` — so a future mistake fails at the
+database rather than quietly rewriting history.
 
-### How far that revoke actually goes
+### Why a trigger and not REVOKE
 
-Tested against PostgreSQL 16 rather than assumed, because the answer is not the
-obvious one:
+The first version used `REVOKE UPDATE, DELETE`. It was replaced, and the reason
+is worth keeping because the defect only appeared under the configuration this
+document recommended.
 
-| Connecting role | UPDATE / DELETE | INSERT |
+PostgreSQL enforces a foreign key by locking the referenced row:
+
+```sql
+SELECT 1 FROM ONLY "reports" x WHERE report_id = $1 FOR KEY SHARE OF x
+```
+
+`FOR KEY SHARE` requires SELECT **plus** one of UPDATE, DELETE or TRUNCATE.
+Revoking UPDATE and DELETE therefore revoked the lock the foreign keys depend on,
+and every insert carrying one failed with `permission denied for table reports` —
+report lineage, journal corrections, decisions, outcomes, profile corrections, all
+of them. A superuser connection hid it completely, which is why it survived a
+sprint and was only found by running the suite as a non-superuser.
+
+The trigger is better on both counts:
+
+| | REVOKE | Trigger |
 |---|---|---|
-| Non-superuser, not the owner | **Denied** | Works |
-| Non-superuser, **owns the tables** | **Denied** | Works |
-| **Superuser** | **Allowed — bypasses the revoke entirely** | Works |
+| Blocks a non-superuser | Yes | Yes |
+| Blocks a **superuser** | **No** | **Yes** |
+| Leaves foreign keys working | **No** | Yes |
+| Fires on a statement matching zero rows | n/a | Yes (`FOR EACH STATEMENT`) |
 
-Two consequences worth stating plainly:
+`FOR EACH STATEMENT` rather than `FOR EACH ROW` on purpose: a row-level trigger
+never fires when nothing matches, so `DELETE FROM reports` against an empty table
+would report success and teach the wrong lesson about what the database permits.
 
-**Connect as a non-superuser in production.** A superuser connection makes these
-statements decorative. If your managed provider hands you a superuser-equivalent
-role by default, the database-level guarantee is not in force and only the
-application-level one is — which is real, but is one refactor away from being
-untrue.
+Migrating a database that had the old revoke restores the grants, so an existing
+deployment repairs itself on the next cold start.
 
-**It is a guardrail, not a wall.** A table owner can `GRANT` the privileges back
-to itself. This stops accidents, casual edits, and a future mistake in the query
-layer. It does not stop a determined operator with database credentials, and it
-was never going to.
+**It is still a guardrail, not a wall.** Anyone who can `ALTER TABLE` can disable
+the trigger. It stops accidents, careless queries, and a future mistake in the
+query layer. It does not stop a determined operator with database credentials,
+and nothing in a database the operator controls could.
 
 Corrections append a new row naming the row it supersedes. The original stays
 visible and is labelled superseded. The record shows that a correction happened
