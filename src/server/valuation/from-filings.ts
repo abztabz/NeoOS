@@ -87,6 +87,25 @@ export interface Fundamentals {
  * detach a figure from the analysis.
  */
 export function readFundamentals(evidence: EvidenceRecord[]): Fundamentals {
+  return readFundamentalsFromPairs(evidence);
+}
+
+/**
+ * The reader, over the minimum shape it actually needs.
+ *
+ * Taking a structural type rather than a full `EvidenceRecord` lets the EDGAR
+ * mapper derive factor scores from the records it has just built, before they
+ * have been through normalization. The alternative — running the pipeline
+ * twice — would compute scores from evidence the pipeline might yet reject.
+ */
+export interface FundamentalPair {
+  claimKey: string | null;
+  normalizedValue: number | null;
+  evidenceId: string;
+  unit: string | null;
+}
+
+export function readFundamentalsFromPairs(evidence: FundamentalPair[]): Fundamentals {
   const byConcept = new Map<string, { end: string; value: number; evidenceId: string }[]>();
   let currency = "USD";
 

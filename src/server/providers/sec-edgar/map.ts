@@ -1,5 +1,7 @@
 import { computeRawChecksum } from "@/intelligence/ingestion/ingest";
-import type { RawEvidenceRecord } from "@/intelligence/types/raw-evidence";
+import type { RawAssetIdentifier, RawEvidenceRecord } from "@/intelligence/types/raw-evidence";
+import { deriveAll, derivedFactorRecords } from "@/server/valuation/derived-factors";
+import { readFundamentalsFromPairs } from "@/server/valuation/from-filings";
 import {
   ANNUAL_FORMS,
   EDGAR_CONCEPTS,
@@ -128,6 +130,56 @@ export interface MapOptions {
   responseLastModified: string | null;
 }
 
+/**
+ * Derived factor scores, appended to the mapped records.
+ *
+ * Kept here rather than in a later stage because they are provider evidence
+ * like any other and must travel the same road: identity resolution,
+ * normalization, validation, conflict detection. A score injected downstream
+ * would bypass all of it.
+ *
+ * They are computed from the records this mapper just produced, and every one
+ * cites the filing and the record ids behind it.
+ */
+function appendDerivedFactors(
+  records: RawEvidenceRecord[],
+  facts: CompanyFacts,
+  options: MapOptions,
+  identifiers: RawAssetIdentifier[],
+): { records: RawEvidenceRecord[]; warnings: string[] } {
+  const asEvidence = records
+    .filter((r) => r.rawValue !== null && typeof r.payloadMetadata.claimKey === "string")
+    .map((r) => ({
+      claimKey: r.payloadMetadata.claimKey as string,
+      normalizedValue: r.rawValue,
+      evidenceId: r.rawEvidenceId,
+      unit: r.rawUnit,
+    }));
+
+  const fundamentals = readFundamentalsFromPairs(asEvidence);
+  const derived = deriveAll(fundamentals);
+  if (derived.length === 0) {
+    return { records: [], warnings: ["No factor score could be derived from the filed accounts."] };
+  }
+
+  const latest = records.find((r) => r.payloadMetadata.isLatestAnnual === true) ?? records[0];
+  const periodEnd = fundamentals.latestPeriodEnd ?? "unknown";
+  return {
+    records: derivedFactorRecords(derived, {
+      assetIdentifiers: identifiers,
+      sourceRef: latest?.sourceRef ?? `https://www.sec.gov/cgi-bin/browse-edgar?CIK=${padCik(facts.cik)}`,
+      publishedAt: latest?.publishedAt ?? null,
+      retrievedAt: options.retrievedAt,
+      periodEnd,
+      expiresAt: expiryFor(periodEnd),
+      sourceEvidenceIds: fundamentals.evidenceIds,
+      cik: padCik(facts.cik),
+      entityName: facts.entityName,
+    }),
+    warnings: [],
+  };
+}
+
 export function mapCompanyFacts(
   facts: CompanyFacts,
   options: MapOptions,
@@ -222,6 +274,10 @@ export function mapCompanyFacts(
       records.push({ ...base, checksum: computeRawChecksum(base) });
     }
   }
+
+  const derived = appendDerivedFactors(records, facts, options, identifiers);
+  records.push(...derived.records);
+  warnings.push(...derived.warnings);
 
   return { records, warnings, tagsUsed };
 }

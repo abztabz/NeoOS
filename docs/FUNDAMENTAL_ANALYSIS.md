@@ -134,3 +134,53 @@ what separates analysis from advocacy.
   what a company has earned, not what someone expects it to earn.
 - **No ETF or commodity valuation.** Those need methods filings cannot supply.
   The engine's other valuation methods handle them where evidence exists.
+
+
+---
+
+## 7. Derived factor scores
+
+Filings give magnitudes — dollars, share counts. The engine's factors want a
+0–100 score. Something has to turn one into the other, and until it does,
+audited accounts can produce a **valuation** but cannot produce a **rating**:
+the critical-factor gate requires `financialStrength` coverage, and no currency
+figure supplies it.
+
+`src/server/valuation/derived-factors.ts` closes that gap.
+
+| Factor | Derived from | Scaled between |
+|---|---|---|
+| `financialStrength` | Current ratio; net debt to equity | ratio 0.5–2.0; leverage 1.5–0 (net cash) |
+| `businessQuality` | Net margin; return on equity | 0–25%; 0–30% |
+| `growth` | Revenue CAGR | −10% to +15% |
+
+Each component is measured, each is clamped at both ends, and a factor with
+several components is their mean. **A missing input produces no record at all**,
+never a neutral 50 — a fabricated midpoint is indistinguishable from a measured
+one once it is in the system.
+
+### These are derived, and they say so
+
+Every derived record:
+
+- states its arithmetic in its own title (`financialStrength score 71.4 derived
+  from current ratio 0.86 and net debt to equity 0.93`),
+- cites the filing it was computed from,
+- carries the ids of the filed records behind it in `computedFrom`,
+- carries `derived: true` so nothing can mistake it for a filed figure,
+- expires when the accounts it came from expire.
+
+**Confidence is 80, below the tier-1 default of 92.** The arithmetic is on
+audited numbers, which is stronger than an opinion; the thresholds that turn a
+ratio into a score are ours, not the filer's, and the confidence should say so.
+
+### Where the judgement lives
+
+The thresholds are the only judgement in the module. They are named constants
+with their reasoning attached, applied identically to every asset, and bounded
+so no input can produce a score outside 0–100. Changing one changes every
+asset's score in the same direction, which is what makes them auditable.
+
+Derived records enter the pipeline as ordinary provider evidence and travel the
+same road — identity resolution, normalization, validation, conflict detection.
+A score injected downstream would bypass all of it.

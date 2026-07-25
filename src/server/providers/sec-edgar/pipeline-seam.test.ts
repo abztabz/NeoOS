@@ -128,6 +128,34 @@ describe("EDGAR → normalizer → valuation", () => {
     expect(result.input.evidenceIds.length).toBeGreaterThan(5);
   });
 
+  it("derives the factor scores the engine's critical gate requires", () => {
+    // Filings give magnitudes; the engine's factors want 0–100 scores. Without
+    // this the accounts produce a valuation but financialStrength has zero
+    // coverage, and the critical-factor gate marks the asset insufficient — the
+    // exact outcome seen on the live run.
+    const derivedRecords = evidence.filter((r) => r.factor !== null);
+    const factors = derivedRecords.map((r) => r.factor);
+    expect(factors).toContain("financialStrength");
+    expect(factors).toContain("businessQuality");
+    expect(factors).toContain("growth");
+
+    for (const record of derivedRecords) {
+      expect(record.unit).toBe("score");
+      expect(record.normalizedValue).toBeGreaterThanOrEqual(0);
+      expect(record.normalizedValue).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("labels derived scores as derived and cites what they came from", () => {
+    const strength = evidence.find((r) => r.factor === "financialStrength");
+    expect(strength?.factualClaim).toMatch(/derived from/);
+    // The arithmetic is stated, so a reader can check it against the filing.
+    expect(strength?.factualClaim).toMatch(/current ratio|net debt to equity/);
+    expect(strength?.sourceRef).toMatch(/^https:\/\/www\.sec\.gov\//);
+    // Confidence below the tier-1 default: audited inputs, our thresholds.
+    expect(strength?.confidence).toBeLessThan(92);
+  });
+
   it("records the tier-1 provenance the engine trusts most", () => {
     for (const record of evidence) {
       expect(record.sourceTier).toBe(1);

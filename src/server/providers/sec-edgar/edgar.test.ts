@@ -236,15 +236,36 @@ describe("mapCompanyFacts", () => {
     }
   });
 
-  it("cites the filing every value came from", () => {
-    for (const record of mapped.records) {
+  /** Records taken straight from a filing, as opposed to derived from several. */
+  const filedRecords = mapped.records.filter((r) => r.payloadMetadata.derived !== true);
+  const derivedRecords = mapped.records.filter((r) => r.payloadMetadata.derived === true);
+
+  it("cites the accession number of the filing every FILED value came from", () => {
+    expect(filedRecords.length).toBeGreaterThan(10);
+    for (const record of filedRecords) {
       expect(record.sourceRef).toMatch(/^https:\/\/www\.sec\.gov\/Archives\/edgar\/data\//);
       expect((record.rawPayload as { accessionNumber: string }).accessionNumber).toMatch(/^\d{10}-\d{2}-\d{6}$/);
     }
   });
 
-  it("asserts no confidence of its own, because EDGAR states none", () => {
-    expect(mapped.records.every((r) => r.rawConfidence === null)).toBe(true);
+  it("asserts no confidence on a FILED figure, because EDGAR states none", () => {
+    expect(filedRecords.every((r) => r.rawConfidence === null)).toBe(true);
+  });
+
+  it("marks derived scores as derived and cites the records behind them", () => {
+    // A derived score has no single accession number — it is arithmetic over
+    // several filed figures — so it cites those records instead, and still
+    // points at the filing they came from.
+    expect(derivedRecords.length).toBeGreaterThan(0);
+    for (const record of derivedRecords) {
+      expect(record.sourceRef).toMatch(/^https:\/\/www\.sec\.gov\//);
+      expect((record.rawPayload as { computedFrom: string[] }).computedFrom.length).toBeGreaterThan(0);
+      expect(record.rawUnit).toBe("score");
+      // Stated confidence, below the tier-1 default: audited inputs, our
+      // thresholds. A filed figure asserts none; a derived one must.
+      expect(record.rawConfidence).not.toBeNull();
+      expect(record.rawConfidence!).toBeLessThan(92);
+    }
   });
 
   it("marks every record live, since it was genuinely retrieved", () => {
