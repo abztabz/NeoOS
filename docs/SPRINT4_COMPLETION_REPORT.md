@@ -10,10 +10,12 @@ The objective was to make `live_verified` reachable using real primary-source
 data, with durable server-side persistence, cryptographic signing, scheduled
 runs, secure APIs, outcome review, and notifications.
 
-**Sprint 4 is not complete.** The architecture is built and tested; `live_verified`
-has never been reached, and no live retrieval has been verified. Section 7 sets
-out exactly what is unproven and why. Per the directive's own rule, that is
-disqualifying, and it is stated here rather than buried.
+**Sprint 4 is not complete.** The architecture is built and tested. Durable
+persistence and deployment were verified in production on 2026-07-25;
+`live_verified` has still never been reached, and no live evidence retrieval has
+been verified. Section 7 sets out exactly what remains unproven and why. Per the
+directive's own rule, that is disqualifying, and it is stated here rather than
+buried.
 
 ---
 
@@ -169,7 +171,7 @@ on.
 | 5 | Market price provider | Built; requires paid credentials |
 | 6 | Gold price basis explicit | Met |
 | 7 | UAE evidence policy | Met — capped at manual, enforced in code |
-| 8 | Durable server-side persistence | Built; **Postgres path unexercised** |
+| 8 | Durable server-side persistence | **Met — verified in production 2026-07-25** |
 | 9 | Append-only storage | Met — enforced in code and schema |
 | 10 | Ed25519 report signing | Met |
 | 11 | Signature verification on read | Met |
@@ -186,7 +188,7 @@ on.
 | 22 | Tests use fixtures, not live network | Met |
 | 23 | Documentation and schemas | Met |
 | 24 | Lint, typecheck, tests, e2e, build pass | Met |
-| 25 | Deployment verified | **Unverified from this session** |
+| 25 | Deployment verified | **Met — verified 2026-07-25 via /api/health** |
 
 ---
 
@@ -213,15 +215,20 @@ against fixtures — but the fixtures are hand-authored to EDGAR's documented sh
 **not captured**, and that distinction is stated in the fixtures' own README and
 in `SEC_EDGAR_PROVIDER.md`.
 
-**Deployment is unverified (criterion 25).** The same egress restriction blocks
-`*.vercel.app`, and the Vercel and Supabase tools sit behind an approval prompt
-that has not reached the operator in any session. All five gates pass locally and
-the branch is pushed to the branch Vercel deploys from; git-based auto-deploy on
-this project is confirmed working from earlier sprints.
+**Deployment and persistence are now verified.** On 2026-07-25 the operator
+provisioned a Supabase Postgres instance, set `DATABASE_URL` on the NeoOS Vercel
+project, and redeployed. `/api/health` at `neoos-cio.vercel.app` returned
+`kind: postgres`, `durable: true`, `reachable: true`. That closes criterion 25,
+outstanding since Sprint 2, and criterion 8.
 
-Two smaller gaps in the same category: the Postgres store's SQL has never run
-against a real database (the contract suite covers the memory implementation), and
-no notification webhook has been exercised.
+One precision worth keeping: the health endpoint runs `SELECT 1`, which proves
+the connection, the pooler, and TLS. It does not call `migrate()`, so the schema
+in `schema.sql` has not yet been created on that instance — that happens on the
+first cycle run or first journal read. Connection verified; table creation not
+yet observed.
+
+One smaller gap remains in this category: no notification webhook has been
+exercised.
 
 ---
 
@@ -232,7 +239,9 @@ no notification webhook has been exercised.
 - **The EDGAR fixtures are hand-authored, not recordings.** A shape change would
   surface as a provider error rather than as wrong numbers, but the first real
   fetch is what confirms the shape.
-- **The Postgres implementation is untested against a database.**
+- **The Postgres schema has not yet been created on a real instance.** The
+  connection is verified in production; `migrate()` runs on the first cycle or
+  journal read, and its SQL is still unexercised.
 - **UAE assets cannot exceed `partial_live`**, by policy, until a structured
   official endpoint or a licensed feed exists.
 - **Gold cannot exceed `partial_live`**, permanently.
@@ -251,15 +260,15 @@ no notification webhook has been exercised.
 
 In order, and each is small:
 
-1. **Set `SEC_EDGAR_USER_AGENT` on the deployment** and trigger `/api/cycle/run`.
-   Free, immediate, and it converts criterion 3 from built to verified. Confirm
-   the first run's report on `/api/report/latest`.
-2. **Set `DATABASE_URL`.** Exercises the Postgres path and makes the journal
-   durable. Criterion 8.
+1. ~~**Set `DATABASE_URL`.**~~ **Done 2026-07-25.** Criteria 8 and 25 verified.
+2. **Set `SEC_EDGAR_USER_AGENT` on the deployment** and trigger `/api/cycle/run`.
+   Free, immediate, and it converts criterion 3 from built to verified. It also
+   exercises `migrate()`, closing the schema gap above. Confirm the first run's
+   report on `/api/report/latest`.
 3. **Set `REPORT_SIGNING_PRIVATE_KEY` and `CRON_SECRET`.** Signed reports and the
    daily schedule. Criteria 10 and 13.
-4. **License a price feed.** The only paid step, and the only one that makes
-   criterion 17 reachable.
+4. **A licensed price feed.** The only paid step, and the only one that makes
+   criterion 17 reachable. Deferred at the operator's direction.
 
-Steps 1 to 3 need no money and no approval beyond access to the deployment's
-environment settings. They would move eleven of the open items to verified.
+Steps 2 and 3 need no money and no approval beyond access to the deployment's
+environment settings.

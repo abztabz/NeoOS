@@ -155,8 +155,10 @@ company.
   a licensed price feed alongside EDGAR, and no such feed is configured. The state
   is modelled, gated, and unit-tested at the function level; it has not been
   observed end to end.
-- **The Postgres store is untested against a real database.** The contract suite
-  runs against the memory implementation; the SQL is unexercised.
+- **The Postgres store is only partly exercised.** The contract suite runs
+  against the memory implementation. In production the connection is verified
+  (`SELECT 1` via `/api/health`, 2026-07-25); the DDL in `schema.sql` runs on the
+  first cycle or journal read and has not yet been observed.
 - **No live EDGAR fetch has been verified.** See the Sprint 4 completion report.
 - Accessibility scanning covers automatable rules only; it does not replace
   testing with an actual screen reader.
