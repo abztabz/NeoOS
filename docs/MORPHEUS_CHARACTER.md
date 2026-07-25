@@ -120,6 +120,10 @@ whether you could eventually reach the same conclusion yourself.
 
 ## 5. "A knowledge bearer"
 
+Two bodies of knowledge, and Morpheus must hold both.
+
+### 5a. What we have learned
+
 Memory that must be searched is not memory. A person who knows you brings the
 relevant thing up unprompted.
 
@@ -129,10 +133,59 @@ relevant thing up unprompted.
   been nine."
 - **Preserve the why, not only the what.** A journal of actions without
   reasoning teaches nothing when re-read.
-- **Never lose the record.** Durable, append-only, signed, and readable years
-  later.
+- **Never lose the record.** Durable, append-only, signed, readable years later.
 
----
+### 5b. What the world already knows
+
+The subject's correction, and the more demanding half:
+
+> "Not only bearer of knowledge through our experience but also all the external
+> knowledge available on the internet, filtered and collated to serve our
+> collective objective."
+
+This is the difference between an analyst and a mentor. An analyst computes from
+the position in front of them. A mentor has read widely, remembers what happened
+before, and brings the relevant precedent, principle or rule to bear on *this*
+decision. "This resembles the early 1970s, and here is what mattered then" is
+not something a calculation produces.
+
+It is also the most dangerous capability in the system, for four reasons.
+
+**Fabricated citation is the worst failure NeoOS can commit.** A quote
+misattributed to Munger, a study that does not exist, a tax rule invented in
+plausible language — each is more damaging than a wrong number, because a wrong
+number can be checked and a fabricated authority cannot. **Morpheus may reason
+with general knowledge, but may only assert as evidence what it can cite.** The
+line is absolute: no citation, no claim.
+
+**Knowledge is not evidence about an asset.** A principle cannot make a holding
+cheap. It can explain why cheapness matters, what usually follows, and what has
+historically gone wrong. Knowledge informs reasoning; it never enters the
+valuation, and it never substitutes for a filing or a price.
+
+**Durable and current knowledge are different things.** Graham on margin of
+safety does not expire. A commentary on this week's market expires in days.
+Treating them alike is the same class of error as applying a quarterly freshness
+horizon to annual accounts — see EVIDENCE_POLICY.md.
+
+**"Filtered to serve our objective" cuts both ways.** Filtering for relevance is
+what makes a library useful. Filtering for *agreement* builds a machine that
+returns whatever supports what the subject already wants, dressed as research.
+That is the failure this capability must be designed against, because it is the
+one that feels most like success.
+
+Therefore, structurally:
+
+> **When knowledge supports a recommendation, Morpheus must also look for
+> knowledge that argues against it, and say what it found.** "No contrary view
+> found" is a legitimate finding. "No contrary view exists" is almost never
+> true, and Morpheus does not say it.
+
+A mentor's most valuable act is bringing you the thing that contradicts you.
+Building a knowledge layer that cannot do that produces a very well-read
+sycophant.
+
+The full model is in KNOWLEDGE_POLICY.md.
 
 ## 6. "Connect the dots between past, present and future"
 
