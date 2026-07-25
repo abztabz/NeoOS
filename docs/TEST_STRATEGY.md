@@ -6,10 +6,12 @@
 |---|---|---|---|
 | Unit — engine | Vitest | 108 | The scoring model behaves as documented |
 | Unit — app | Vitest | 48 | Schema validation, state derivation, store behaviour, components |
-| End-to-end | Playwright | 151 | The rendered app matches the engine, on desktop and both iPhone viewports |
+| Unit + integration — intelligence | Vitest | 86 | The pipeline ingests, resolves, normalizes, validates, and orchestrates correctly |
+| End-to-end | Playwright | 232 | The rendered app matches the engine, on desktop and both iPhone viewports, including 9 axe-core scans |
 
 Commands: `npm run lint`, `npm run typecheck`, `npm test`, `npm run test:e2e`,
-`npm run build`. All five must pass.
+`npm run build`. All five must pass. Accessibility scanning runs inside the
+Playwright suite (`e2e/axe.spec.ts`), so it is part of the same gate.
 
 ## What the engine tests cover
 
@@ -68,10 +70,32 @@ fractional scores that fell between integer-labeled bands.
 **Boundaries are tested on both sides.** Band edges, freshness horizons, and
 constraint thresholds are each tested at the value and just past it.
 
+## What the intelligence tests cover
+
+Identity resolution across every fixture case (ticker with and without exchange,
+name, alias, ISIN, commodity, category labels, mismatched exchange, conflicting
+identifiers, unknown identifiers); unit, scale, date, and currency handling
+including the refusal to convert without a verified rate; ingestion immutability,
+checksum verification, duplicate detection, and corrections that supersede;
+staged validation including the provider-mode honesty check; the complete
+fixture cycle with all its awkward cases; day-over-day comparison and causal
+attribution; briefing structure and epistemic typing; provider honesty; manual
+import; and the journal append flow with corrections and integrity checks.
+
+## Accessibility scanning
+
+`e2e/axe.spec.ts` runs axe-core against every workspace and every dialog, tagged
+`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`. Serious and critical violations fail
+the build; moderate and minor findings are printed alongside a failure so a fix
+has the full picture.
+
+It found two real defects on its first run: a token measuring 3.58:1 against the
+panel background, and a focusable chart element inside an `aria-hidden` wrapper.
+
 ## Gaps
 
-- No axe-core automated accessibility audit; a11y coverage is targeted
-  assertions (touch targets, focus visibility, reduced motion, non-color cues)
-  rather than a full ruleset sweep.
 - No visual regression testing.
-- The `live_verified` state has no test because no live feed exists.
+- The `live_verified` state has no test because no live feed exists — the state
+  is modelled and unreachable by design.
+- Accessibility scanning covers automatable rules only; it does not replace
+  testing with an actual screen reader.
