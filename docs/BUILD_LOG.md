@@ -164,3 +164,29 @@ Gates: lint, typecheck, 421 unit tests, 232 Playwright tests, production build.
 Not complete: `live_verified` unreached (needs a licensed price feed), no live
 EDGAR fetch verified (sandbox has no outbound network), deployment unverified.
 See `docs/SPRINT4_COMPLETION_REPORT.md` §7.
+
+
+### Live verification — 2026-07-25
+
+`SEC_EDGAR_USER_AGENT` and `OPERATOR_API_TOKEN` set on the deployment,
+`/api/cycle/run` triggered.
+
+```
+cycleState  success
+liveState   partial_live
+rawIngested 81   normalized 81   rawRejected 0
+stored      true
+```
+
+81 records: 78 filed figures retrieved from `data.sec.gov` plus 3 derived factor
+scores. Apple valued from its own audited accounts. The run also created the
+Postgres schema on the production instance.
+
+`partial_live` is the correct ceiling: real filings, no price feed. `live_verified`
+requires both halves and a licensed price feed is deferred at the operator's
+direction.
+
+Four defects surfaced across four runs, none reachable from fixtures — three unit
+vocabularies, magnitudes losing their values, annual accounts expiring under a
+quarterly horizon, and filings producing no factor scores. All fixed, each with
+the test that would have caught it.

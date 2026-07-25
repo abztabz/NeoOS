@@ -135,7 +135,44 @@ believes the record is unforgeable will not check it.
 5. **`env.ts` threw under the jsdom test environment.** Not a defect — the guard
    working. Server tests moved to the node environment, which is the correct
    response and is now documented.
-6. **The append-only revoke was documented as stronger than it is.** Running the
+6. **Three defects the first live run exposed, none reachable from fixtures.**
+   Each was found only by retrieving real SEC data, and each blocked the one
+   after it.
+
+   **(a) Three unit vocabularies.** The EDGAR mapper emitted EDGAR's labels
+   ("USD", "shares"); the normalizer accepts only its canonical set and rejected
+   70 of 78 records as `unsupported_unit`. Only the value-less filing records
+   survived. The mapper and the valuation module had both been tested against
+   EDGAR's vocabulary, so they agreed with each other while neither matched what
+   the pipeline produces — the missing test was the seam between them.
+
+   **(b) Magnitudes lost their values.** Normalization nulled the value of every
+   currency record to stop a revenue figure leaking into a 0–100 factor score.
+   Right instinct, wrong method: an evidence record asserting revenue of 400bn
+   while holding no number is useless to the valuation that needs it. Units are
+   now either factor scales or magnitudes; magnitudes keep their value and carry
+   `factor: null`, and since scoring selects on a non-null factor a magnitude is
+   structurally incapable of being read as a score. Only currency had been
+   special-cased, so share counts were silently lost too.
+
+   **(c) Annual accounts were expiring.** The `officialFiling` horizon is 120
+   days, expiring at 240 — sensible for a quarterly filing, wrong for a 10-K.
+   For most of any year a company's latest annual accounts are past 240 days, so
+   every fundamental was discarded and no company could be valued from its own
+   audited accounts for two-thirds of the year. A provider that knows a fact's
+   cadence may now state its own expiry, which overrides the age heuristic. The
+   record still ages to stale and its confidence still decays; it is simply not
+   thrown away while nothing newer exists.
+
+7. **Filings produced no factor scores.** With (a) to (c) fixed, Apple had a
+   valuation and was still unrated: the critical-factor gate requires
+   `financialStrength` coverage, and every filed record is a magnitude carrying
+   no factor. Filings give dollars; factors want 0–100 scores; nothing bridged
+   them. `derived-factors.ts` now computes financialStrength, businessQuality and
+   growth from the fundamentals, as clearly-labelled derived records that cite
+   the filings behind them and carry a lower confidence than a filed figure.
+
+8. **The append-only revoke was documented as stronger than it is.** Running the
    schema against a real PostgreSQL 16 showed the revoke succeeds — the grant
    list loses UPDATE and DELETE — but a **superuser bypasses privilege checks
    entirely**, so for a superuser connection the statements are decorative. A
@@ -173,12 +210,12 @@ on.
 |---|---|---|
 | 1 | Server-side execution architecture | Met |
 | 2 | Execution contexts gate live claims | Met — enforced structurally |
-| 3 | SEC EDGAR provider retrieves filings | **Built, not verified live** |
-| 4 | Fundamentals derived from filed accounts | Met — verified against fixtures |
+| 3 | SEC EDGAR provider retrieves filings | **Met — verified in production 2026-07-25** |
+| 4 | Fundamentals derived from filed accounts | **Met — verified against live SEC data** |
 | 5 | Market price provider | Built; requires paid credentials |
 | 6 | Gold price basis explicit | Met |
 | 7 | UAE evidence policy | Met — capped at manual, enforced in code |
-| 8 | Durable server-side persistence | **Met — verified in production 2026-07-25** |
+| 8 | Durable server-side persistence | **Met — schema created and written in production** |
 | 9 | Append-only storage | Met — enforced in code and schema |
 | 10 | Ed25519 report signing | Met |
 | 11 | Signature verification on read | Met |
@@ -209,18 +246,19 @@ licensed feed, which is a paid service and therefore a stop condition. With EDGA
 alone the correct outcome is `partial_live` across the board — which the model
 produces, and which is the model working rather than failing.
 
-**No live EDGAR fetch has been verified (criterion 3).** The build sandbox has no
-outbound internet at all. Three checks confirmed it: `data.sec.gov` returned 403
-at the egress gateway, the same host returned 403 through a separate fetch path,
-and `en.wikipedia.org` returned 403 as a control. The control failing is the
-decisive one — this is a sandbox network policy, not anything to do with the SEC.
+**Live EDGAR retrieval is verified (criterion 3).** On 2026-07-25 the operator
+set `SEC_EDGAR_USER_AGENT` on the deployment and triggered `/api/cycle/run`. The
+run retrieved 81 records from `data.sec.gov`, resolved all 81 to assets,
+normalized all 81 with none rejected, valued Apple from its filed accounts, and
+stored a signed-eligible report. `cycleState: success`, `liveState: partial_live`.
 
-EDGAR itself needs no key and no payment. Setting `SEC_EDGAR_USER_AGENT` on a
-deployment with normal egress is the entire remaining step. The provider is built,
-its failure handling is verified against a real 403, and its parsing is verified
-against fixtures — but the fixtures are hand-authored to EDGAR's documented shape,
-**not captured**, and that distinction is stated in the fixtures' own README and
-in `SEC_EDGAR_PROVIDER.md`.
+That run also created the Postgres schema on the production instance, closing the
+last gap under criterion 8.
+
+The build sandbox still has no outbound internet — `data.sec.gov` 403s at the
+egress gateway, as does `en.wikipedia.org` as a control — so nothing here was
+verified from the session that wrote it. It was verified in production, which is
+the only place that counts.
 
 **Deployment and persistence are now verified.** On 2026-07-25 the operator
 provisioned a Supabase Postgres instance, set `DATABASE_URL` on the NeoOS Vercel
@@ -277,12 +315,11 @@ exercised.
 In order, and each is small:
 
 1. ~~**Set `DATABASE_URL`.**~~ **Done 2026-07-25.** Criteria 8 and 25 verified.
-2. **Set `SEC_EDGAR_USER_AGENT` on the deployment** and trigger `/api/cycle/run`.
-   Free, immediate, and it converts criterion 3 from built to verified. It also
-   exercises `migrate()`, closing the schema gap above. Confirm the first run's
-   report on `/api/report/latest`.
+2. ~~**Set `SEC_EDGAR_USER_AGENT`.**~~ **Done 2026-07-25.** Criteria 3, 4 and the
+   schema half of 8 verified. Four defects surfaced and were fixed on the way —
+   see §4, items 7 to 9.
 3. **Set `REPORT_SIGNING_PRIVATE_KEY` and `CRON_SECRET`.** Signed reports and the
-   daily schedule. Criteria 10 and 13.
+   daily schedule. Criteria 10 and 13. Both free.
 4. **A licensed price feed.** The only paid step, and the only one that makes
    criterion 17 reachable. Deferred at the operator's direction.
 
