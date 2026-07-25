@@ -91,7 +91,12 @@ export async function runServerCycle(input: ServerCycleInput): Promise<ServerCyc
   /* ---------- 3. envelope ---------- */
 
   if (!cycle.report) {
+    // Operational alerts are gathered BEFORE returning. A failed run is exactly
+    // when an operator needs to know which provider broke, and an earlier
+    // version of this function skipped them on the failure path — leaving the
+    // one message that mattered saying only that nothing was produced.
     alerts.push(`Run ${cycle.runId} produced no report (${cycle.state}). The previous report is unchanged.`);
+    alerts.push(...operationalAlerts(cycle, liveState, input.adapters));
     return { cycle, envelope: null, liveState, stored: false, storeReason: "No report to store.", alerts };
   }
 
@@ -145,7 +150,7 @@ export async function runServerCycle(input: ServerCycleInput): Promise<ServerCyc
     await input.store.appendJournalEntry(journalEntryFor(envelope, cycle));
   }
 
-  alerts.push(...operationalAlerts(cycle, liveState));
+  alerts.push(...operationalAlerts(cycle, liveState, input.adapters));
 
   return { cycle, envelope, liveState, stored, storeReason: reason, alerts };
 }
@@ -267,12 +272,32 @@ function journalEntryFor(envelope: ReportEnvelope, cycle: DailyCycleResult): Jou
   };
 }
 
-/** Things a human should be told about, phrased as findings rather than noise. */
-function operationalAlerts(cycle: DailyCycleResult, liveState: ReportLiveState): string[] {
+/**
+ * Things a human should be told about, phrased as findings rather than noise.
+ *
+ * Providers are re-described AFTER the run rather than read off the cycle's
+ * snapshot. The cycle captures descriptors before it fetches, so that snapshot
+ * necessarily predates every failure it might have wanted to report — an
+ * unreachable endpoint shows up there as a healthy provider.
+ */
+function operationalAlerts(
+  cycle: DailyCycleResult,
+  liveState: ReportLiveState,
+  adapters: ProviderAdapter[],
+): string[] {
   const alerts: string[] = [];
-  const failing = cycle.providers.filter((p) => p.health === "failing" || p.mode === "error");
+  const afterRun = adapters.map((a) => a.describe());
+  const failing = afterRun.filter(
+    (p) => p.health === "failing" || p.health === "degraded" || p.mode === "error",
+  );
   for (const provider of failing) {
-    alerts.push(`${provider.providerName} failed: ${provider.failureReason ?? "no reason given"}.`);
+    alerts.push(`${provider.providerName}: ${provider.failureReason ?? "failed with no reason given"}`);
+  }
+  // Provider warnings carry the actual retrieval errors, which is what an
+  // operator acts on: a 403 from EDGAR and a timeout need different responses.
+  for (const warning of cycle.warnings.slice(0, 10)) alerts.push(warning);
+  if (cycle.rawRecords.length === 0) {
+    alerts.push("No provider returned a single record. Check network egress and provider configuration.");
   }
   if (liveState === "live_stale") {
     alerts.push("Every live input in this run is older than its staleness horizon.");
