@@ -74,6 +74,17 @@ CREATE INDEX IF NOT EXISTS outcomes_decision_idx ON outcomes (decision_id);
 -- Belt and braces on the append-only rule. The application never issues these
 -- statements; revoking them means a future mistake fails loudly at the database
 -- rather than quietly rewriting history.
+--
+-- Verified against PostgreSQL 16, and the result depends on the connecting role:
+--
+--   * A NON-SUPERUSER role is blocked. UPDATE and DELETE return "permission
+--     denied" even when that role OWNS the tables. INSERT still works.
+--   * A SUPERUSER is not blocked. Superusers bypass privilege checks entirely,
+--     so for them these statements are decorative.
+--
+-- Connect as a dedicated non-superuser role in production. The revoke is also a
+-- guardrail rather than a wall: an owner can GRANT the privileges back to
+-- itself. It stops accidents and casual edits, not a determined operator.
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = current_user) THEN

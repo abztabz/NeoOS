@@ -87,10 +87,32 @@ decisions, outcomes.
 
 Every method on the storage port is append or read. **There is no update and no
 delete anywhere in the application's SQL**, and the schema revokes both from the
-application role where the host permits it — so a future mistake fails at the
-database rather than quietly rewriting history. Where a managed provider does not
-permit a role to revoke from itself, the schema says so in a notice rather than
-failing startup.
+application role — so a future mistake fails at the database rather than quietly
+rewriting history.
+
+### How far that revoke actually goes
+
+Tested against PostgreSQL 16 rather than assumed, because the answer is not the
+obvious one:
+
+| Connecting role | UPDATE / DELETE | INSERT |
+|---|---|---|
+| Non-superuser, not the owner | **Denied** | Works |
+| Non-superuser, **owns the tables** | **Denied** | Works |
+| **Superuser** | **Allowed — bypasses the revoke entirely** | Works |
+
+Two consequences worth stating plainly:
+
+**Connect as a non-superuser in production.** A superuser connection makes these
+statements decorative. If your managed provider hands you a superuser-equivalent
+role by default, the database-level guarantee is not in force and only the
+application-level one is — which is real, but is one refactor away from being
+untrue.
+
+**It is a guardrail, not a wall.** A table owner can `GRANT` the privileges back
+to itself. This stops accidents, casual edits, and a future mistake in the query
+layer. It does not stop a determined operator with database credentials, and it
+was never going to.
 
 Corrections append a new row naming the row it supersedes. The original stays
 visible and is labelled superseded. The record shows that a correction happened

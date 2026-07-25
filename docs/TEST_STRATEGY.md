@@ -137,6 +137,28 @@ Server tests that touch `@/server/config/env` declare `// @vitest-environment
 node`. This is not a workaround — `env.ts` throws when a `window` exists, and the
 guard firing under jsdom is the control working as designed.
 
+## Database testing
+
+`src/server/persistence/store.test.ts` runs the storage contract against the
+memory implementation, so it proves the interface without needing a server.
+
+`src/server/persistence/postgres-store.test.ts` runs 17 tests against a real
+PostgreSQL instance and is **skipped unless `TEST_DATABASE_URL` is set**. It is
+the only thing that exercises the SQL: JSONB round-tripping without structural
+loss, report immutability, lineage foreign keys rejecting an orphan parent,
+timestamps returned as ISO strings rather than `Date` objects, the review queue,
+a corrupt row throwing rather than reaching the render path, and the privilege
+grants after the append-only revoke.
+
+```bash
+TEST_DATABASE_URL=postgresql://user@127.0.0.1:5432/db npx vitest run postgres-store
+```
+
+It found a documentation overclaim: the revoke succeeds, but a **superuser
+bypasses privilege checks entirely**, so append-only is enforced at the database
+only for a non-superuser connection — which is blocked even when it owns the
+tables. Corrected in three places.
+
 ## Live-provider testing
 
 No test in the normal suite makes a network call. Provider tests run against
@@ -155,10 +177,8 @@ company.
   a licensed price feed alongside EDGAR, and no such feed is configured. The state
   is modelled, gated, and unit-tested at the function level; it has not been
   observed end to end.
-- **The Postgres store is only partly exercised.** The contract suite runs
-  against the memory implementation. In production the connection is verified
-  (`SELECT 1` via `/api/health`, 2026-07-25); the DDL in `schema.sql` runs on the
-  first cycle or journal read and has not yet been observed.
+- The production instance has not yet had `migrate()` run against it. The
+  connection there is verified; the schema is created on the first cycle run.
 - **No live EDGAR fetch has been verified.** See the Sprint 4 completion report.
 - Accessibility scanning covers automatable rules only; it does not replace
   testing with an actual screen reader.

@@ -25,7 +25,7 @@ buried.
 |---|---|---|
 | Lint | pass | pass |
 | Typecheck | pass | pass |
-| Unit tests | 242 | 421 |
+| Unit tests | 242 | 421 (+17 Postgres tests, opt-in) |
 | End-to-end tests | 232 | 232 |
 | Accessibility scanning | 9 axe-core scans | 9 axe-core scans |
 | Production build | pass | pass — 7 new API routes, workspaces still statically prerendered |
@@ -135,6 +135,13 @@ believes the record is unforgeable will not check it.
 5. **`env.ts` threw under the jsdom test environment.** Not a defect — the guard
    working. Server tests moved to the node environment, which is the correct
    response and is now documented.
+6. **The append-only revoke was documented as stronger than it is.** Running the
+   schema against a real PostgreSQL 16 showed the revoke succeeds — the grant
+   list loses UPDATE and DELETE — but a **superuser bypasses privilege checks
+   entirely**, so for a superuser connection the statements are decorative. A
+   non-superuser is blocked even when it owns the tables. The docs previously
+   implied the database-level guarantee always held. Corrected in
+   `PERSISTENCE_AND_SIGNING.md`, `SECURITY.md`, and the schema itself.
 
 ---
 
@@ -223,9 +230,15 @@ outstanding since Sprint 2, and criterion 8.
 
 One precision worth keeping: the health endpoint runs `SELECT 1`, which proves
 the connection, the pooler, and TLS. It does not call `migrate()`, so the schema
-in `schema.sql` has not yet been created on that instance — that happens on the
-first cycle run or first journal read. Connection verified; table creation not
-yet observed.
+has not yet been created **on that instance** — that happens on the first cycle
+run or first journal read.
+
+The schema and the Postgres store are no longer untested, though. Both now run
+against a real PostgreSQL 16 instance: `schema.sql` applies cleanly and is
+idempotent across repeated runs, and 17 store tests cover the JSONB round trip,
+immutability, lineage foreign keys, the review queue, corrupt-row rejection, and
+the privilege grants. They are skipped unless `TEST_DATABASE_URL` is set, so the
+normal suite never depends on a running database.
 
 One smaller gap remains in this category: no notification webhook has been
 exercised.
@@ -239,9 +252,12 @@ exercised.
 - **The EDGAR fixtures are hand-authored, not recordings.** A shape change would
   surface as a provider error rather than as wrong numbers, but the first real
   fetch is what confirms the shape.
-- **The Postgres schema has not yet been created on a real instance.** The
-  connection is verified in production; `migrate()` runs on the first cycle or
-  journal read, and its SQL is still unexercised.
+- **The Postgres schema has not yet been created on the production instance.**
+  The connection is verified there; `migrate()` runs on the first cycle or
+  journal read. The SQL itself is now verified against a local PostgreSQL 16.
+- **Append-only is not enforced against a superuser connection.** Verified
+  behaviour, documented in three places. A managed provider that hands out a
+  superuser-equivalent role leaves only the application-level guarantee.
 - **UAE assets cannot exceed `partial_live`**, by policy, until a structured
   official endpoint or a licensed feed exists.
 - **Gold cannot exceed `partial_live`**, permanently.

@@ -44,9 +44,9 @@ describe("credentials cannot reach the browser", () => {
   it("no client component imports a credentialed server module", () => {
     const offenders: string[] = [];
     for (const file of CLIENT_FILES) {
-      for (const module of CREDENTIALED) {
-        if (file.source.includes(`from "${module}`)) {
-          offenders.push(`${file.path.replace(SRC, "src")} imports ${module}`);
+      for (const credentialedModule of CREDENTIALED) {
+        if (file.source.includes(`from "${credentialedModule}`)) {
+          offenders.push(`${file.path.replace(SRC, "src")} imports ${credentialedModule}`);
         }
       }
     }
