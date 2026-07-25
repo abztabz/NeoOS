@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoos-cio.vercel.app/schemas/neoos-outcome-review-v4.0.schema.json",
+  "title": "NeoOS outcome review v4.0",
+  "description": "A review of a recorded decision. Records two INDEPENDENT judgements: what happened, and whether the reasoning was sound given what was knowable at the time. They are never combined into one score, because grading process by result punishes discipline after an unlucky quarter and rewards carelessness after a lucky one.",
+  "type": "object",
+  "required": ["schemaVersion", "outcomeId", "decisionId", "reviewedAt", "recommendationSnapshot", "result", "reasoningVerdict", "attributions", "priceAtDecision", "priceAtReview", "currency", "whatHappened", "lesson", "reviewedBy"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "4.0" },
+    "outcomeId": { "type": "string" },
+    "decisionId": { "type": "string", "description": "Must reference a recorded decision; an outcome for an unrecorded decision is refused." },
+    "reviewedAt": { "type": "string", "format": "date-time" },
+    "recommendationSnapshot": { "type": "string", "description": "What the engine recommended, copied at review time." },
+    "result": {
+      "enum": ["worked_out", "worked_out_partially", "did_not_work_out", "too_early_to_tell", "not_acted_on"],
+      "description": "What happened. too_early_to_tell is excluded from every rate rather than scored zero."
+    },
+    "reasoningVerdict": {
+      "enum": ["sound", "sound_but_lucky", "flawed_but_profitable", "flawed", "cannot_assess"],
+      "description": "Whether the reasoning was sound, judged independently of the result."
+    },
+    "attributions": {
+      "type": "array",
+      "items": {
+        "enum": ["thesis_correct", "thesis_wrong", "evidence_was_stale", "evidence_was_wrong", "unknowable_at_the_time", "execution_differed_from_plan", "position_size_wrong", "held_too_long", "sold_too_early"]
+      },
+      "description": "unknowable_at_the_time exists so an honest review can conclude nothing was done wrong. Without it, every loss manufactures a fictitious lesson."
+    },
+    "priceAtDecision": { "type": ["number", "null"], "exclusiveMinimum": 0, "description": "Reviewer-supplied. NeoOS does not verify execution." },
+    "priceAtReview": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+    "currency": { "type": ["string", "null"], "minLength": 3, "maxLength": 3 },
+    "whatHappened": { "type": "string", "minLength": 1 },
+    "lesson": { "type": ["string", "null"], "description": "Nullable on purpose. Forcing a lesson out of every review manufactures false patterns from ordinary variance." },
+    "reviewedBy": { "type": "string" }
+  }
+}

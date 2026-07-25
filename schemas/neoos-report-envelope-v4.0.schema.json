@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoos-cio.vercel.app/schemas/neoos-report-envelope-v4.0.schema.json",
+  "title": "NeoOS report envelope v4.0",
+  "description": "A versioned, signed, addressable report artefact. The engine's v2.0 report is nested verbatim under content.report; the envelope wraps and never edits it.",
+  "type": "object",
+  "required": ["content", "signature", "verification"],
+  "additionalProperties": false,
+  "properties": {
+    "content": {
+      "type": "object",
+      "description": "Everything that is signed. Excludes the signature block and every operational field, so verification never depends on how the report was stored or displayed.",
+      "required": [
+        "schemaVersion", "reportId", "runId", "generatedAt", "evidenceCutoff",
+        "engineVersion", "pipelineVersion", "executionContext", "providerVersions",
+        "dataModes", "liveState", "assetLiveStates", "priorReportId", "report"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": { "const": "4.0" },
+        "reportId": { "type": "string", "description": "Content-addressed. Two runs producing identical output collide deliberately." },
+        "runId": { "type": "string" },
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "evidenceCutoff": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Newest evidence publication instant. Distinct from generatedAt: conflating them makes a report look fresher than its inputs."
+        },
+        "engineVersion": { "type": "string" },
+        "pipelineVersion": { "type": "string" },
+        "executionContext": {
+          "enum": ["server_live", "server_manual", "client_fixture", "client_manual", "disabled"],
+          "description": "Only server_live may claim live data."
+        },
+        "providerVersions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["providerId", "providerName", "adapterVersion", "mode", "sourceVersion", "recordsContributed"],
+            "additionalProperties": false,
+            "properties": {
+              "providerId": { "type": "string" },
+              "providerName": { "type": "string" },
+              "adapterVersion": { "type": "string" },
+              "mode": { "type": "string" },
+              "sourceVersion": { "type": ["string", "null"] },
+              "recordsContributed": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "dataModes": { "type": "array", "items": { "type": "string" }, "description": "Modes that actually contributed. Never aspirational." },
+        "liveState": {
+          "enum": ["live_verified", "partial_live", "live_stale", "manual_verified", "fixture", "insufficient_evidence", "failed"],
+          "description": "live_verified requires EVERY supported asset to be live_verified."
+        },
+        "assetLiveStates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["assetId", "state", "contributingProviders", "lastRetrievedAt", "filingAgeDays", "quoteAgeMinutes", "quoteTimeliness", "marketStatus", "missingInputs", "blockingConflicts", "reason"],
+            "additionalProperties": false,
+            "properties": {
+              "assetId": { "type": "string" },
+              "state": { "enum": ["live_verified", "partial_live", "stale", "conflicted", "insufficient_evidence", "unsupported", "provider_error"] },
+              "contributingProviders": { "type": "array", "items": { "type": "string" } },
+              "lastRetrievedAt": { "type": ["string", "null"], "format": "date-time" },
+              "filingAgeDays": { "type": ["number", "null"] },
+              "quoteAgeMinutes": { "type": ["number", "null"] },
+              "quoteTimeliness": { "enum": ["real_time", "delayed", "end_of_day", "unknown", null] },
+              "marketStatus": { "enum": ["open", "closed", "pre_market", "post_market", "unknown", null] },
+              "missingInputs": { "type": "array", "items": { "type": "string" } },
+              "blockingConflicts": { "type": "array", "items": { "type": "string" } },
+              "reason": { "type": "string" }
+            }
+          }
+        },
+        "priorReportId": { "type": ["string", "null"] },
+        "report": { "description": "The engine's v2.0 report file, nested verbatim." }
+      }
+    },
+    "signature": {
+      "type": ["object", "null"],
+      "required": ["signatureVersion", "signature", "keyId", "signedAt", "contentHash"],
+      "additionalProperties": false,
+      "properties": {
+        "signatureVersion": { "const": "ed25519-v1" },
+        "signature": { "type": "string", "description": "Base64url Ed25519 signature over the canonical content bytes (sorted keys)." },
+        "keyId": { "type": "string", "description": "Derived from the public key, not assigned." },
+        "signedAt": { "type": "string", "format": "date-time" },
+        "contentHash": { "type": "string", "description": "SHA-256 hex of the canonical content bytes." }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "description": "Operational, not signed. A claim about the artefact, not part of it. Recomputed on every read.",
+      "required": ["status", "checkedAt", "detail"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["verified", "unsigned", "signature_invalid", "content_modified", "key_unknown", "not_checked"] },
+        "checkedAt": { "type": ["string", "null"], "format": "date-time" },
+        "detail": { "type": "string" }
+      }
+    }
+  }
+}

@@ -7,6 +7,7 @@
 | Unit — engine | Vitest | 108 | The scoring model behaves as documented |
 | Unit — app | Vitest | 48 | Schema validation, state derivation, store behaviour, components |
 | Unit + integration — intelligence | Vitest | 86 | The pipeline ingests, resolves, normalizes, validates, and orchestrates correctly |
+| Unit + contract — server | Vitest | 179 | Providers, valuation from filings, live states, signing, storage, authorisation, and the static security invariants |
 | End-to-end | Playwright | 232 | The rendered app matches the engine, on desktop and both iPhone viewports, including 9 axe-core scans |
 
 Commands: `npm run lint`, `npm run typecheck`, `npm test`, `npm run test:e2e`,
@@ -92,10 +93,70 @@ has the full picture.
 It found two real defects on its first run: a token measuring 3.58:1 against the
 panel background, and a focusable chart element inside an `aria-hidden` wrapper.
 
+## What the server tests cover
+
+**Providers.** The EDGAR client's fair-access enforcement (required User-Agent,
+request spacing, bounded retries that skip 404s and shape changes); tag selection
+across candidate tags; restatements resolving to the latest filing; quarterly
+comparatives excluded by elapsed days; a ragged submissions response refused
+outright; every value carrying its citation. The price adapter's refusal to
+substitute anything when unconfigured, and its rejection of quotes lacking a
+currency, a provider-stated time, or plausibility.
+
+**Fundamental analysis.** Every derived measure against its formula; bounded
+growth and balance-sheet adjustments at and beyond their caps; the refusal to
+value absent or negative earnings; determinism; confidence rising with coverage
+rather than with company quality.
+
+**Live states.** The two-input test; each state's precedence; policy ceilings
+clamping an assessment down but never up; the roll-up refusing to round a report
+up to its most flattering description.
+
+**Signing.** A verified round trip; an edited number inside the nested engine
+report detected as `content_modified`; a forged signature distinguished from
+modified content; an unknown key reported without implying the report is bad;
+key-order independence in canonicalisation.
+
+**Storage.** The append-only contract: no overwrite, no duplicate, superseded
+entries retained, and the review queue excluding both reviewed and too-recent
+decisions.
+
+**Authorisation.** Constant-time comparison; unconfigured secrets denying rather
+than opening; a cron secret refused on operator endpoints; errors that never echo
+the expected value.
+
+**Static security invariants** (`src/server/security.test.ts`). No client
+component imports a credentialed server module; only `env.ts` reads credentials;
+no credential carries a `NEXT_PUBLIC_` prefix; the browser guard runs at module
+scope; no API route references a secret-reading function; every write route
+authorises. These would otherwise depend on nobody making a specific mistake.
+
+## Environment split
+
+Server tests that touch `@/server/config/env` declare `// @vitest-environment
+node`. This is not a workaround — `env.ts` throws when a `window` exists, and the
+guard firing under jsdom is the control working as designed.
+
+## Live-provider testing
+
+No test in the normal suite makes a network call. Provider tests run against
+recorded fixtures with an injected `fetchImpl`, so the real parsing, retry, and
+error handling are exercised without depending on a public agency's uptime.
+
+The EDGAR fixtures are **hand-authored to the documented response shape, not
+captured** — see `src/server/providers/sec-edgar/fixtures/README.md`, which says
+so plainly and uses a synthetic issuer so no invented figure is attached to a real
+company.
+
 ## Gaps
 
 - No visual regression testing.
-- The `live_verified` state has no test because no live feed exists — the state
-  is modelled and unreachable by design.
+- **`live_verified` has never been reached in a test or a real run.** It requires
+  a licensed price feed alongside EDGAR, and no such feed is configured. The state
+  is modelled, gated, and unit-tested at the function level; it has not been
+  observed end to end.
+- **The Postgres store is untested against a real database.** The contract suite
+  runs against the memory implementation; the SQL is unexercised.
+- **No live EDGAR fetch has been verified.** See the Sprint 4 completion report.
 - Accessibility scanning covers automatable rules only; it does not replace
   testing with an actual screen reader.
