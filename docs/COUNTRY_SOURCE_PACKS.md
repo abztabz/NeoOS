@@ -213,19 +213,26 @@ jurisdiction the same way.
 
 > **Personal context determines constraints.
 > Home-country context determines planning depth.
+> Asset jurisdiction determines evidence requirements.
 > Global evidence determines opportunity.**
+
+The third clause is why `asset_held` and `business_owned` are the only triggers
+reaching `opportunity` depth: holding something somewhere is what obliges NeoOS
+to load the regulator and exchange needed to price it. Living somewhere does
+not, and being from somewhere does not.
 
 **No jurisdiction carries an investment prior.** Not home, not residence, not
 anywhere. No country is preferred and none is penalised.
 
 ### The firewall
 
-Country relevance **may** affect: currency risk · inflation exposure · taxation
-· regulation · capital controls · ownership rights · custody · liquidity ·
-political risk · inheritance · family obligations · access · transaction costs.
+Country relevance **may** affect: currency risk · inflation exposure · taxation ·
+capital controls · legal ownership · custody · liquidity · political risk ·
+transferability · inheritance · transaction costs · investor access · family
+obligations · liability matching.
 
-Country relevance **must not** override: valuation · margin of safety · business
-quality · downside risk · portfolio fit · evidence quality.
+Country relevance **must not** override: valuation · margin of safety · asset
+quality · downside risk · expected return · evidence quality · portfolio fit.
 
 Stated as the rule it actually is:
 
@@ -267,3 +274,37 @@ them.
 - **No jurisdiction risk scoring exists**, deliberately. A single "country risk
   score" would collapse the thirteen channels into one number and immediately
   become the country preference this document forbids.
+
+---
+
+## 11. Global institutional additions
+
+Two sources considered for the knowledge corpus belong here instead, because
+both are compendia of **current rules** rather than understanding:
+
+| Source | Class | Why it is evidence, not knowledge |
+|---|---|---|
+| IMF — Annual Report on Exchange Arrangements and Exchange Restrictions | A5 | A record of what restrictions currently apply, by country. Directly relevant to the Nepal and UAE packs, and it ages |
+| Chinn–Ito capital account openness index | A5 | The index *methodology* is knowledge; the current values for a country are evidence. Only the values belong here |
+
+Recording them here rather than in the corpus is the same category discipline
+that moved central banks out in §1. See EXTENDED_CORPUS_CANDIDATES.md E7 and E8.
+
+---
+
+## 12. Provisional constraints
+
+A pack may carry constraints the subject stated but nobody verified —
+`outboundCapitalMobility` with `verifiedWithProfessional: false` is the live
+example.
+
+These are **provisional inferences** under KNOWLEDGE_POLICY.md §10, not domain
+rules. Concretely:
+
+- NeoOS plans around them and says so wherever they change an answer.
+- They may not carry material allocation guidance on their own.
+- They carry an expiry and a named route to confirmation.
+- They are never quoted as law.
+
+A stated constraint is enough to make NeoOS cautious. It is not enough to make
+NeoOS assert. See SUBJECT_JURISDICTION_FACTS.md.

@@ -187,5 +187,7 @@ describe("the firewall", () => {
     expect(COUNTRY_MUST_NOT_OVERRIDE).toContain("valuation");
     expect(COUNTRY_MUST_NOT_OVERRIDE).toContain("margin of safety");
     expect(COUNTRY_MUST_NOT_OVERRIDE).toContain("evidence quality");
+    expect(COUNTRY_MUST_NOT_OVERRIDE).toContain("expected return");
+    expect(COUNTRY_MUST_NOT_OVERRIDE).toContain("asset quality");
   });
 });

@@ -213,3 +213,30 @@ Deliberately absent. A single "country risk" number would collapse the thirteen
 channels into one figure, and a figure that ranks countries is a country
 preference however it is labelled. Each channel is reported separately or not at
 all.
+
+## 8. Two registries, never merged
+
+NeoOS keeps a **Knowledge Corpus** and an **Evidence Registry**. They answer
+different questions and neither may stand in for the other.
+
+| | Knowledge Corpus | Evidence Registry |
+|---|---|---|
+| Holds | Methods, historical interpretation, valuation and accounting frameworks, risk reasoning, portfolio construction, behavioural safeguards, family-wealth principles | Filings, issuer releases, audited statements, exchange notices, market prices, central-bank data, inflation data, policy rates, property records, regulator notices, tax rules, foreign-exchange rules, current legal restrictions |
+| Answers | How to think about this | What is true of this, now |
+| Ages | Mostly not; `domain_rule` and `current_commentary` do | Always |
+| Governed by | KNOWLEDGE_POLICY.md | This document |
+
+Two prohibitions, and they are symmetrical:
+
+**A permanent knowledge source may never prove a current asset fact.** A
+valuation textbook describes how a value would be derived. It cannot supply the
+value, the accounts, or the price. A framework that could establish a fact about
+a holding would let any conclusion be argued from a well-chosen chapter.
+
+**Current country evidence may never become universal investment knowledge.** A
+central bank's rate today is a fact about that country on that date. It is not a
+principle, it does not generalise, and it expires.
+
+The failure mode each prevents is different. The first produces confident
+analysis of a company nobody looked up. The second produces a rule of thumb
+built from one country's current conditions and applied everywhere.

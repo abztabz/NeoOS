@@ -51,9 +51,17 @@ export const sourceClassLabels: Record<SourceClass, string> = {
  * How deeply a pack is loaded. A set rather than a scale: they are not nested,
  * and a jurisdiction can need one without the others.
  *
- * The rule the directive sets out, made executable:
- * personal context determines constraints, home-country context determines
- * planning depth, global evidence determines opportunity.
+ * The four-clause rule, made executable:
+ *
+ *   Personal context determines constraints.
+ *   Home-country context determines planning depth.
+ *   **Asset jurisdiction determines evidence requirements.**
+ *   Global evidence determines opportunity.
+ *
+ * The third clause is why `asset_held` and `business_owned` are the only
+ * triggers that reach `opportunity` depth: holding something somewhere is what
+ * obliges NeoOS to load the regulator and exchange needed to price it. Living
+ * somewhere does not, and being from somewhere does not.
  */
 export const packDepths = ["constraint", "planning", "opportunity"] as const;
 export type PackDepth = (typeof packDepths)[number];
@@ -77,16 +85,17 @@ export const COUNTRY_RELEVANCE_CHANNELS = [
   "currency risk",
   "inflation exposure",
   "taxation",
-  "regulation",
   "capital controls",
-  "ownership rights",
+  "legal ownership",
   "custody",
   "liquidity",
   "political risk",
+  "transferability",
   "inheritance",
-  "family obligations",
-  "access",
   "transaction costs",
+  "investor access",
+  "family obligations",
+  "liability matching",
 ] as const;
 
 /**
@@ -103,10 +112,11 @@ export const COUNTRY_RELEVANCE_CHANNELS = [
 export const COUNTRY_MUST_NOT_OVERRIDE = [
   "valuation",
   "margin of safety",
-  "business quality",
+  "asset quality",
   "downside risk",
-  "portfolio fit",
+  "expected return",
   "evidence quality",
+  "portfolio fit",
 ] as const;
 
 /* ---------------- activation ---------------- */

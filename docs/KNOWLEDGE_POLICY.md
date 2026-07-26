@@ -34,10 +34,19 @@ tier. Two failures followed from the one category error: a statistics agency
 acquired standing it cannot have, and the country the subject happens to live in
 acquired permanent priority over everywhere else.
 
-**The corpus is jurisdiction-independent by construction.** If an entry would
-change depending on where the subject lives, it is not knowledge. A `domain_rule`
-is the boundary case and it resolves the same way: rules expire, are
-jurisdictional, and live in packs.
+**The corpus is not organised around a preferred jurisdiction. Every source
+retains its geographic, institutional, asset-class and market-structure limits.**
+
+That wording replaces "jurisdiction-independent by construction", which was too
+strong. A study of US listed equities is not independent of geography merely
+because it is not organised around one: it assumes reliable accounting, liquid
+markets, enforceable property rights and a disclosure regime much of the world
+lacks. Every source records what it assumes across the ten dimensions in
+`src/domain/knowledge/applicability.ts`, and NeoOS may not generalise past them
+without explicit reasoning.
+
+A `domain_rule` remains the boundary case and resolves the same way: rules
+expire, are jurisdictional, and live in packs.
 
 | | Knowledge | Country evidence |
 |---|---|---|
@@ -129,6 +138,27 @@ current recommendation, dressed as research.
 That failure feels exactly like success. The briefing gets more confident, more
 citation-rich, and more wrong.
 
+### Relationships are not binary
+
+Before the disconfirmation rule can work, the relationships it searches must be
+modelled honestly. The first version of the map had two columns — "one side" and
+"the other" — which produced debates that do not exist and hid the ones that do.
+
+Six kinds, in `src/domain/knowledge/relationships.ts`:
+
+| Kind | Both sides must be shown |
+|---|---|
+| `agreement` | No |
+| `partial_agreement` — same substance, different emphasis | No |
+| `different_scope` — they do not actually meet | No |
+| `methodological_tension` — same question, incompatible methods | **Yes** |
+| `direct_contradiction` — incompatible claims, same scope | **Yes** |
+| `unresolved_controversy` — genuinely open | **Yes** |
+
+Every relationship records its topic, kind, scope, citations and any unresolved
+ambiguity. **A relationship without a citation is not publishable** — a claim
+about what two authors think is still a claim, and recall is not a source for it.
+
 ### The disconfirmation requirement
 
 > When knowledge is used to support a conclusion, Morpheus must also search for
@@ -139,6 +169,10 @@ citation-rich, and more wrong.
 - None found → **"no contrary view found"** is stated. That is a finding about
   the search, not about the world.
 - **"No contrary view exists"** is never said. It is almost never true.
+- The search is scoped by relationship kind: only `methodological_tension`,
+  `direct_contradiction` and `unresolved_controversy` oblige both sides to be
+  shown. Presenting `different_scope` sources as opposed manufactures a conflict
+  and is its own kind of dishonesty.
 
 A knowledge layer that cannot contradict the recommendation it accompanies is a
 well-read sycophant, and worse than no knowledge layer, because it makes a
@@ -251,3 +285,48 @@ not belong in it.**
    visibly shorter?
 
 Question 5 is the real test.
+
+---
+
+## 10. Epistemic status: how a statement is known
+
+Distinct from provenance, and the two must not be merged. Provenance answers
+*where a number came from*. Epistemic status answers *what standing a statement
+has*. Implemented in `src/domain/knowledge/epistemic-status.ts`.
+
+| Status | Meaning | May carry material guidance |
+|---|---|---|
+| `verified_external_fact` | Confirmed against a named official source | Yes |
+| `governing_domain_rule` | A rule, with jurisdiction and as-of date | Yes |
+| `subject_stated_fact` | What the subject told us. Not checked | Yes |
+| `calculated_consequence` | Arithmetic on the above | Yes |
+| `provisional_inference` | Drawn from something unverified | **No** |
+
+### The rule that makes it work
+
+**An inference from a subject statement is a provisional inference, never a
+subject-stated fact.** The subject reporting their own position is one thing; a
+conclusion about what the law permits, drawn from that report, is another.
+
+The failure this prevents is easy to miss because the reasoning is usually
+sound. A subject says "I cannot send much money out of my home country". A
+correct inference follows about deployability. Written down without its status,
+that inference reads as a fact about the law — which nobody established, and
+which may be wrong or out of date. The reasoning was fine; the labelling was
+not, and the labelling is what a reader relies on.
+
+### What every weak statement must carry
+
+`provisional_inference` and `subject_stated_fact` records carry:
+
+- what the subject actually stated;
+- the provisional planning implication, phrased so it cannot read as settled;
+- the evidence that would confirm it;
+- an expiry or review condition;
+- the fact that material allocation guidance may not depend on it until verified.
+
+A provisional inference with no stated route to confirmation becomes
+indistinguishable from a fact within weeks. That is precisely how an unverified
+premise turns load-bearing.
+
+See SUBJECT_JURISDICTION_FACTS.md for the worked application.
