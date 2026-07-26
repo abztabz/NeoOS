@@ -29,12 +29,14 @@ import {
   valuationBasisLabels,
   valuationBases,
   DEFAULT_LIQUIDITY,
+  INTAKE_SCHEMA_VERSION,
   type AssetKind,
   type IncomeKind,
   type StatedAmount,
 } from "@/domain/intake/types";
 import { calculateProfile } from "@/domain/profile/calculations";
 import { assessPersonalisation } from "@/domain/profile/personalisation";
+import { activatedJurisdictions } from "@/domain/jurisdiction/packs";
 
 /**
  * The intake form.
@@ -55,6 +57,10 @@ const today = () => new Date().toISOString().slice(0, 10);
 function amount(currency: string): StatedAmount {
   return { amount: null, currency, basis: "subject_estimate", asOf: today(), note: null };
 }
+
+/** Comma-separated free text to a clean list. Blanks dropped, order kept. */
+const splitList = (value: string): string[] =>
+  value.split(",").map((part) => part.trim()).filter((part) => part.length > 0);
 
 const options = <T extends string>(values: readonly T[], labels?: Record<T, string>) =>
   values.map((value) => ({ value, label: labels?.[value] ?? value.replace(/_/g, " ") }));
@@ -89,9 +95,11 @@ export function IntakeForm({
 
   // The same domain functions the server runs, so the panel cannot drift from
   // what actually gets stored.
-  const { calculations, personalisation } = useMemo(() => {
+  const { calculations, personalisation, activated } = useMemo(() => {
     const profile = {
-      schemaVersion: "6.0" as const,
+      // From the constant, never a literal. A hardcoded version here would keep
+      // compiling while silently disagreeing with the schema it claims to be.
+      schemaVersion: INTAKE_SCHEMA_VERSION,
       subjectId: "preview",
       profileId: "preview",
       recordedAt: new Date().toISOString(),
@@ -99,7 +107,11 @@ export function IntakeForm({
       ...draft,
     };
     const calculated = calculateProfile(profile);
-    return { calculations: calculated, personalisation: assessPersonalisation(profile, calculated) };
+    return {
+      calculations: calculated,
+      personalisation: assessPersonalisation(profile, calculated),
+      activated: activatedJurisdictions(profile),
+    };
   }, [draft]);
 
   return (
@@ -111,6 +123,106 @@ export function IntakeForm({
       }}
     >
       <ProfileOutputs calculations={calculations} personalisation={personalisation} />
+
+      {/* ---------------- jurisdictional context ---------------- */}
+      <SectionCard title="WHERE YOU STAND" meta="RESIDENCE, HOME, CITIZENSHIP">
+        <p className="mb-3 text-[11px] leading-relaxed text-[#9aa7b3]">
+          Three different things, and collapsing them into one country would hide the question that
+          matters most for a cross-border household: which body of law actually reaches this
+          capital. None of these makes any country a better or worse place to invest — they decide
+          what is permitted, what is taxed, and what is inherited.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field
+            label="Where you live now"
+            hint="Sets your spending base and the price level your plan is measured against."
+            htmlFor="residence"
+          >
+            <TextInput
+              id="residence"
+              value={draft.jurisdictionContext.residence ?? ""}
+              onChange={(value) =>
+                patch({ jurisdictionContext: { ...draft.jurisdictionContext, residence: value || null } })
+              }
+              placeholder="AE"
+            />
+          </Field>
+          <Field
+            label="Home country"
+            hint="Where family, property and inheritance sit. Often not where you live."
+            htmlFor="home-country"
+          >
+            <TextInput
+              id="home-country"
+              value={draft.jurisdictionContext.homeCountry ?? ""}
+              onChange={(value) =>
+                patch({ jurisdictionContext: { ...draft.jurisdictionContext, homeCountry: value || null } })
+              }
+              placeholder="NP"
+            />
+          </Field>
+          <Field
+            label="Citizenship"
+            hint="Comma-separated. Often decides what you may own abroad, whatever your residence."
+            htmlFor="citizenships"
+          >
+            <TextInput
+              id="citizenships"
+              value={draft.jurisdictionContext.citizenships.join(", ")}
+              onChange={(value) =>
+                patch({
+                  jurisdictionContext: {
+                    ...draft.jurisdictionContext,
+                    citizenships: splitList(value),
+                  },
+                })
+              }
+            />
+          </Field>
+          <Field
+            label="Tax residence"
+            hint="Comma-separated. May be neither of the above, and may be more than one."
+            htmlFor="tax-residences"
+          >
+            <TextInput
+              id="tax-residences"
+              value={draft.jurisdictionContext.taxResidences.join(", ")}
+              onChange={(value) =>
+                patch({
+                  jurisdictionContext: {
+                    ...draft.jurisdictionContext,
+                    taxResidences: splitList(value),
+                  },
+                })
+              }
+            />
+          </Field>
+          <TriToggle
+            id="intends-return"
+            label="Do you expect to return home to live?"
+            hint="It changes which price level the plan should be measured against, and over decades that can be a wide margin."
+            value={draft.jurisdictionContext.intendsToReturnHome}
+            onChange={(value) =>
+              patch({ jurisdictionContext: { ...draft.jurisdictionContext, intendsToReturnHome: value } })
+            }
+          />
+        </div>
+
+        {activated.length > 0 ? (
+          <div className="mt-4 rounded-xl border border-[#222d36] bg-panel2 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#8896a1]">
+              Jurisdictions this position touches
+            </p>
+            <ul className="mt-1.5 grid gap-1.5">
+              {activated.map((entry) => (
+                <li key={entry.jurisdiction} className="text-[11px] leading-relaxed text-[#c6d0d8]">
+                  · {entry.why}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </SectionCard>
 
       {/* ---------------- objectives ---------------- */}
       <SectionCard title="OBJECTIVES AND CONSTRAINTS" meta="WHAT THIS IS FOR">

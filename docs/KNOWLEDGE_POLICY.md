@@ -23,6 +23,31 @@ The two must never merge.
 | Enters | Valuation, factor scores, ratings | Reasoning, framing, risk identification |
 | Example | Apple's filed revenue | Why revenue concentration is fragile |
 
+### Country evidence is evidence, not knowledge
+
+A central bank's statistics release is a fact about a country in exactly the way
+a filing is a fact about a company. It is **evidence**, and it belongs to a
+dynamic country pack rather than to this corpus.
+
+The founding corpus got this wrong and put national institutions in its top
+tier. Two failures followed from the one category error: a statistics agency
+acquired standing it cannot have, and the country the subject happens to live in
+acquired permanent priority over everywhere else.
+
+**The corpus is jurisdiction-independent by construction.** If an entry would
+change depending on where the subject lives, it is not knowledge. A `domain_rule`
+is the boundary case and it resolves the same way: rules expire, are
+jurisdictional, and live in packs.
+
+| | Knowledge | Country evidence |
+|---|---|---|
+| Holds | Principles, precedent, research | Statistics, rules, registry records |
+| Scope | Everywhere | One jurisdiction |
+| Lifetime | Permanent corpus | Activates on a hook, ages, expires |
+| Governed by | This document | EVIDENCE_POLICY.md §7 |
+
+See COUNTRY_SOURCE_PACKS.md.
+
 **Knowledge never enters a valuation or a factor score.** A principle cannot
 make a holding cheap. It can explain why cheapness matters, what usually
 follows, and what has historically gone wrong. If a principle could move a
@@ -118,6 +143,17 @@ citation-rich, and more wrong.
 A knowledge layer that cannot contradict the recommendation it accompanies is a
 well-read sycophant, and worse than no knowledge layer, because it makes a
 weakly-supported conclusion feel researched.
+
+### The same requirement for country context
+
+When country context supports a conclusion, the contrary case is searched for
+and reported the same way. **"It is my home country" is not evidence about an
+investment**, and the corpus carries K1.2 on home bias precisely so the counter
+is always available.
+
+The trap here is specific: filtering for relevance produces a library, filtering
+for familiarity produces a portfolio concentrated in the two countries the
+subject happens to know, dressed as local expertise.
 
 ---
 

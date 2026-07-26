@@ -456,6 +456,61 @@ export function emptyHousehold(): Household {
   };
 }
 
+/* ---------------- jurisdictional context ---------------- */
+
+/**
+ * Where the subject lives, where they are from, and where they are taxed.
+ *
+ * Three different things that a single "country" field would collapse, and the
+ * collapse is not cosmetic — it decides which body of law reaches this capital.
+ *
+ * - **Residence** is where income is earned and money is spent. It sets the
+ *   spending base and the local price level.
+ * - **Home country** is where family, property, inheritance and obligation sit.
+ *   It sets planning depth: succession law, land registration, what is owed to
+ *   whom.
+ * - **Citizenship** governs what may be owned and what may be moved, often
+ *   independently of residence. For many nationalities it is the binding
+ *   constraint on holding assets abroad at all.
+ * - **Tax residence** may be neither, and may be more than one.
+ *
+ * None of these confers an investment preference. They determine constraints
+ * and planning depth; they never make an asset more or less worth owning.
+ * See docs/COUNTRY_SOURCE_PACKS.md §6.
+ */
+export const jurisdictionContextSchema = z.object({
+  /** Where the subject currently lives and spends. */
+  residence: jurisdictionSchema.nullable(),
+  /**
+   * Where family, property and inheritance sit. Often not the residence, and
+   * for a cross-border household the distinction is the whole problem.
+   */
+  homeCountry: jurisdictionSchema.nullable(),
+  /** May be several. Drives capital-control and ownership-right exposure. */
+  citizenships: z.array(jurisdictionSchema),
+  /** May differ from residence, may be plural, may be contested. */
+  taxResidences: z.array(jurisdictionSchema),
+  /**
+   * Whether the subject expects to return to the home country to live. It
+   * changes which price level the plan should be measured against, and a plan
+   * measured against the wrong one can be wrong by a wide margin over decades.
+   */
+  intendsToReturnHome: z.boolean().nullable(),
+  notes: z.string().max(1000).nullable(),
+});
+export type JurisdictionContext = z.infer<typeof jurisdictionContextSchema>;
+
+export function emptyJurisdictionContext(): JurisdictionContext {
+  return {
+    residence: null,
+    homeCountry: null,
+    citizenships: [],
+    taxResidences: [],
+    intendsToReturnHome: null,
+    notes: null,
+  };
+}
+
 /* ---------------- insurance and long-term commitments ---------------- */
 
 /**
@@ -683,12 +738,17 @@ export type Objective = z.infer<typeof objectiveSchema>;
  * structured goals, concentration ceilings, stated monthly investable amount,
  * a liquidity floor, and stated risk capacity.
  *
+ * v6.1 adds jurisdictional context — residence, home country, citizenship and
+ * tax residence held apart rather than collapsed into one country field. It is
+ * what activates country source packs, and without it the system cannot tell
+ * where someone lives from where they are from.
+ *
  * No migration from 5.0 exists because no 5.0 profile was ever written — the
  * store landed before the form did. A stored profile that fails to parse throws
  * rather than being coerced, so if one did exist it would surface loudly rather
  * than being silently reshaped.
  */
-export const INTAKE_SCHEMA_VERSION = "6.0" as const;
+export const INTAKE_SCHEMA_VERSION = "6.1" as const;
 
 export const intakeProfileSchema = z.object({
   schemaVersion: z.literal(INTAKE_SCHEMA_VERSION),
@@ -697,6 +757,7 @@ export const intakeProfileSchema = z.object({
   profileId: z.string().min(1).max(64),
   recordedAt: z.iso.datetime({ offset: true }),
   supersedes: z.string().max(64).nullable(),
+  jurisdictionContext: jurisdictionContextSchema,
   incomeSources: z.array(incomeSourceSchema),
   assets: z.array(assetHoldingSchema),
   liabilities: z.array(liabilitySchema),
@@ -715,6 +776,7 @@ export function emptyProfile(subjectId: SubjectId, profileId: string, recordedAt
     profileId,
     recordedAt,
     supersedes: null,
+    jurisdictionContext: emptyJurisdictionContext(),
     incomeSources: [],
     assets: [],
     liabilities: [],

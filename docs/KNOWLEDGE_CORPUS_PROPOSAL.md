@@ -3,7 +3,8 @@
 **For approval. Nothing here is ingested. No historical claim may be made from
 any of it until it is approved and ingested.**
 
-Governed by KNOWLEDGE_POLICY.md.
+Governed by KNOWLEDGE_POLICY.md. Country evidence lives in
+COUNTRY_SOURCE_PACKS.md and is not part of this corpus.
 
 ---
 
@@ -11,342 +12,259 @@ Governed by KNOWLEDGE_POLICY.md.
 
 **Every date and edition below must be verified against the artefact at
 ingestion.** They are recorded here from recall, and recall is exactly what
-KNOWLEDGE_POLICY.md §3 forbids asserting as evidence. This document is a
-shopping list, not a corpus: the citation becomes real when the artefact is in
-hand and the reference resolves. Where a work has many editions, the edition is
-part of the citation, because page and chapter references do not survive between
-them.
+KNOWLEDGE_POLICY.md §3 forbids asserting as evidence. This is a shopping list,
+not a corpus: the citation becomes real when the artefact is in hand and the
+reference resolves.
 
-**Twenty is a ceiling, not a target.** Forty scraped articles are a worse library
-than fifteen chosen ones, and far more likely to contain something false.
+**Seventeen, not twenty.** The first draft had twenty and four of them were
+national institutions. Those were a category error — a central bank's statistics
+release is *evidence about a country*, in the way a filing is evidence about a
+company, and it belongs in a dynamic country pack rather than a permanent corpus
+(COUNTRY_SOURCE_PACKS.md §1). Removing them freed four slots; three are refilled
+with work this correction showed was missing, and the corpus is smaller and
+better for it.
 
-**Nothing here is doctrine.** The list is built so that its strongest voices
-disagree with each other on purpose — §3 names the disagreements. A corpus where
-every source agrees is not a library, it is a position with citations attached.
+*(The revision request said "the 30-source proposal". The proposal was twenty,
+against the ceiling of twenty set earlier. If thirty permanent sources is what
+you want, say so and I will propose thirteen more — but I would argue against
+it. Quality over quantity was the original instruction and it was the right one.)*
+
+**The corpus is jurisdiction-independent by construction.** If an entry would
+change depending on where the subject lives, it is not knowledge, it is country
+evidence, and it belongs in a pack.
+
+**Nothing here is doctrine.** The list is built so its strongest voices disagree
+on purpose — §3 names the disagreements.
 
 ---
 
 ## 1. Tiers
 
+Relabelled `K1`–`K4`. The old Tier A is gone: it held primary factual sources,
+which are now source classes A1–A6 in the country-pack architecture. The letter
+`A` now means a source class, never a knowledge tier.
+
 | Tier | What it is | How it may be used |
 |---|---|---|
-| **A** | Primary factual sources | Facts and figures. Highest standing for what they measure, none outside it. |
-| **B** | Peer-reviewed or institutional research | Empirical claims, with method and sample stated. |
-| **C** | Historical reference works | Precedent and sequence. What happened, and in what order. |
-| **D** | Investor frameworks and letters | Ways of reasoning. Never evidence about an asset. |
-| **E** | Interpretive books | Framing and challenge. Lowest standing; always attributed to the author. |
+| **K1** | Peer-reviewed or institutional research | Empirical claims, with method and sample stated |
+| **K2** | Historical reference works | Precedent and sequence. What happened, in what order |
+| **K3** | Investor frameworks and letters | Ways of reasoning. Never evidence about an asset |
+| **K4** | Interpretive books | Framing and challenge. Lowest standing; always attributed |
 
 ---
 
-## 2. The proposed twenty
+## 2. The proposed seventeen
 
-### Tier A — Primary factual sources
+### K1 — Peer-reviewed or institutional research
 
-**A1. Monetary and Banking Statistics / Annual Report**
-- Author or institution: Central Bank of the UAE
-- Publication date: Continuous; annual report yearly
-- Category: UAE and Gulf economic context; inflation and currency regimes
-- Authority level: Highest for UAE monetary facts
-- Primary or secondary: Primary
-- Intended use: The dirham peg, the base rate, domestic monetary conditions
-- May support: The peg's existence, rate and start date; domestic policy rates
-- Must not support: Anything about UAE consumer prices, or about what the peg *should* be
-- Citation availability: Stable, publicly published
-- Edition or stable reference: Cite issue and publication date
-- Known bias: A central bank reporting on its own policy. Descriptive facts are reliable; assessments of that policy are not disinterested
-- Licensing: Public
-- Priority: **1 — highest.** The peg is the single largest standing fact in a dirham-denominated generational position
-
-**A2. Consumer Price Index releases**
-- Author or institution: UAE Federal Competitiveness and Statistics Centre
-- Publication date: Monthly and quarterly, ongoing
-- Category: Inflation and currency regimes; UAE and Gulf economic context
-- Authority level: Highest for UAE price level
-- Primary or secondary: Primary
-- Intended use: Whether this position grows in real terms
-- May support: UAE price level and its change; basket composition
-- Must not support: US or global inflation; forward inflation
-- Citation availability: Stable, with revisions
-- Edition or stable reference: Cite reference period **and** publication vintage
-- Known bias: Basket weights are a methodological choice; housing weight matters greatly here and may not match this household's spending
-- Licensing: Public
-- Priority: **1 — highest.** Without it, real return is unknowable
-
-**A3. Consumer Price Index (CPI-U)**
-- Author or institution: US Bureau of Labor Statistics
-- Publication date: Monthly, ongoing
-- Category: Inflation and currency regimes
-- Authority level: Highest for US price level
-- Primary or secondary: Primary
-- Intended use: Purchasing power of dollar-denominated holdings
-- May support: US price level and its change
-- Must not support: **UAE purchasing power.** The peg transmits monetary policy, not prices
-- Citation availability: Stable, with published revisions
-- Edition or stable reference: Series ID plus reference period
-- Known bias: Hedonic and substitution adjustments are contested methodological choices
-- Licensing: Public; free key raises rate limits
-- Priority: 2
-
-**A4. Policy rates and Treasury yields (FRED / H.15)**
-- Author or institution: Federal Reserve; Federal Reserve Bank of St. Louis
-- Publication date: Continuous
-- Category: Monetary history; inflation and currency regimes
-- Authority level: Highest for US rates
-- Primary or secondary: Primary
-- Intended use: Imported monetary conditions reaching the dirham through the peg
-- May support: US policy rate and yield levels; the transmission channel
-- Must not support: UAE domestic rates (use A1); any rate forecast
-- Citation availability: Stable series identifiers
-- Edition or stable reference: FRED series ID plus observation date
-- Known bias: None material for levels
-- Licensing: Public; free API key
-- Priority: 2
-
-### Tier B — Peer-reviewed or institutional research
-
-**B1. Article IV Consultation — United Arab Emirates**
-- Author or institution: International Monetary Fund
-- Publication date: Annual
-- Category: UAE and Gulf economic context
-- Authority level: High; independent of the state being assessed
-- Primary or secondary: Secondary (analysis of primary data)
-- Intended use: External read on UAE fiscal, monetary and property conditions
-- May support: Documented structural observations about the UAE economy
-- Must not support: Investment recommendations; property price forecasts
-- Citation availability: Stable, by country report number
-- Edition or stable reference: Country Report No. and year
-- Known bias: Institutional IMF framing; historically favours orthodox fiscal positions. Country authorities respond formally, and the response is part of the document
-- Licensing: Public
-- Priority: **1 — highest.** The only independent Gulf-specific analysis in this founding set
-
-**B2. Annual Economic Report**
-- Author or institution: Bank for International Settlements
-- Publication date: Annual
-- Category: Monetary history; risk and uncertainty
-- Authority level: High
-- Primary or secondary: Secondary
-- Intended use: Credit cycles, global liquidity, financial-stability conditions
-- May support: Documented credit-cycle and liquidity observations
-- Must not support: Any timing claim
-- Citation availability: Stable by year and chapter
-- Edition or stable reference: Year plus chapter
-- Known bias: A recognisable BIS view — sceptical of prolonged monetary accommodation. Consistent, and worth naming, because it will lean one way
-- Licensing: Public
-- Priority: 3
-
-**B3. "The Rate of Return on Everything, 1870–2015"**
-- Author or institution: Jordà, Knoll, Kuvshinov, Schularick, Taylor — *Quarterly Journal of Economics*
-- Publication date: 2019
+**K1.1 "The Rate of Return on Everything, 1870–2015"**
+- Author: Jordà, Knoll, Kuvshinov, Schularick & Taylor — *Quarterly Journal of Economics*
+- Date: 2019
 - Category: Economic history; portfolio construction; intergenerational wealth
-- Authority level: High; peer-reviewed, 16 countries, 145 years
-- Primary or secondary: Secondary
-- Intended use: Long-run returns across equities, bonds, bills **and housing** — the only category with residential property at this horizon
-- May support: Long-run real return ranges by asset class, with the stated sample
-- Must not support: Expected return for any specific holding; anything about the UAE, which is not in the sample
-- Citation availability: Stable; DOI
-- Edition or stable reference: QJE vol. 134, 2019 — verify at ingestion
-- Known bias: Advanced economies only, so survivorship at the country level is real. Housing returns depend on imputed-rent assumptions that are genuinely contested
-- Licensing: Journal; working-paper version publicly available
-- Priority: **1 — highest.** Directly addresses a generational horizon, and includes property, which this household holds
+- Authority: High — peer-reviewed, 16 countries, 145 years
+- Status: Secondary
+- Intended use: Long-run returns across equities, bonds, bills **and housing**
+- May support: Long-run real return ranges by asset class, with the sample named
+- Must not support: Expected return for any specific holding; anything about jurisdictions outside the sample
+- Citation: Stable, DOI
+- Edition: QJE vol. 134, 2019 — verify at ingestion
+- Bias: Advanced economies only, so country-level survivorship is real. Housing returns rest on contested imputed-rent assumptions
+- Access: Journal; working paper public
+- Priority: **1**
 
-**B4. "What Matters in Corporate Governance?"**
-- Author or institution: Bebchuk, Cohen & Ferrell — *Review of Financial Studies*
-- Publication date: 2009
+**K1.2 "Investor Diversification and International Equity Markets"** *(new)*
+- Author: Kenneth French & James Poterba — *American Economic Review*
+- Date: 1991
+- Category: Portfolio construction; behavioral finance
+- Authority: High — the foundational home-bias paper
+- Status: Secondary
+- Intended use: **The documented tendency to over-weight domestic assets.** Directly counters the pull toward both residence and home country
+- May support: That home bias is a measured, persistent phenomenon
+- Must not support: A target foreign allocation; the sample is of its era
+- Citation: Stable, DOI
+- Edition: AER 81(2), 1991 — verify at ingestion
+- Bias: Pre-dates modern access to global markets, so magnitudes have moved
+- Priority: **1 — added by this correction.** A cross-border household has two home biases pulling at once, and nothing else in the corpus names the failure
+
+**K1.3 "Dilemma not Trilemma: The Global Financial Cycle and Monetary Policy Independence"** *(new)*
+- Author: Hélène Rey — Jackson Hole / NBER
+- Date: 2013, revised later
+- Category: Monetary history; inflation and currency regimes
+- Authority: High, widely cited
+- Status: Secondary
+- Intended use: **Why a pegged currency's monetary conditions are set elsewhere**, and why capital mobility narrows the choice further
+- May support: The argument and its evidence, attributed
+- Must not support: Any prediction about a specific peg
+- Citation: Stable — NBER working paper number; verify at ingestion
+- Bias: A strong thesis against the classical trilemma. Contested, and the contest is useful
+- Priority: **1 — added by this correction.** A household with a spending base and a home base that may both be pegged has this question twice over
+
+**K1.4 "What Matters in Corporate Governance?"**
+- Author: Bebchuk, Cohen & Ferrell — *Review of Financial Studies*
+- Date: 2009
 - Category: Corporate governance
-- Authority level: High; peer-reviewed
-- Primary or secondary: Secondary
-- Intended use: Which governance provisions have been shown to matter, and which have not
-- May support: Empirical governance-to-value associations, with the sample named
-- Must not support: A governance judgement about any specific company today; the sample is US and dated
-- Citation availability: Stable; DOI
-- Edition or stable reference: RFS 22(2), 2009 — verify at ingestion
-- Known bias: Shareholder-primacy framing; a live debate rather than settled ground
-- Priority: 4 — the weakest fit for this household's actual position, and the first candidate to drop
+- Authority: High, peer-reviewed
+- Status: Secondary
+- Intended use: Which governance provisions have been shown to matter
+- May support: Empirical governance-to-value associations, sample named
+- Must not support: A governance judgement about any company today; the sample is US and dated
+- Citation: Stable, DOI
+- Bias: Shareholder-primacy framing; a live debate
+- Priority: 4 — **still the drop candidate**
 
-### Tier C — Historical reference works
+### K2 — Historical reference works
 
-**C1. *Triumph of the Optimists: 101 Years of Global Investment Returns***
-- Author or institution: Dimson, Marsh & Staunton
-- Publication date: 2002; continued as the annual Global Investment Returns Yearbook
+**K2.1 *Triumph of the Optimists: 101 Years of Global Investment Returns***
+- Author: Dimson, Marsh & Staunton
+- Date: 2002; continued as the annual Global Investment Returns Yearbook
 - Category: Economic history; portfolio construction
-- Authority level: High
-- Primary or secondary: Secondary
-- Intended use: What long-run returns actually were, across countries, including the ones that did badly
+- Authority: High
+- Status: Secondary
+- Intended use: What long-run returns actually were, **including the countries that did badly**
 - May support: Long-run real returns by country and asset class; the size of the survivorship correction
 - Must not support: Any forward return estimate
-- Citation availability: Book plus annually updated yearbook
-- Edition or stable reference: Cite the yearbook year for updated figures
-- Known bias: The authors' own correction to equity optimism is the point of the book; it is evidence against the naive version of buy-and-hold
-- Licensing: Book purchase; yearbook summaries circulated publicly
-- Priority: **1 — highest.** The best available answer to "what should I expect over decades", and it is more sobering than folklore
+- Citation: Book plus annual yearbook — cite the yearbook year for updated figures
+- Bias: The authors' correction to equity optimism is the point; it is evidence against naive buy-and-hold
+- Priority: **1**
 
-**C2. *This Time Is Different: Eight Centuries of Financial Folly***
-- Author or institution: Reinhart & Rogoff
-- Publication date: 2009
+**K2.2 *Golden Fetters: The Gold Standard and the Great Depression, 1919–1939***
+- Author: Barry Eichengreen
+- Date: 1992
+- Category: Inflation and currency regimes; monetary history
+- Authority: High
+- Status: Secondary
+- Intended use: **What a fixed exchange rate does to a country that keeps it under pressure**
+- May support: The documented mechanics of defending, and abandoning, a fixed rate
+- Must not support: Any prediction about a currently pegged currency
+- Citation: Oxford University Press, 1992
+- Bias: A strong thesis — well supported, but an argument rather than a neutral account
+- Priority: **1**
+
+**K2.3 *Global Capital Markets: Integration, Crisis, and Growth*** *(new)*
+- Author: Maurice Obstfeld & Alan Taylor
+- Date: 2004
+- Category: Monetary history; economic history
+- Authority: High
+- Status: Secondary
+- Intended use: The trilemma across two centuries — what countries actually gave up to keep a fixed rate, open capital account, or independent policy
+- May support: The historical record of the three-way trade-off
+- Must not support: A judgement about any current regime
+- Citation: Cambridge University Press, 2004 — verify at ingestion
+- Bias: Standard open-economy framing; pairs with K1.3, which disputes part of it
+- Priority: 2 — **added by this correction.** Capital controls and peg maintenance are now first-order questions for this household, not background
+
+**K2.4 *This Time Is Different: Eight Centuries of Financial Folly***
+- Author: Reinhart & Rogoff
+- Date: 2009
 - Category: Financial crises; monetary history
-- Authority level: High for the crisis chronology
-- Primary or secondary: Secondary
+- Authority: High for the crisis chronology
+- Status: Secondary
 - Intended use: The shape and repetition of debt crises, defaults and inflations
 - May support: The historical record of crisis episodes and their sequence
-- Must not support: Any debt-to-GDP threshold claim
-- Citation availability: Widely held; stable pagination by edition
-- Edition or stable reference: Princeton University Press, 2009
-- Known bias: **Record this prominently.** The authors' related 2010 paper on debt and growth was found in 2013 to contain a spreadsheet error and contested weighting choices. That critique concerns the growth-threshold work rather than this book's chronology, but the association is real and the threshold claim must never be cited from here
-- Licensing: Book purchase
+- Must not support: **Any debt-to-GDP threshold claim**
+- Citation: Princeton University Press, 2009
+- Bias: **Record prominently.** The authors' related 2010 debt-and-growth paper was found in 2013 to contain a spreadsheet error and contested weighting. That critique concerns the threshold work rather than this chronology, but the association is real
 - Priority: 2
 
-**C3. *Manias, Panics, and Crashes: A History of Financial Crises***
-- Author or institution: Kindleberger & Aliber
-- Publication date: 1978; substantially revised through later editions
+**K2.5 *Manias, Panics, and Crashes: A History of Financial Crises***
+- Author: Kindleberger & Aliber
+- Date: 1978; substantially revised through later editions
 - Category: Financial crises; behavioral finance
-- Authority level: High as a reference work
-- Primary or secondary: Secondary
+- Authority: High as a reference work
+- Status: Secondary
 - Intended use: The anatomy of a bubble, and how leverage turns a fall into a ruin
 - May support: The described phases and their historical instances
 - Must not support: Identifying a bubble in progress, which the book does not claim to enable
-- Citation availability: Widely held
-- Edition or stable reference: **Edition matters** — later editions add episodes and revise argument
-- Known bias: Minsky's framework throughout, which is a school rather than a consensus
-- Licensing: Book purchase
+- Citation: **Edition matters** — later editions add episodes and revise argument
+- Bias: Minsky's framework throughout, a school rather than a consensus
 - Priority: 2
 
-**C4. *Golden Fetters: The Gold Standard and the Great Depression, 1919–1939***
-- Author or institution: Barry Eichengreen
-- Publication date: 1992
-- Category: Inflation and currency regimes; monetary history
-- Authority level: High
-- Primary or secondary: Secondary
-- Intended use: **What a fixed exchange rate does to a country that keeps it under pressure.** Directly relevant to a household whose entire position is denominated in a pegged currency
-- May support: The documented historical mechanics of defending, and abandoning, a fixed rate
-- Must not support: Any prediction about the dirham peg
-- Citation availability: Widely held
-- Edition or stable reference: Oxford University Press, 1992
-- Known bias: A strong thesis — that the gold standard transmitted and deepened the Depression — which is well supported but is an argument, not a neutral account
-- Licensing: Book purchase
-- Priority: **1 — highest.** The most under-appreciated item on this list for this specific household
+### K3 — Investor frameworks and letters
 
-### Tier D — Investor frameworks and letters
-
-**D1. Shareholder Letters and Owner's Manual**
-- Author or institution: Warren Buffett / Berkshire Hathaway
-- Publication date: 1977–present, annual
+**K3.1 Shareholder Letters and Owner's Manual**
+- Author: Warren Buffett / Berkshire Hathaway — 1977 to present
 - Category: Capital allocation; value investing
-- Authority level: High as a body of reasoning; **not** authority on facts
-- Primary or secondary: Primary as to the author's own reasoning
-- Intended use: How an owner thinks about allocating capital between opportunities
+- Authority: High as reasoning; **not** authority on facts
+- Status: Primary as to the author's own reasoning
+- Intended use: How an owner allocates capital between opportunities
 - May support: The reasoning, attributed and quoted exactly
-- Must not support: That any approach is correct; that a holding is cheap. **A principle can never make a holding cheap** — KNOWLEDGE_POLICY.md §1
-- Citation availability: Stable, free, by year
-- Edition or stable reference: Letter year plus page
-- Known bias: Survivorship at its most acute — the most successful outcome of a strategy is the least representative sample of it. Buffett has repeatedly said his approach does not transfer wholesale
-- Licensing: Free
+- Must not support: That any approach is correct; that a holding is cheap
+- Citation: Free, stable, by year
+- Bias: Survivorship at its most acute — the most successful outcome of a strategy is the least representative sample of it
 - Priority: 2
 
-**D2. Memos, and *The Most Important Thing***
-- Author or institution: Howard Marks / Oaktree
-- Publication date: Memos 1990–present; book 2011
+**K3.2 Memos, and *The Most Important Thing***
+- Author: Howard Marks / Oaktree — memos 1990 to present; book 2011
 - Category: Risk and uncertainty; capital allocation
-- Authority level: High as reasoning
-- Primary or secondary: Primary as to the author's own reasoning
-- Intended use: Second-level thinking; where we are in a cycle as a question rather than a call
-- May support: The reasoning, attributed
+- Authority: High as reasoning
+- Status: Primary as to the author's own reasoning
+- Intended use: Second-level thinking; cycle position as a question, not a call
 - Must not support: Any market-timing conclusion
-- Citation availability: Memos free and dated
-- Edition or stable reference: Memo title and date
-- Known bias: A credit investor's temperament, which is more downside-weighted than an equity investor's. **Deliberately included as a counterweight to D1**
-- Licensing: Memos free; book purchase
+- Citation: Memos free and dated
+- Bias: A credit investor's temperament, more downside-weighted than an equity investor's. **Counterweight to K3.1**
 - Priority: 2
 
-**D3. *The Intelligent Investor***
-- Author or institution: Benjamin Graham
-- Publication date: 1949; revised 4th edition 1973
+**K3.3 *The Intelligent Investor***
+- Author: Benjamin Graham — 1949; revised 4th edition 1973
 - Category: Value investing
-- Authority level: Foundational for the concept of margin of safety
-- Primary or secondary: Secondary
-- Intended use: Margin of safety; the defensive-versus-enterprising distinction; price against value
-- May support: The principles, attributed
-- Must not support: Graham's specific numeric screens as current criteria. They are of their market and its disclosure regime
-- Citation availability: Widely held
-- Edition or stable reference: **Specify the edition and whether commentary is included** — the Zweig commentary is a different author and must be cited as such
-- Known bias: Written for a US market with far worse disclosure and far higher frictions than today's
-- Licensing: Book purchase
+- Authority: Foundational for margin of safety
+- Status: Secondary
+- Must not support: Graham's numeric screens as current criteria — they are of their market and its disclosure regime
+- Citation: **Specify edition and whether commentary is included** — the Zweig commentary is a different author and cited as such
+- Bias: Written for a market with far worse disclosure and higher frictions
 - Priority: 3
 
-**D4. *Principles for Navigating Big Debt Crises***
-- Author or institution: Ray Dalio / Bridgewater
-- Publication date: 2018
+**K3.4 *Principles for Navigating Big Debt Crises***
+- Author: Ray Dalio / Bridgewater — 2018
 - Category: Financial crises; monetary history
-- Authority level: Moderate. A practitioner framework with case studies, not peer-reviewed
-- Primary or secondary: Secondary
-- Intended use: The debt-cycle template as **one** lens on where conditions sit
-- May support: The described case studies, attributed
+- Authority: Moderate — a practitioner framework with case studies, not peer-reviewed
+- Status: Secondary
 - Must not support: The template as a law; any timing claim
-- Citation availability: Free PDF, stable
-- Edition or stable reference: 2018 edition
-- Known bias: A macro school explicitly opposed to bottom-up selection, and a framework built by a firm with a commercial interest in it. **Included because it disagrees with D1 and D3 about what even matters**
-- Licensing: Free
+- Citation: Free PDF, stable
+- Bias: A macro school explicitly opposed to bottom-up selection, built by a firm with a commercial interest in it. **Included because it disagrees with K3.1 and K3.3 about what even matters**
 - Priority: 3
 
-### Tier E — Interpretive books
+### K4 — Interpretive books
 
-**E1. *A Random Walk Down Wall Street***
-- Author or institution: Burton Malkiel
-- Publication date: 1973; many editions
+**K4.1 *A Random Walk Down Wall Street***
+- Author: Burton Malkiel — 1973; many editions
 - Category: Portfolio construction
-- Authority level: Moderate; a well-argued position
-- Primary or secondary: Secondary
-- Intended use: **The case that all of Tier D is largely luck.** The efficient-markets and indexing counterweight
-- May support: The argument, attributed
-- Must not support: That active management cannot work, as a settled fact
-- Citation availability: Widely held
-- Edition or stable reference: Edition matters; figures update
-- Known bias: A committed efficient-markets position. That is precisely why it is here
-- Licensing: Book purchase
-- Priority: **1 — highest.** Without it, this corpus is four value investors agreeing with each other
+- Authority: Moderate; a well-argued position
+- Status: Secondary
+- Intended use: **The case that all of K3 is largely luck**
+- Must not support: That active management cannot work, as settled fact
+- Citation: Edition matters; figures update
+- Bias: A committed efficient-markets position — precisely why it is here
+- Priority: **1**
 
-**E2. *Thinking, Fast and Slow***
-- Author or institution: Daniel Kahneman
-- Publication date: 2011
+**K4.2 *Thinking, Fast and Slow***
+- Author: Daniel Kahneman — 2011
 - Category: Behavioral finance
-- Authority level: High for the author's own experimental work
-- Primary or secondary: Secondary
-- Intended use: How the subject's own reasoning fails, particularly under loss
+- Authority: High for the author's own experimental work
+- Status: Secondary
 - May support: Loss aversion, anchoring, overconfidence — attributed, with the caveat below
-- Must not support: The priming literature discussed in the book. **Several of those studies failed to replicate, and Kahneman himself publicly acknowledged the chapter overstated the evidence.** Cite the primary study, not the book, for any specific effect
-- Citation availability: Widely held
-- Edition or stable reference: 2011
-- Known bias: Written before the replication crisis was fully understood
-- Licensing: Book purchase
+- Must not support: The priming literature in the book. **Several studies failed to replicate and Kahneman publicly acknowledged the chapter overstated the evidence.** Cite the primary study, not the book
+- Bias: Written before the replication crisis was fully understood
 - Priority: 2
 
-**E3. *The Black Swan***
-- Author or institution: Nassim Nicholas Taleb
-- Publication date: 2007; second edition 2010
+**K4.3 *The Black Swan***
+- Author: Nassim Nicholas Taleb — 2007; second edition 2010
 - Category: Risk and uncertainty
-- Authority level: Moderate; a strong argument, not an empirical study
-- Primary or secondary: Secondary
-- Intended use: Why tail events dominate a long horizon and why models understate them
-- May support: The argument about fat tails and model risk, attributed
+- Authority: Moderate — a strong argument, not an empirical study
+- Status: Secondary
 - Must not support: Any specific portfolio construction as *the* answer
-- Citation availability: Widely held
-- Edition or stable reference: Second edition, 2010
-- Known bias: A polemical voice, dismissive of opposing views. Held at low standing and always attributed
-- Licensing: Book purchase
+- Bias: Polemical, dismissive of opposing views. Held at low standing, always attributed
 - Priority: 3
 
-**E4. *Family Wealth: Keeping It in the Family***
-- Author or institution: James E. Hughes Jr.
-- Publication date: 2004 (expanded edition)
-- Category: Intergenerational wealth; corporate governance (family governance)
-- Authority level: Moderate; practitioner experience, not empirical
-- Primary or secondary: Secondary
-- Intended use: **Why capital fails to survive three generations** — governance, preparation of heirs, and the human capital the balance sheet does not show
-- May support: The framework, attributed
-- Must not support: The "shirtsleeves to shirtsleeves in three generations" statistic as established fact. It is folklore with weak provenance, and must never be quoted as data
-- Citation availability: Widely held
-- Edition or stable reference: Expanded edition, 2004
-- Known bias: Drawn from wealthy Western family-office practice; structures and law differ materially in the UAE
-- Priority: 2 — closest to the stated objective of anything on this list
+**K4.4 *Family Wealth: Keeping It in the Family***
+- Author: James E. Hughes Jr. — 2004 expanded edition
+- Category: Intergenerational wealth; family governance
+- Authority: Moderate — practitioner experience, not empirical
+- Status: Secondary
+- Intended use: **Why capital fails to survive three generations** — governance, preparation of heirs, human capital the balance sheet does not show
+- Must not support: The "shirtsleeves to shirtsleeves in three generations" statistic as established fact. It is folklore with weak provenance and must never be quoted as data
+- Bias: Drawn from wealthy Western family-office practice; structures and law differ materially elsewhere. **This gap is now larger, not smaller**, given a cross-border household
+- Priority: 2
 
 ---
 
@@ -356,15 +274,16 @@ If these sources agreed, the corpus would be a position rather than a library.
 
 | Question | One side | The other |
 |---|---|---|
-| Can selection beat the market? | D1, D3 | E1 |
-| Does the cycle matter, or only the business? | D2, D4 | D1, D3 |
-| Bottom-up or macro? | D1, D3 | D4 |
-| Are historical returns a guide? | B3, C1 | E3 |
-| Are behavioural findings solid? | E2 | E2's own replication caveat |
+| Can selection beat the market? | K3.1, K3.3 | K4.1 |
+| Does the cycle matter, or only the business? | K3.2, K3.4 | K3.1, K3.3 |
+| Bottom-up or macro? | K3.1, K3.3 | K3.4 |
+| Are historical returns a guide? | K1.1, K2.1 | K4.3 |
+| Can a country keep monetary independence with an open capital account? | K2.3 | K1.3 |
+| Are behavioural findings solid? | K4.2 | K4.2's own replication caveat |
 
-**No author on this list is treated as settled.** Where a briefing leans on one,
-the disconfirmation requirement (KNOWLEDGE_POLICY.md §4) obliges a search for
-the opposing entry, and the table above is where that search starts.
+**No author is treated as settled.** Where a briefing leans on one, the
+disconfirmation requirement (KNOWLEDGE_POLICY.md §4) obliges a search for the
+opposing entry, and this table is where that search starts.
 
 ---
 
@@ -380,42 +299,52 @@ No analogy may be published without all five, in this order:
 
 Any analogy missing any of the five is not published. There is no shortened form.
 
+**A cross-border addition.** Where an analogy involves a country, it must also
+state whether the country is being cited as *evidence about a mechanism* or as
+*evidence about this subject's position*. "Argentina's capital controls in 2011"
+is a mechanism. "Your home country's capital controls" is a constraint on this
+position and belongs to a country pack, not to the corpus. Conflating them turns
+a historical parallel into a country judgement, which §9 of
+COUNTRY_SOURCE_PACKS.md forbids.
+
 ---
 
-## 5. What this founding twenty does not cover
+## 5. What this founding seventeen does not cover
 
 Stated because a list that does not name its gaps reads as complete.
 
-- **Gulf-specific interpretive scholarship is thin.** A1, A2 and B1 carry the
-  category and are all data or institutional analysis. There is no regional
-  economic or financial history here, and I have not proposed one rather than
-  name a title I cannot verify. Worth two or three additions in a second round.
-- **Shariah-compliant investment is absent, and stays absent.** Asked and
-  answered on 2026-07-26: not a priority for this subject. So no AAOIFI Tier A
-  addition, and no compliance framework as a first-class constraint. The general
-  `objective.restrictions` field remains for excluding specific instruments,
-  sectors or jurisdictions — a preference, not a compliance regime. Revisit only
-  if the subject says otherwise, and note that a client-facing deployment in this
-  region would almost certainly need it.
-- **Property is thinly covered** for a household holding a majority of its net
-  worth in one flat. B3 is the only source with residential returns at this
-  horizon, and its sample excludes the UAE.
-- **Nothing here is about tax or succession law in this jurisdiction.** That is
-  correct — `domain_rule` knowledge expires and is jurisdictional, and NeoOS
-  identifies what to ask a professional rather than concluding.
-- **No source is younger than 2019** except the continuing series. Deliberate:
+- **Cross-border and multi-jurisdiction family wealth is the largest gap**, and
+  the correction made it larger. K4.4 covers family governance from a Western
+  single-jurisdiction practice. Nothing here covers a household earning in one
+  country, with family and property in another, investing in a third. I have not
+  proposed a title because I cannot verify one — this is worth a deliberate
+  search rather than a guess.
+- **Frontier and small-market equity evidence is thin.** K2.1 covers some
+  countries; most frontier markets are not in any long-run dataset, which is
+  itself a finding rather than a gap to paper over.
+- **Remittance economics is absent from the corpus** and belongs in country
+  packs plus World Bank institutional data, not here.
+- **Shariah-compliant investment stays absent.** Asked and answered on
+  2026-07-26: not a priority for this subject. The general
+  `objective.restrictions` field remains for excluding instruments or sectors —
+  a preference, not a compliance regime. A client-facing deployment in this
+  region would very likely need it.
+- **Nothing here is about tax or succession law in any jurisdiction.** Correct:
+  `domain_rule` knowledge expires and is jurisdictional, so it lives in country
+  packs. NeoOS identifies what to ask a professional rather than concluding.
+- **No source is younger than 2019** except continuing series. Deliberate:
   current commentary is the least useful knowledge for a generational objective.
 
 ---
 
 ## 6. What is being asked
 
-1. **Approve, amend or reject** the twenty, individually or as a set. *Open.*
-2. ~~Answer the Shariah question.~~ **Answered 2026-07-26: not in scope.** No
-   change to Tier A. See §5.
-3. **Confirm the drop candidate.** B4 (corporate governance) is the weakest fit
-   for this household and is the first to go if the set should be smaller.
+1. **Approve, amend or reject** the seventeen, individually or as a set. *Open.*
+2. ~~Answer the Shariah question.~~ **Answered 2026-07-26: not in scope.** See §5.
+3. **Confirm the drop candidate.** K1.4 (corporate governance) is the weakest
+   fit for this household and is the first to go if the set should be smaller.
    *Open.*
+4. **Confirm seventeen rather than thirty.** See §0. *Open.*
 
 On approval, ingestion builds the knowledge record shape from KNOWLEDGE_POLICY.md
 §3 for the approved subset only, verifying every date, edition and reference

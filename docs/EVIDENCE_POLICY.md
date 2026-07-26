@@ -147,3 +147,69 @@ figures should expire.
 Prior fiscal years expire on schedule and drop out. That is intended: they have
 been superseded. When the growth series expires, the valuation reports that it
 could not measure growth rather than assuming a rate.
+
+## 7. Jurisdictional evidence and source classes
+
+National institutions are evidence sources, not knowledge. They are organised as
+**country packs** — dynamic modules that activate on a hook in the declared
+position and carry no standing without one. Full architecture in
+COUNTRY_SOURCE_PACKS.md; this section is the evidence-policy half.
+
+### Source classes, mapped onto the tier hierarchy
+
+| Class | Source | Tier | Notes |
+|---|---|---|---|
+| A1 | National central bank | 4 (macro) | Except a stated FX regime or policy rate, which is an official issuer disclosure and reads as tier 1 for that fact |
+| A2 | National statistics agency | 4 (macro) | |
+| A3 | Securities regulator and exchange | 2 for exchange prices | Regulator *rules* are `domain_rule` knowledge, not evidence |
+| A4 | Tax, legal, property authorities | 1 for registry records | A land-registry entry about the subject's own property is an official record. The *rules* are `domain_rule` |
+| A5 | IMF, BIS, World Bank, OECD | 3 (institutional research) | |
+| A6 | US Fed, FRED, BLS | 4 for statistics, 2 for market rates | Included as the global benchmark, not because any subject is dollar-pegged |
+
+The split inside A3 and A4 matters. A price and a rule are different kinds of
+thing: a price is a fact that ages on a market clock, a rule is jurisdictional
+knowledge that expires and must be stated as "as of, subject to verification".
+Filing them together would let a tax rule inherit a market datum's freshness.
+
+### Freshness
+
+National statistics do not age on the existing per-type clocks. They are
+published on a cadence with a lag, and revised afterwards, so they carry a
+provider-stated expiry the way annual filings do. Horizons, states
+(`current` / `delayed` / `stale` / `superseded` / `unavailable`) and the
+four-times record shape are specified in PURCHASING_POWER_PROVIDER.md §§1, 5.
+
+**`delayed` is not an error.** A statistic past its expected publication date but
+not yet released is a normal condition, distinct from a source being
+unreachable, and the two must not collapse into one state.
+
+### The firewall
+
+> **Country context is to allocation what knowledge is to valuation: it may
+> shape what is permitted and what is risky, never what something is worth.**
+
+Country evidence may write to the constraint layer and the risk layer. It may
+not write to the valuation layer or the quality layer.
+
+**May affect:** currency risk · inflation exposure · taxation · regulation ·
+capital controls · ownership rights · custody · liquidity · political risk ·
+inheritance · family obligations · access · transaction costs.
+
+**Must not override:** valuation · margin of safety · business quality ·
+downside risk · portfolio fit · evidence quality.
+
+**No jurisdiction carries a prior.** Residence confers no preference; home
+country confers no preference; neither confers a penalty. Without this rule
+"home market" becomes a reason to buy and "foreign" a reason not to, which is
+home bias with a citation attached.
+
+Enforced rather than asserted: `COUNTRY_RELEVANCE_CHANNELS` and
+`COUNTRY_MUST_NOT_OVERRIDE` are exported constants in
+`src/domain/jurisdiction/packs.ts`, and a test asserts the sets never intersect.
+
+### No composite country score
+
+Deliberately absent. A single "country risk" number would collapse the thirteen
+channels into one figure, and a figure that ranks countries is a country
+preference however it is labelled. Each channel is reported separately or not at
+all.
