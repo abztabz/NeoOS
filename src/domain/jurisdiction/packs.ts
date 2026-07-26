@@ -202,11 +202,20 @@ export interface ActivatedJurisdiction {
  * no pack, however important it may be in the world.
  */
 export function activatedJurisdictions(profile: IntakeProfile): ActivatedJurisdiction[] {
-  const found = new Map<string, Set<ActivationTrigger>>();
+  // Keyed case-insensitively. Intake fields are typed by hand and by form, so the
+  // same country arrives as "NP" in one place and "Np" in another; keyed on the raw
+  // string those are two jurisdictions, and a constraint recorded against one never
+  // reaches anything tagged with the other. Casing is not a distinction between
+  // countries. Spelling still is: "Nepal" and "NP" remain separate, because
+  // resolving names to codes needs a canonical country list rather than a guess.
+  const found = new Map<string, { label: string; triggers: Set<ActivationTrigger> }>();
   const add = (jurisdiction: string | null, trigger: ActivationTrigger) => {
-    const key = jurisdiction?.trim();
-    if (!key) return;
-    (found.get(key) ?? found.set(key, new Set()).get(key)!).add(trigger);
+    const label = jurisdiction?.trim();
+    if (!label) return;
+    const key = label.toUpperCase();
+    const entry = found.get(key) ?? { label, triggers: new Set<ActivationTrigger>() };
+    found.set(key, entry);
+    entry.triggers.add(trigger);
   };
 
   const context = profile.jurisdictionContext;
@@ -237,8 +246,8 @@ export function activatedJurisdictions(profile: IntakeProfile): ActivatedJurisdi
     add(context.homeCountry ?? context.residence, "obligation_payable");
   }
 
-  return [...found.entries()]
-    .map(([jurisdiction, triggers]) => {
+  return [...found.values()]
+    .map(({ label: jurisdiction, triggers }) => {
       const list = [...triggers].sort();
       const depths = [...new Set(list.flatMap((t) => TRIGGER_DEPTHS[t]))].sort(
         (a, b) => packDepths.indexOf(a) - packDepths.indexOf(b),

@@ -35,6 +35,35 @@ describe("activation", () => {
     expect(activatedJurisdictions(emptyProfile(SUBJECT, "p", "2026-07-26T00:00:00.000Z"))).toEqual([]);
   });
 
+  // Real intake produced "NP" in one field and "Np" in another. Keyed on the raw
+  // string these are two countries, so a constraint recorded against one silently
+  // fails to reach anything tagged with the other. Casing is never a real
+  // distinction between jurisdictions.
+  it("treats the same code in different casing as one jurisdiction", () => {
+    const profile = crossBorder();
+    profile.commitments = [
+      {
+        commitmentId: "c1",
+        subjectId: SUBJECT,
+        kind: "life_insurance",
+        label: "Term Life",
+        premium: null,
+        premiumFrequency: "annual",
+        coverAmount: null,
+        beneficiary: null,
+        endsOn: null,
+        cancellable: null,
+        jurisdiction: "np",
+        notes: null,
+      },
+    ];
+    const found = activatedJurisdictions(profile);
+    expect(found.filter((j) => j.jurisdiction.toUpperCase() === "NP")).toHaveLength(1);
+    expect(found.find((j) => j.jurisdiction.toUpperCase() === "NP")?.triggers).toContain(
+      "liability_owed",
+    );
+  });
+
   it("keeps residence, home country and citizenship apart", () => {
     const found = activatedJurisdictions(crossBorder());
     const ae = found.find((j) => j.jurisdiction === "AE");
