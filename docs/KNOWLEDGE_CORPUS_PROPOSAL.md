@@ -390,10 +390,13 @@ Stated because a list that does not name its gaps reads as complete.
   category and are all data or institutional analysis. There is no regional
   economic or financial history here, and I have not proposed one rather than
   name a title I cannot verify. Worth two or three additions in a second round.
-- **Shariah-compliant investment is absent entirely.** If it is in scope, the
-  primary source is AAOIFI's standards, and that is a Tier A addition rather
-  than an interpretive one. **This is a question, not an assumption** — it was
-  raised earlier and has not been answered.
+- **Shariah-compliant investment is absent, and stays absent.** Asked and
+  answered on 2026-07-26: not a priority for this subject. So no AAOIFI Tier A
+  addition, and no compliance framework as a first-class constraint. The general
+  `objective.restrictions` field remains for excluding specific instruments,
+  sectors or jurisdictions — a preference, not a compliance regime. Revisit only
+  if the subject says otherwise, and note that a client-facing deployment in this
+  region would almost certainly need it.
 - **Property is thinly covered** for a household holding a majority of its net
   worth in one flat. B3 is the only source with residential returns at this
   horizon, and its sample excludes the UAE.
@@ -407,10 +410,12 @@ Stated because a list that does not name its gaps reads as complete.
 
 ## 6. What is being asked
 
-1. **Approve, amend or reject** the twenty, individually or as a set.
-2. **Answer the Shariah question**, since it changes Tier A.
+1. **Approve, amend or reject** the twenty, individually or as a set. *Open.*
+2. ~~Answer the Shariah question.~~ **Answered 2026-07-26: not in scope.** No
+   change to Tier A. See §5.
 3. **Confirm the drop candidate.** B4 (corporate governance) is the weakest fit
    for this household and is the first to go if the set should be smaller.
+   *Open.*
 
 On approval, ingestion builds the knowledge record shape from KNOWLEDGE_POLICY.md
 §3 for the approved subset only, verifying every date, edition and reference
