@@ -10,6 +10,7 @@ const tabs = [
   { href: "/gold", label: "Gold" },
   { href: "/cash", label: "Cash" },
   { href: "/timeline", label: "Timeline" },
+  { href: "/intake", label: "Position" },
 ] as const;
 
 export function DesktopNav() {
@@ -42,7 +43,7 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Workspaces"
-      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-[#27323b] bg-[#070a0c]/[0.98] px-1 pt-1 pb-[max(env(safe-area-inset-bottom),4px)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-[#27323b] bg-[#070a0c]/[0.98] px-1 pt-1 pb-[max(env(safe-area-inset-bottom),4px)] md:hidden"
     >
       {tabs.map((tab) => {
         const active = pathname === tab.href;

@@ -39,6 +39,12 @@ export interface StoredProfileSummary {
 
 export interface IntakeStore {
   /**
+   * Create tables if absent. Safe to call on every cold start, and every route
+   * does — a serverless instance may be the first to touch a fresh database.
+   */
+  migrate(): Promise<void>;
+
+  /**
    * Append a profile version.
    *
    * Writing an existing `profileId` is a no-op, not an overwrite — a retried

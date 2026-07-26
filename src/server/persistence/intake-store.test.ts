@@ -177,21 +177,24 @@ intakeContractTests("MemoryReportStore intake", () => new MemoryReportStore());
 
 describe("profileIntegrityHash", () => {
   it("does not depend on key order", () => {
+    // Reversed generically rather than by listing fields, so the test keeps
+    // testing key-order independence as the schema grows instead of quietly
+    // becoming a test that two different objects hash differently.
+    const reverseKeys = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(reverseKeys);
+      if (value !== null && typeof value === "object") {
+        return Object.fromEntries(
+          Object.entries(value as Record<string, unknown>)
+            .reverse()
+            .map(([k, v]) => [k, reverseKeys(v)]),
+        );
+      }
+      return value;
+    };
+
     const a = profile("profile-1", "2026-07-01T09:00:00.000Z");
-    const reordered = JSON.parse(
-      JSON.stringify({
-        objective: a.objective,
-        household: a.household,
-        liabilities: a.liabilities,
-        assets: a.assets,
-        incomeSources: a.incomeSources,
-        supersedes: a.supersedes,
-        recordedAt: a.recordedAt,
-        profileId: a.profileId,
-        subjectId: a.subjectId,
-        schemaVersion: a.schemaVersion,
-      }),
-    ) as IntakeProfile;
+    const reordered = reverseKeys(a) as IntakeProfile;
+    expect(Object.keys(reordered)).not.toEqual(Object.keys(a));
     expect(profileIntegrityHash(reordered)).toBe(profileIntegrityHash(a));
   });
 

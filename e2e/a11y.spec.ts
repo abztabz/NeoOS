@@ -19,7 +19,7 @@ test("mobile nav links are at least 44px touch targets", async ({ page, isMobile
   await page.goto("/");
   const links = page.locator("nav.fixed a");
   const count = await links.count();
-  expect(count).toBe(6);
+  expect(count).toBe(7);
   for (let i = 0; i < count; i++) {
     const box = await links.nth(i).boundingBox();
     expect(box).not.toBeNull();

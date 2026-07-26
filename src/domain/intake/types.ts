@@ -456,6 +456,154 @@ export function emptyHousehold(): Household {
   };
 }
 
+/* ---------------- insurance and long-term commitments ---------------- */
+
+/**
+ * Commitments that run for years and are invisible on a balance sheet.
+ *
+ * Insurance is the one people forget to record and the one that decides whether
+ * a family survives the worst case. A policy is two facts, not one: what it
+ * costs every month, which reduces investable surplus, and what it pays out,
+ * which is the only asset that appears exactly when income stops. Recording
+ * only the premium makes insurance look like a pure cost.
+ */
+export const commitmentKinds = [
+  "life_insurance",
+  "health_insurance",
+  "property_insurance",
+  "critical_illness",
+  "income_protection",
+  "education_plan",
+  "pension_contribution",
+  "lease",
+  "support_undertaking",
+  "other",
+] as const;
+export type CommitmentKind = (typeof commitmentKinds)[number];
+
+export const commitmentKindLabels: Record<CommitmentKind, string> = {
+  life_insurance: "Life insurance",
+  health_insurance: "Health insurance",
+  property_insurance: "Property insurance",
+  critical_illness: "Critical illness cover",
+  income_protection: "Income protection",
+  education_plan: "Education plan",
+  pension_contribution: "Pension contribution",
+  lease: "Lease",
+  support_undertaking: "Support undertaking",
+  other: "Other commitment",
+};
+
+/** Kinds that pay out on an event, so their cover counts toward protection. */
+export const COMMITMENT_PAYS_OUT: Record<CommitmentKind, boolean> = {
+  life_insurance: true,
+  health_insurance: true,
+  property_insurance: true,
+  critical_illness: true,
+  income_protection: true,
+  education_plan: true,
+  pension_contribution: true,
+  lease: false,
+  support_undertaking: false,
+  other: false,
+};
+
+export const commitmentSchema = z.object({
+  commitmentId: z.string().min(1).max(64),
+  subjectId: subjectIdSchema,
+  kind: z.enum(commitmentKinds),
+  label: z.string().min(1).max(120),
+  /** What it costs. Reduces investable surplus every period. */
+  premium: statedAmountSchema.nullable(),
+  premiumFrequency: z.enum(incomeFrequencies).nullable(),
+  /** What it pays out. Null where the commitment is a cost with no cover. */
+  coverAmount: statedAmountSchema.nullable(),
+  beneficiary: z.string().max(120).nullable(),
+  endsOn: z.iso.date().nullable(),
+  /** Whether it can be stopped without penalty. A cost that cannot be cut is a fixed obligation. */
+  cancellable: z.boolean().nullable(),
+  jurisdiction: jurisdictionSchema.nullable(),
+  notes: z.string().max(1000).nullable(),
+});
+export type Commitment = z.infer<typeof commitmentSchema>;
+
+/* ---------------- known future obligations ---------------- */
+
+/**
+ * Costs the subject already knows are coming.
+ *
+ * A first-class record rather than a note on a dependent. A school fee due in
+ * four years changes what "deployable" means today — capital earmarked for a
+ * known cost is not available for allocation, and treating it as available is
+ * how a family ends up selling at the wrong moment to meet a bill they saw
+ * coming for years.
+ */
+export const obligationKinds = [
+  "education",
+  "care",
+  "property_purchase",
+  "wedding",
+  "medical",
+  "tax",
+  "business_capital",
+  "relocation",
+  "other",
+] as const;
+export type ObligationKind = (typeof obligationKinds)[number];
+
+export const obligationKindLabels: Record<ObligationKind, string> = {
+  education: "Education",
+  care: "Care",
+  property_purchase: "Property purchase",
+  wedding: "Wedding",
+  medical: "Medical",
+  tax: "Tax",
+  business_capital: "Business capital",
+  relocation: "Relocation",
+  other: "Other",
+};
+
+/** How firm the obligation is. Stated by the subject, never inferred. */
+export const obligationCertainties = ["committed", "likely", "possible"] as const;
+export type ObligationCertainty = (typeof obligationCertainties)[number];
+
+export const futureObligationSchema = z.object({
+  obligationId: z.string().min(1).max(64),
+  subjectId: subjectIdSchema,
+  kind: z.enum(obligationKinds),
+  label: z.string().min(1).max(120),
+  amount: statedAmountSchema.nullable(),
+  /** When it falls due. Year alone is enough to change today's answer. */
+  dueYear: z.number().int().min(1900).max(2200).nullable(),
+  certainty: z.enum(obligationCertainties),
+  /** Asset already set aside for it, where one is. */
+  fundedByAssetId: z.string().max(64).nullable(),
+  notes: z.string().max(1000).nullable(),
+});
+export type FutureObligation = z.infer<typeof futureObligationSchema>;
+
+/* ---------------- goals ---------------- */
+
+/**
+ * What the capital is actually for, in the subject's own words.
+ *
+ * Priority is recorded because not all goals survive a bad decade, and the order
+ * they are abandoned in should be the subject's decision made calmly in advance
+ * rather than under pressure.
+ */
+export const goalPriorities = ["essential", "important", "aspirational"] as const;
+export type GoalPriority = (typeof goalPriorities)[number];
+
+export const objectiveGoalSchema = z.object({
+  goalId: z.string().min(1).max(64),
+  label: z.string().min(1).max(200),
+  targetAmount: statedAmountSchema.nullable(),
+  targetYear: z.number().int().min(1900).max(2200).nullable(),
+  priority: z.enum(goalPriorities),
+  notes: z.string().max(1000).nullable(),
+});
+export type ObjectiveGoal = z.infer<typeof objectiveGoalSchema>;
+
 /* ---------------- objectives and constraints ---------------- */
 
 export const objectiveSchema = z.object({
@@ -475,17 +623,72 @@ export const objectiveSchema = z.object({
   maxDrawdownTolerancePercent: z.number().min(0).max(100).nullable(),
   /** Currency the subject actually spends in. The real denominator. */
   baseCurrency: currencySchema.nullable(),
+  /**
+   * Rates to the base currency, stated by the subject.
+   *
+   * Currency exposure is the one measure that genuinely cannot be computed
+   * without conversion — a share is a share of a single total. NeoOS has no
+   * rate provider, and inventing one is out of the question, so the subject
+   * supplies rates they are willing to stand behind. Anything derived from them
+   * carries `user_assumption`, never `calculated`, so a net worth resting on a
+   * rate the subject typed last year is never shown as a hard figure.
+   */
+  exchangeRatesToBase: z.record(currencySchema, z.number().positive()),
   /** Kinds the subject will not hold, for any reason. Respected absolutely. */
   excludedAssetKinds: z.array(z.enum(assetKinds)),
   /** Jurisdictions, sectors, or instruments to avoid. Free text, respected. */
   restrictions: z.array(z.string().max(200)),
+
+  /**
+   * What the subject intends to invest each month.
+   *
+   * Deliberately separate from the surplus NeoOS calculates. The calculated
+   * figure is what the numbers allow; this is what the subject actually means
+   * to do, and the gap between them is worth seeing rather than averaging away.
+   */
+  monthlyInvestable: statedAmountSchema.nullable(),
+  /**
+   * Liquidity the subject wants held beyond the emergency reserve — an amount
+   * they want reachable for reasons they may not want to explain.
+   */
+  minimumLiquidHolding: statedAmountSchema.nullable(),
+
+  /** Concentration ceilings. Each is a limit NeoOS checks the position against. */
+  maxAssetKindPercent: z.number().min(0).max(100).nullable(),
+  maxCurrencyPercent: z.number().min(0).max(100).nullable(),
+  maxJurisdictionPercent: z.number().min(0).max(100).nullable(),
+
+  /**
+   * The subject's own reading of their risk capacity.
+   *
+   * Recorded alongside, never instead of, the capacity NeoOS calculates from
+   * reserve coverage, passive income share, horizon and dependents. Capacity is
+   * structural — whether a fall can be survived. Tolerance is psychological —
+   * whether it can be sat through. People routinely have more of one than the
+   * other, and the difference is where forced selling comes from, so both are
+   * carried and shown separately.
+   */
+  statedRiskCapacity: z.enum(["low", "moderate", "high"]).nullable(),
+
+  /** What the capital is for, in the subject's own words. */
+  goals: z.array(objectiveGoalSchema),
   notes: z.string().max(2000).nullable(),
 });
 export type Objective = z.infer<typeof objectiveSchema>;
 
 /* ---------------- the profile ---------------- */
 
-export const INTAKE_SCHEMA_VERSION = "5.0" as const;
+/**
+ * v6.0 adds insurance and long-term commitments, known future obligations,
+ * structured goals, concentration ceilings, stated monthly investable amount,
+ * a liquidity floor, and stated risk capacity.
+ *
+ * No migration from 5.0 exists because no 5.0 profile was ever written — the
+ * store landed before the form did. A stored profile that fails to parse throws
+ * rather than being coerced, so if one did exist it would surface loudly rather
+ * than being silently reshaped.
+ */
+export const INTAKE_SCHEMA_VERSION = "6.0" as const;
 
 export const intakeProfileSchema = z.object({
   schemaVersion: z.literal(INTAKE_SCHEMA_VERSION),
@@ -497,6 +700,8 @@ export const intakeProfileSchema = z.object({
   incomeSources: z.array(incomeSourceSchema),
   assets: z.array(assetHoldingSchema),
   liabilities: z.array(liabilitySchema),
+  commitments: z.array(commitmentSchema),
+  futureObligations: z.array(futureObligationSchema),
   household: householdSchema,
   objective: objectiveSchema,
 });
@@ -513,6 +718,8 @@ export function emptyProfile(subjectId: SubjectId, profileId: string, recordedAt
     incomeSources: [],
     assets: [],
     liabilities: [],
+    commitments: [],
+    futureObligations: [],
     household: emptyHousehold(),
     objective: {
       reserveMonths: null,
@@ -521,8 +728,16 @@ export function emptyProfile(subjectId: SubjectId, profileId: string, recordedAt
       maxSingleAssetPercent: null,
       maxDrawdownTolerancePercent: null,
       baseCurrency: null,
+      exchangeRatesToBase: {},
       excludedAssetKinds: [],
       restrictions: [],
+      monthlyInvestable: null,
+      minimumLiquidHolding: null,
+      maxAssetKindPercent: null,
+      maxCurrencyPercent: null,
+      maxJurisdictionPercent: null,
+      statedRiskCapacity: null,
+      goals: [],
       notes: null,
     },
   };

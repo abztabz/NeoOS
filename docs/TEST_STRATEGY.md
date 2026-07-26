@@ -194,3 +194,41 @@ company.
 - **No live EDGAR fetch has been verified.** See the Sprint 4 completion report.
 - Accessibility scanning covers automatable rules only; it does not replace
   testing with an actual screen reader.
+
+## Intake and the calculated profile
+
+`src/domain/profile/profile.test.ts` — 38 tests over the provenance system, the
+ten required calculated outputs, and the personalisation gate.
+
+The provenance tests are the load-bearing ones. They pin the weakest-link rule:
+arithmetic on a model assumption yields a model assumption, not a calculation,
+and a missing input makes the whole result missing rather than being computed
+around as a zero. Without that rule, provenance decays quietly — one assumption
+enters a chain of arithmetic and the answer is presented as a calculation, which
+is true and misleading at the same time.
+
+The gate tests assert the three conditions for `available` independently: no
+blocking gap in intake, every core output computable, and no core output resting
+on a NeoOS assumption. A single undated debt is enough to drop the whole surface
+to `provisional`, and there is a test for exactly that.
+
+`e2e/intake.spec.ts` covers the surface without a configured token: the gate must
+hold, the reason must be legible, and nothing about the position may render.
+
+**Match the alert assertion to a test id, not `role="alert"`.** Next renders its
+own empty `role="alert"` route announcer, so matching on the role alone is a
+strict-mode collision that appears and disappears with hydration timing — it
+passed in isolation and failed in the full parallel run.
+
+### Verify the API against a real database, not only the unit suite
+
+The intake route shipped without `store.migrate()`. Every unit test passed, the
+build passed, and the first real request against a fresh Postgres returned
+`42P01 undefined_table`. Nothing short of running the actual server against an
+actual database would have caught it.
+
+The verification that now matters before claiming an API works: stand up a
+throwaway Postgres, run `next start` with `DATABASE_URL` and
+`OPERATOR_API_TOKEN`, then exercise unauthenticated, wrong-token and
+authenticated requests, a save, and a correction — checking the supersedes chain
+and the drift trends that follow from it.
