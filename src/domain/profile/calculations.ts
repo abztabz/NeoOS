@@ -320,6 +320,42 @@ export interface InvestableCash {
   nearTermObligationsHeldBack: number;
   /** Obligations within this many years are held back. */
   obligationHorizonYears: number;
+  /**
+   * Value excluded because it cannot legally leave its jurisdiction, by
+   * jurisdiction. Deployable there, and nowhere else.
+   */
+  immobileByJurisdiction: CurrencyTotals;
+}
+
+/**
+ * Value that cannot leave the jurisdiction it sits in.
+ *
+ * Distinct from liquidity, and worse. An illiquid asset can be sold slowly; an
+ * asset behind a capital control can be sold instantly and the proceeds still
+ * cannot fund anything abroad. Liquidity is about time; mobility is about
+ * whether the door exists.
+ *
+ * Counting the two pools as one overstates what is available to allocate, and
+ * overstates it in the direction that produces a confident recommendation to
+ * deploy capital that cannot actually be deployed.
+ */
+function immobileValue(profile: IntakeProfile): { totals: CurrencyTotals; jurisdictions: string[] } {
+  const restricted = new Set(
+    profile.jurisdictionContext.constraints
+      .filter((c) => c.outboundCapitalMobility === "restricted" || c.outboundCapitalMobility === "blocked")
+      .map((c) => c.jurisdiction),
+  );
+
+  const totals: CurrencyTotals = {};
+  const jurisdictions = new Set<string>();
+  for (const asset of profile.assets) {
+    if (asset.value.amount === null || asset.jurisdiction === null) continue;
+    if (!restricted.has(asset.jurisdiction)) continue;
+    if (!isLiquid(asset.liquidity, asset.restricted)) continue;
+    addTo(totals, asset.value.currency, asset.value.amount);
+    jurisdictions.add(asset.jurisdiction);
+  }
+  return { totals, jurisdictions: [...jurisdictions].sort() };
 }
 
 /** Committed costs inside this window are not deployable capital. */
@@ -364,9 +400,24 @@ export function investableCash(profile: IntakeProfile): Attributed<InvestableCas
     else gaps.push(`Rate for ${obligation.amount.currency}`);
   }
 
+  // Capital that cannot leave its jurisdiction is removed before anything else.
+  // It is not a smaller amount of the same thing — it is a different pool, and
+  // it can only be deployed where it already sits.
+  const immobile = immobileValue(profile);
+  const immobileBase = toBase(immobile.totals, profile);
+  const immobileTotal =
+    immobileBase && immobileBase.unrated.length === 0 ? immobileBase.total : 0;
+  if (immobileBase && immobileBase.unrated.length > 0) {
+    gaps.push(...immobileBase.unrated.map((c) => `Rate for ${c}, to size immobile capital`));
+  }
+
   const amount = Math.max(
     0,
-    liquidBase.total - reserveHeldBack - liquidityFloorHeldBack - nearTermObligationsHeldBack,
+    liquidBase.total -
+      immobileTotal -
+      reserveHeldBack -
+      liquidityFloorHeldBack -
+      nearTermObligationsHeldBack,
   );
 
   const result: InvestableCash = {
@@ -377,6 +428,7 @@ export function investableCash(profile: IntakeProfile): Attributed<InvestableCas
     liquidityFloorHeldBack,
     nearTermObligationsHeldBack,
     obligationHorizonYears: NEAR_TERM_OBLIGATION_YEARS,
+    immobileByJurisdiction: immobile.totals,
   };
 
   // Reserve unresolved means nothing was held back for it. That is a materially
@@ -722,6 +774,18 @@ export function deploymentStatus(profile: IntakeProfile): Attributed<DeploymentS
     status = "reserve_first";
     reasons.push(
       `Reserve is ${coverage.value.months.toFixed(1)} months against the ${coverage.value.required} you asked for. Funding it comes before deploying.`,
+    );
+  }
+
+  const immobileTotal = Object.values(investable.value.immobileByJurisdiction).reduce(
+    (sum, value) => sum + value,
+    0,
+  );
+  if (immobileTotal > 0) {
+    // Named whatever the status, because it changes what "deployable" means
+    // rather than merely reducing it. Two pools, not one smaller pool.
+    reasons.push(
+      `Capital in ${Object.keys(investable.value.immobileByJurisdiction).join(", ")} cannot leave its jurisdiction and is not part of what can be allocated globally. It can still be deployed where it sits.`,
     );
   }
 

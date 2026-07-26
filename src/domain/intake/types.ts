@@ -478,6 +478,45 @@ export function emptyHousehold(): Household {
  * and planning depth; they never make an asset more or less worth owning.
  * See docs/COUNTRY_SOURCE_PACKS.md §6.
  */
+/**
+ * Whether value can leave a jurisdiction.
+ *
+ * Distinct from liquidity, and worse. An illiquid asset can be sold slowly; an
+ * asset in a jurisdiction that restricts outward capital movement can be sold
+ * instantly and the proceeds still cannot fund anything abroad. Liquidity is
+ * about time; mobility is about whether the door exists.
+ */
+export const capitalMobilities = ["free", "restricted", "blocked", "unknown"] as const;
+export type CapitalMobility = (typeof capitalMobilities)[number];
+
+export const capitalMobilityLabels: Record<CapitalMobility, string> = {
+  free: "Capital can move out freely",
+  restricted: "Capital can move out only within limits or with approval",
+  blocked: "Capital cannot move out",
+  unknown: "Not established",
+};
+
+/**
+ * A constraint the subject believes applies to a jurisdiction.
+ *
+ * Recorded as **the subject's understanding**, never as law. A legal position
+ * stated from memory is exactly the `domain_rule` case KNOWLEDGE_POLICY.md §2
+ * treats as dangerous: a rule that has changed is worse than no rule, because
+ * the subject may act on it. `verifiedWithProfessional` is the field that says
+ * whether anyone qualified has actually confirmed it.
+ */
+export const jurisdictionConstraintSchema = z.object({
+  jurisdiction: jurisdictionSchema,
+  /** Whether value can be moved out to fund allocation elsewhere. */
+  outboundCapitalMobility: z.enum(capitalMobilities),
+  /** When the subject last understood this to be true. */
+  statedAt: z.iso.date(),
+  /** Whether a professional has confirmed it. Almost always false at first. */
+  verifiedWithProfessional: z.boolean(),
+  notes: z.string().max(1000).nullable(),
+});
+export type JurisdictionConstraint = z.infer<typeof jurisdictionConstraintSchema>;
+
 export const jurisdictionContextSchema = z.object({
   /** Where the subject currently lives and spends. */
   residence: jurisdictionSchema.nullable(),
@@ -496,6 +535,15 @@ export const jurisdictionContextSchema = z.object({
    * measured against the wrong one can be wrong by a wide margin over decades.
    */
   intendsToReturnHome: z.boolean().nullable(),
+  /**
+   * Constraints the subject believes apply, per jurisdiction.
+   *
+   * The one that matters most is outward capital mobility. Where it is
+   * restricted, capital held there is not part of the same pool as capital
+   * held elsewhere, and treating the two as one overstates what can be
+   * deployed — see calculations.ts.
+   */
+  constraints: z.array(jurisdictionConstraintSchema),
   notes: z.string().max(1000).nullable(),
 });
 export type JurisdictionContext = z.infer<typeof jurisdictionContextSchema>;
@@ -507,6 +555,7 @@ export function emptyJurisdictionContext(): JurisdictionContext {
     citizenships: [],
     taxResidences: [],
     intendsToReturnHome: null,
+    constraints: [],
     notes: null,
   };
 }
@@ -743,12 +792,17 @@ export type Objective = z.infer<typeof objectiveSchema>;
  * what activates country source packs, and without it the system cannot tell
  * where someone lives from where they are from.
  *
+ * v6.2 adds outward capital mobility per jurisdiction. Without it, capital that
+ * legally cannot leave a country is counted as deployable alongside capital
+ * that can, which overstates what is available to allocate — the defect this
+ * version exists to fix.
+ *
  * No migration from 5.0 exists because no 5.0 profile was ever written — the
  * store landed before the form did. A stored profile that fails to parse throws
  * rather than being coerced, so if one did exist it would surface loudly rather
  * than being silently reshaped.
  */
-export const INTAKE_SCHEMA_VERSION = "6.1" as const;
+export const INTAKE_SCHEMA_VERSION = "6.2" as const;
 
 export const intakeProfileSchema = z.object({
   schemaVersion: z.literal(INTAKE_SCHEMA_VERSION),

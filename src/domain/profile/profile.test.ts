@@ -267,6 +267,72 @@ describe("reserve coverage and investable cash", () => {
   });
 });
 
+describe("capital that cannot leave its jurisdiction", () => {
+  /** Liquid cash held in a jurisdiction that restricts outward movement. */
+  function withTrappedCapital(mobility: "restricted" | "blocked" | "free"): IntakeProfile {
+    const profile = completeProfile();
+    profile.assets.push(
+      asset({
+        assetHoldingId: "np-deposits",
+        label: "Kathmandu deposits",
+        amount: 300_000,
+        jurisdiction: "NP",
+      }),
+    );
+    profile.jurisdictionContext = {
+      residence: "AE",
+      homeCountry: "NP",
+      citizenships: ["NP"],
+      taxResidences: ["AE"],
+      intendsToReturnHome: null,
+      constraints: [
+        {
+          jurisdiction: "NP",
+          outboundCapitalMobility: mobility,
+          statedAt: today,
+          verifiedWithProfessional: false,
+          notes: null,
+        },
+      ],
+      notes: null,
+    };
+    return profile;
+  }
+
+  it("excludes trapped capital from what can be allocated globally", () => {
+    // Distinct from liquidity, and worse. An illiquid asset can be sold slowly;
+    // this can be sold instantly and the proceeds still fund nothing abroad.
+    const free = investableCash(withTrappedCapital("free")).value!;
+    const trapped = investableCash(withTrappedCapital("restricted")).value!;
+    expect(free.amount - trapped.amount).toBe(300_000);
+    expect(trapped.immobileByJurisdiction.AED).toBe(300_000);
+  });
+
+  it("treats blocked the same as restricted for deployability", () => {
+    const blocked = investableCash(withTrappedCapital("blocked")).value!;
+    expect(blocked.immobileByJurisdiction.AED).toBe(300_000);
+  });
+
+  it("still counts trapped capital in net worth, because it is owned", () => {
+    // Not deployable is not the same as not owned. Removing it from net worth
+    // would understate the position as badly as counting it overstates what can
+    // be allocated.
+    expect(netWorth(withTrappedCapital("blocked")).value?.AED).toBe(400_000);
+  });
+
+  it("says the pool is separate rather than merely smaller", () => {
+    const status = deploymentStatus(withTrappedCapital("restricted")).value!;
+    expect(status.reasons.join(" ")).toMatch(/cannot leave its jurisdiction/i);
+    expect(status.reasons.join(" ")).toMatch(/deployed where it sits/i);
+  });
+
+  it("ignores a jurisdiction the subject has not flagged", () => {
+    const profile = withTrappedCapital("free");
+    profile.jurisdictionContext.constraints = [];
+    expect(investableCash(profile).value?.immobileByJurisdiction).toEqual({});
+  });
+});
+
 describe("debt burden", () => {
   it("reports service ratio, leverage and weighted rate", () => {
     const result = debtBurden(completeProfile());

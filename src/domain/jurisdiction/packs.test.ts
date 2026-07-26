@@ -20,6 +20,7 @@ function crossBorder(over: Partial<IntakeProfile> = {}): IntakeProfile {
       citizenships: ["NP"],
       taxResidences: ["AE"],
       intendsToReturnHome: null,
+      constraints: [],
       notes: null,
     },
     ...over,
@@ -58,6 +59,7 @@ describe("activation", () => {
         citizenships: ["NP"],
         taxResidences: [],
         intendsToReturnHome: null,
+        constraints: [],
         notes: null,
       },
     });
