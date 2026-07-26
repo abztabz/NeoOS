@@ -22,3 +22,8 @@ blob-report/
 *.pem
 npm-debug.log*
 *.tsbuildinfo
+
+# Generated intake working files — never commit a filled one
+intake-template.json
+intake-row-examples.json
+intake-*.filled.json

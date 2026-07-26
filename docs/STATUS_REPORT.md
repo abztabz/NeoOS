@@ -266,6 +266,10 @@ data, a real database, or a real answer from you.
 
 ## 10. What comes next
 
+0. **Make the intake reachable.** A sequencing error in the previous version of
+   this list: step 1 cannot happen until the branch is deployed or another
+   route exists. Two routes do exist — see §10a — and one of them needs no
+   deployment at all.
 1. **Enter the financial position.**
 2. **Run and inspect the first calculated profile.**
 3. **Resolve critical intake gaps and contradictions** — starting with the
@@ -320,3 +324,43 @@ intermediate stage exists because something is checked there.
 source can be correctly identified, properly licensed, fully ingested, and still
 have a claim NeoOS must never repeat — a replication failure, a disputed
 threshold, a folklore statistic. Approval of a source never licenses those.
+
+---
+
+## 10a. Two routes into the intake
+
+The previous list put "enter the position" first and "deploy" fifth. That was
+wrong: the form is on an undeployed branch, so step 1 depended on step 5.
+
+Either route works, and the first needs nothing deployed.
+
+### Route A — offline, then POST
+
+1. `npx tsx scripts/intake-template.ts` writes `intake-template.json` (blank,
+   schema-valid) and `intake-row-examples.json` (fictional rows to copy).
+2. Fill it in. **Leave anything unknown blank.** A blank is honest; an invented
+   figure cannot be told from a fact later.
+3. `npx tsx scripts/intake-check.ts intake-template.json` — runs the same schema
+   and the same calculations the server runs. Nothing is sent, nothing stored.
+   It prints what would be known, what would still be missing, and what to add
+   next.
+4. POST the file to `/api/intake` with the operator token, using the same
+   Shortcut pattern already used for `/api/cycle/run`.
+
+Step 3 is the useful one. It answers "is this enough to be worth submitting"
+before anything is written, and the answer arrives in seconds.
+
+### Route B — the form
+
+Deploy the branch to a controlled environment, open `/intake`, unlock with the
+operator token, and fill it in with outputs recalculating as you type.
+
+### Which
+
+Route A if you want to see the shape of the answer before committing anything,
+or if deployment is not immediate. Route B if the branch is already building —
+the form is better for a first pass because it explains each field as you go.
+
+**Both write through the same validated path**, and both produce an append-only
+profile version. Neither can be filled in by anyone but you: this is the one
+input in NeoOS that cannot be derived, retrieved or estimated.
