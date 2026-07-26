@@ -424,8 +424,17 @@ describe("stated absence", () => {
     // A trend report missing purchasing power that does not say so reads as a
     // complete one, and the reader cannot tell.
     const statistics = absentSources().find((a) => a.source === "official_statistics");
-    expect(statistics?.reason).toMatch(/No statistics provider is connected/);
+    expect(statistics?.reason).toMatch(/no observations have been recorded/i);
     expect(statistics?.unlocks).toMatch(/real terms/);
+  });
+
+  it("stops reporting purchasing power absent once a deflator has figures", () => {
+    // The absence must clear on evidence, not on the layer merely existing.
+    // Otherwise "built" gets mistaken for "working", which is the failure the
+    // whole absent-sources list exists to prevent.
+    const withData = absentSources({ deflatorAvailableFor: ["AE"] });
+    expect(withData.find((a) => a.source === "official_statistics")).toBeUndefined();
+    expect(withData.length).toBeGreaterThan(0);
   });
 
   it("reports absences even when there is no position at all", () => {

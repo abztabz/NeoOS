@@ -602,16 +602,25 @@ function shareBy(
  * A trend report missing purchasing power that does not say so reads as a
  * complete one, and the reader has no way to know otherwise.
  */
-export function absentSources(): AbsentTrend[] {
+export function absentSources(
+  options: { deflatorAvailableFor?: string[] } = {},
+): AbsentTrend[] {
+  const withDeflator = options.deflatorAvailableFor ?? [];
+  const statistics: AbsentTrend[] =
+    withDeflator.length > 0
+      ? []
+      : [
+          {
+            source: "official_statistics",
+            label: "Purchasing power and interest-rate regime",
+            reason:
+              "The statistics layer is built, but no observations have been recorded yet. Central banks and statistics agencies publish these directly and free; until figures are imported, NeoOS has no basis for any claim about inflation or real yields.",
+            unlocks:
+              "Whether this position is growing in real terms or only in nominal ones — the difference that decides a generational outcome.",
+          },
+        ];
   return [
-    {
-      source: "official_statistics",
-      label: "Purchasing power and interest-rate regime",
-      reason:
-        "No statistics provider is connected. Central banks and statistics agencies publish these directly and free; until one is wired, NeoOS has no basis for any claim about inflation or real yields.",
-      unlocks:
-        "Whether this position is growing in real terms or only in nominal ones — the difference that decides a generational outcome.",
-    },
+    ...statistics,
     {
       source: "market_history",
       label: "Long-run valuation and drawdown history",
