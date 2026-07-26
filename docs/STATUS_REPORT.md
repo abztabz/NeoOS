@@ -9,8 +9,9 @@
 NeoOS is a carefully built instrument that has not yet measured anything.
 
 The architecture is sound and tested. The evidence discipline is real rather
-than aspirational. The engine retrieves live SEC filings and produces
-fundamental analysis from them, verified in production. The intake form, the
+than aspirational. The engine retrieves live SEC filings and derives accounting
+and operating factors from them, verified in production — one input to a
+valuation rather than a valuation. The intake form, the
 calculated profile, the drift layer, the jurisdiction packs and the
 purchasing-power layer are all built and green.
 
@@ -27,33 +28,70 @@ else on the open list combined.
 > creation and preservation?
 
 Two answers daily: the best marginal allocation, and the largest unaddressed
-risk. Allocation dominates selection — over decades the split between asset
-categories swamps the choice of instrument inside any one of them.
+risk.
 
-Preservation is a first-class output, not a lower score. A system optimising
-for return treats a 5% gain and a 5% loss as symmetric. A system serving a
-family does not: the loss that ends the plan matters more than the gain that
-improves it.
+**Allocation is considered before instrument selection** because the division of
+capital across liquidity, productive assets, property, defensive assets and
+liabilities usually has a larger and more persistent effect on long-term
+outcomes than choosing between similar instruments within one category.
+
+This is not absolute. Security quality, valuation, leverage, fees, fraud,
+illiquidity and permanent-loss risk may dominate in individual cases. Allocation
+before selection is the product's **sequence**, not a claimed empirical law.
+
+Preservation is a first-class output, not a lower score. A return-focused system
+may treat equal-sized upside and downside movements as comparable observations.
+A family-wealth system must account for their asymmetric consequences,
+especially when a loss impairs liquidity, forces selling, increases ruin risk or
+breaks the long-term plan.
 
 ---
 
 ## 3. What is built and verified
 
-| Capability | State | How verified |
+"Working" is not one thing. The evidence state says what kind of verification
+stands behind each row.
+
+| Evidence state | Meaning |
+|---|---|
+| **Production verified** | Exercised against real infrastructure in the deployed environment |
+| **Integration verified** | Exercised against real infrastructure locally — a real database, a real server, a real token |
+| **Unit verified** | Tested in isolation. Correct by its own contract |
+| **Architecture only** | Built and tested; never exercised against real inputs |
+| **Inactive — no data** | Complete and correct, with nothing to operate on |
+
+| Capability | Evidence state | Basis |
 |---|---|---|
-| Evidence and decision engine | Working | 108 unit tests; deterministic, explainable |
-| SEC EDGAR retrieval | Working in production | Live run: 81 records ingested, 0 rejected, `partial_live` |
-| Fundamental analysis from filings | Working | Derived factors from real filed accounts |
-| Append-only persistence | Working | Verified against real PostgreSQL 16, superuser and non-superuser |
-| Ed25519 signing | Working | Round trip, tamper detection, forged-signature distinction |
-| Intake form and schema v6.2 | Working | Verified end to end against real Postgres + real token |
-| Calculated profile, 11 outputs | Working | 43 tests |
-| Provenance propagation | Working | Weakest-link rule enforced and tested |
-| Personalisation gating | Working | Three states; `available` requires three conditions at once |
-| Drift and structural risk | Working | 34 tests |
-| Jurisdiction packs and firewall | Working | 15 tests; firewall enforced as exported constants |
-| Purchasing-power domain | Working | 26 tests |
-| Epistemic status | Working | 15 tests |
+| Evidence and decision engine | Unit verified | 108 tests; deterministic, explainable |
+| SEC EDGAR retrieval | **Production verified** | Live run: 81 records ingested, 0 rejected, `partial_live` |
+| Filing-derived fundamental factor analysis | **Production verified** | Derived factors from real filed accounts. See the scope note below |
+| Append-only persistence | **Integration verified** | Real PostgreSQL 16, superuser and non-superuser roles |
+| Ed25519 signing | Unit verified | Round trip, tamper detection, forged-signature distinction |
+| Intake form and schema v6.2 | **Integration verified** | End to end against real Postgres and a real token |
+| Calculated profile, 11 outputs | Unit verified · **inactive — no data** | 43 tests |
+| Provenance propagation | Unit verified | Weakest-link rule enforced |
+| Personalisation gating | Unit verified · **inactive — no data** | Three states |
+| Drift and structural risk | Unit verified · **inactive — no data** | 34 tests |
+| Jurisdiction packs and firewall | Unit verified | 17 tests; firewall enforced as exported constants |
+| Purchasing-power domain | Unit verified · **inactive — no data** | 26 tests |
+| Epistemic status and approval staging | Unit verified | 21 tests |
+
+### Scope of the filing-derived analysis
+
+It currently:
+
+- derives deterministic accounting and operating factors from available SEC
+  filings;
+- uses real filed accounts where available.
+
+It does **not** by itself establish complete intrinsic value, management
+quality, competitive durability or portfolio suitability. Those need the
+valuation methods, the business-quality reasoning and the position context that
+the corpus and the profile are meant to supply, and none of that is active.
+
+Neither understated nor overstated: the factor derivation genuinely works
+against real filings, and it is one input to a valuation rather than a
+valuation.
 
 **Gates:** lint · typecheck · 615 unit tests · 249 Playwright · production build.
 All passing.
@@ -94,9 +132,22 @@ plausible midpoint. A gap is never treated as a zero.
 profiles. Corrections supersede; nothing is edited in place. Enforced by
 database trigger.
 
-**The jurisdiction firewall.** Country context may shape what is permitted and
-what is risky, never what something is worth. No country carries an investment
-prior — not residence, not home.
+**The jurisdiction firewall.** No country receives an automatic investment
+preference because it is the subject's residence, home country or emotional
+anchor.
+
+Verified jurisdictional conditions may affect ownership rights, cash flows,
+taxation, currency convertibility, transferability, discount rates and risk.
+They may therefore affect value. What they must not create is an unsupported
+country premium, an automatic country penalty, or an override of asset-specific
+evidence.
+
+An earlier version said country context may *never* affect what something is
+worth. That was an over-correction and economically wrong: a verified capital
+control genuinely reduces realisable value. The invariant is now narrower and
+enforced in `mayAffectValuation()` — a verified condition on a valuation-bearing
+channel may enter as a cited input; an unverified belief about a country may
+not move a number at all.
 
 **Nominal is not real.** A nominal fall may support a real-erosion warning
 because unless prices fell it is a real fall of at least the same size. A
@@ -124,10 +175,21 @@ may be quoted as law.
 is labelled provisional everywhere it appears, and the system will not present a
 combined deployable figure that silently assumes the restriction is real.
 
-One consequence is *not* provisional: **a wife and a son exist and are not in the
-household data.** That is arithmetic on what was stated, and it holds regardless
-of the legal position. Dependents change the reserve, the horizon, tolerable
-drawdown and what preservation means.
+**A subject-data consistency gap.** A wife and son were stated elsewhere in
+conversation but are absent from the household intake. This is a disagreement
+between two subject-provided channels — **not an independently verified
+household fact**, and not something NeoOS may promote into the profile on its
+own.
+
+The earlier version called this "arithmetic on what was stated", which
+overstated it. Comparing two records is arithmetic; concluding that the profile
+should contain dependents is an inference about the subject's household, and it
+carries `provisional_inference` status under KNOWLEDGE_POLICY.md §10. No new
+status was minted for it: the observation is a consistency finding, and anything
+derived from it is provisional until the intake itself says so.
+
+Once confirmed **in intake**, dependants affect reserve requirements, time
+horizon, tolerable drawdown, obligations and preservation needs.
 
 ---
 
@@ -144,11 +206,17 @@ bar. That single answer decides whether the two-pool model becomes fact,
 dissolves, or lands between. An accountant or lawyer in Kathmandu; slow, so
 start it.
 
-**3. Approve the corpus.** 30 sources. Nothing ingests until you do, and the
-historical-precedent layer stays dark.
+**3. Approve the corpus — stage one only.** 30 sources. What you would be
+approving is the **title list**, which is the first of six stages and does not
+approve the claims inside those titles. See §7a.
 
-**4. Paste a CPI release.** I cannot fetch. With real UAE figures the
-purchasing-power layer runs against data instead of fixtures.
+**4. Provide or import an official CPI release, as a temporary bridge.** I
+cannot fetch. Manual import is a stopgap, not the production target: that
+remains a verified official-statistics adapter carrying source provenance,
+release dates, observation periods, vintages, revisions and freshness handling.
+The existing rules hold either way — correct jurisdiction only, no substituting
+another country's CPI, a nominal rise stays neutral without appropriate
+inflation evidence, and `delayed` remains distinct from `unavailable`.
 
 **5. Confirm the deploy branch.** `main` has none of this.
 
@@ -198,17 +266,25 @@ data, a real database, or a real answer from you.
 
 ## 10. What comes next
 
-In order, once you have entered a position:
+1. **Enter the financial position.**
+2. **Run and inspect the first calculated profile.**
+3. **Resolve critical intake gaps and contradictions** — starting with the
+   household consistency gap in §6.
+4. **Build the two-answer Morpheus briefing from actual profile data**, not from
+   fixtures.
+5. **Deploy the current branch to a controlled environment.**
+6. **Add official statistics ingestion**, replacing the manual bridge.
+7. **Verify Nepal capital-mobility and succession assumptions.**
+8. **Verify, approve and ingest the corpus in controlled stages** — the order in
+   `INGESTION_ORDER.md` puts disconfirmation sources first, deliberately,
+   because a library that learns its optimists before its sceptics is briefly
+   dangerous.
 
-1. **The two-answer Morpheus briefing** — best marginal allocation, largest
-   unaddressed risk. The product's actual output.
-2. **Morpheus-first home screen.** The briefing leads; scores go behind
-   progressive disclosure.
-3. **Statistics manual import**, so a nominal figure becomes a real one.
-4. **Country pack adapters**, starting at constraint depth.
-5. **Corpus ingestion**, on approval, in the order in `INGESTION_ORDER.md` —
-   disconfirmation sources first, deliberately, because a library that learns
-   its optimists before its sceptics is briefly dangerous.
+**Steps 2 and 3 are a gate, not a formality.** The first calculated profile must
+be reviewed before more architecture is added. Submitting the form is not the
+signal to begin the next sprint — reading what the system says about a real
+position is, and it is the first opportunity to find out whether any of this is
+useful.
 
 ---
 
@@ -216,3 +292,31 @@ In order, once you have entered a position:
 
 The instrument is built, tested and honest. It is waiting for a position to
 measure and four facts to verify.
+
+---
+
+## 7a. Corpus approval is six decisions, not one
+
+Approving a title list does not approve the claims inside those titles. Staged
+in `src/domain/knowledge/approval.ts`.
+
+| Stage | What it decides |
+|---|---|
+| 1. Proposed | Nothing. Nominated only |
+| 2. **List approved** | The operator accepts the title. **Not the claims inside it** |
+| 3. Identity verified | Title, author, edition, date, critique history confirmed against the artefact rather than recalled |
+| 4. Licensing approved | Access permits the intended use. Some sources may be reference-only |
+| 5. Ingestion order approved | Placed in a stage of the plan |
+| 6. Ingested | Records exist with resolvable citations |
+| 7. **Claims activated** | Morpheus may cite it. A separate decision |
+
+Two rules hold across every stage:
+
+**No source becomes active merely because it appears in an approved proposal.**
+Stages advance one at a time; `canAdvance()` refuses jumps, because every
+intermediate stage exists because something is checked there.
+
+**A prohibited claim stays prohibited at every stage, including activated.** A
+source can be correctly identified, properly licensed, fully ingested, and still
+have a claim NeoOS must never repeat — a replication failure, a disputed
+threshold, a folklore statistic. Approval of a source never licenses those.

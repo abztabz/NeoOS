@@ -52,11 +52,21 @@ exposure are all productive.
 
 ---
 
-## 3. Allocation dominates selection
+## 3. Allocation is considered before selection
 
-Over a generational horizon, the split between broad categories swamps the
-choice of instrument within a category. NeoOS must therefore reason primarily
-about **categories of capital**, and only secondarily about specific holdings.
+Allocation is considered before instrument selection because the division of
+capital across liquidity, productive assets, property, defensive assets and
+liabilities usually has a larger and more persistent effect on long-term
+outcomes than choosing between similar instruments within one category.
+
+**This is not absolute.** Security quality, valuation, leverage, fees, fraud,
+illiquidity and permanent-loss risk may dominate in individual cases — a single
+fraudulent holding or one over-levered position can decide an outcome regardless
+of how the categories were split.
+
+So this is the product's **sequence**, not a claimed empirical law. NeoOS reasons
+first about **categories of capital** and second about specific holdings, and
+the second question is never skipped.
 
 The real answer space is roughly:
 

@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import { emptyProfile, type IntakeProfile } from "@/domain/intake/types";
 import {
   activatedJurisdictions,
-  COUNTRY_MUST_NOT_OVERRIDE,
+  COUNTRY_MUST_NOT_CREATE,
   COUNTRY_RELEVANCE_CHANNELS,
+  mayAffectValuation,
   requiredSourceClasses,
+  VALUATION_AFFECTING_CHANNELS,
 } from "@/domain/jurisdiction/packs";
 
 const SUBJECT = "subject-operator";
@@ -173,21 +175,57 @@ describe("source classes", () => {
 });
 
 describe("the firewall", () => {
-  it("names the channels country context may reach, and they exclude worth", () => {
-    // Country context is to allocation what knowledge is to valuation: it may
-    // shape what is permitted and what is risky, never what something is worth.
+  it("names the channels country context may reach", () => {
     expect(COUNTRY_RELEVANCE_CHANNELS).toContain("capital controls");
     expect(COUNTRY_RELEVANCE_CHANNELS).toContain("inheritance");
-    for (const forbidden of COUNTRY_MUST_NOT_OVERRIDE) {
-      expect(COUNTRY_RELEVANCE_CHANNELS as readonly string[]).not.toContain(forbidden);
+    expect(COUNTRY_RELEVANCE_CHANNELS).toContain("liability matching");
+  });
+
+  it("forbids preference rather than forbidding economics", () => {
+    // The earlier invariant said jurisdiction may never affect worth. That was
+    // an over-correction: a verified capital control genuinely reduces
+    // realisable value. What must be forbidden is the automatic preference, not
+    // the economics.
+    expect(COUNTRY_MUST_NOT_CREATE).toContain("automatic country premium");
+    expect(COUNTRY_MUST_NOT_CREATE).toContain("automatic country penalty");
+    expect(COUNTRY_MUST_NOT_CREATE).toContain("override of asset-specific evidence");
+    expect(COUNTRY_MUST_NOT_CREATE).toContain("preference derived from residence");
+    expect(COUNTRY_MUST_NOT_CREATE).toContain("preference derived from home country");
+  });
+
+  it("lets a verified jurisdictional condition reach a valuation input", () => {
+    const verified = mayAffectValuation("capital controls", "verified_external_fact");
+    expect(verified.permitted).toBe(true);
+    expect(verified.reason).toMatch(/realisable cash flows|discount rate/i);
+
+    const rule = mayAffectValuation("taxation", "governing_domain_rule");
+    expect(rule.permitted).toBe(true);
+  });
+
+  it("refuses to let an unverified belief about a country move a number", () => {
+    // A valuation moved by an unverified belief is indistinguishable from a
+    // valuation moved by a prejudice.
+    for (const status of ["subject_stated_fact", "provisional_inference"] as const) {
+      const result = mayAffectValuation("capital controls", status);
+      expect(result.permitted).toBe(false);
+      expect(result.reason).toMatch(/may not move a valuation input until it is verified/i);
     }
   });
 
-  it("keeps valuation and margin of safety out of country reach", () => {
-    expect(COUNTRY_MUST_NOT_OVERRIDE).toContain("valuation");
-    expect(COUNTRY_MUST_NOT_OVERRIDE).toContain("margin of safety");
-    expect(COUNTRY_MUST_NOT_OVERRIDE).toContain("evidence quality");
-    expect(COUNTRY_MUST_NOT_OVERRIDE).toContain("expected return");
-    expect(COUNTRY_MUST_NOT_OVERRIDE).toContain("asset quality");
+  it("keeps planning-only channels out of valuation however well verified", () => {
+    // Inheritance law changes who receives an asset, not what it is worth to
+    // its holder.
+    for (const channel of ["inheritance", "family obligations", "liability matching"]) {
+      const result = mayAffectValuation(channel, "verified_external_fact");
+      expect(result.permitted).toBe(false);
+      expect(result.reason).toMatch(/not on what an asset is worth/i);
+    }
+  });
+
+  it("keeps the valuation-affecting channels a strict subset of the relevance channels", () => {
+    for (const channel of VALUATION_AFFECTING_CHANNELS) {
+      expect(COUNTRY_RELEVANCE_CHANNELS as readonly string[]).toContain(channel);
+    }
+    expect(VALUATION_AFFECTING_CHANNELS.length).toBeLessThan(COUNTRY_RELEVANCE_CHANNELS.length);
   });
 });

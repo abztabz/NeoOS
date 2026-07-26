@@ -144,10 +144,30 @@ sits; how Nepali succession law would treat the estate absent one.
 
 **Lapses:** on any change in family circumstances, or 2027-07-26.
 
-**A calculated consequence, not an inference:** a wife and a son exist and are
-not in the household data. Dependents change the reserve, the horizon, tolerable
-drawdown and what preservation means. This one is arithmetic on what you told us,
-and it holds regardless of the legal position.
+**A subject-data consistency gap.** A wife and son were stated elsewhere in
+conversation but are absent from the household intake. This is a disagreement
+between two subject-provided channels — **not an independently verified
+household fact**, and not something NeoOS may promote into the profile on its
+own.
+
+An earlier version called it "a calculated consequence, not an inference".
+That was wrong in a way worth naming: *comparing two records* is arithmetic, but
+*concluding that the profile should contain dependants* is an inference about
+the household, and it carries `provisional_inference` status under
+KNOWLEDGE_POLICY.md §10. **A prior statement in conversation does not become a
+verified profile fact by being repeated in a document.**
+
+No new epistemic status was minted. The observation is a consistency finding
+about the data; anything derived from it is provisional until the intake itself
+carries it.
+
+Once confirmed **in intake**, dependants affect:
+
+- reserve requirements;
+- time horizon;
+- tolerable drawdown;
+- obligations;
+- preservation needs.
 
 ---
 

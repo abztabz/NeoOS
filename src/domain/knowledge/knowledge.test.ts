@@ -14,6 +14,12 @@ import {
   type EpistemicStatement,
 } from "@/domain/knowledge/epistemic-status";
 import {
+  canAdvance,
+  isClaimPermitted,
+  mayActivateClaims,
+  mayHoldRecords,
+} from "@/domain/knowledge/approval";
+import {
   counterpartsFor,
   isPublishable,
   relationshipKinds,
@@ -219,5 +225,57 @@ describe("applicability limits", () => {
     const caveat = transferabilityCaveat(developedMarketStudy, { assumptionsHolding: [] });
     expect(caveat).toMatch(/16 advanced economies/);
     expect(caveat).toMatch(/argued rather than assumed/);
+  });
+});
+
+describe("corpus approval stages", () => {
+  it("does not let approving a title list activate its claims", () => {
+    // The failure this prevents: approving a shopping list reads as approving
+    // every claim inside those titles.
+    expect(mayActivateClaims("list_approved")).toBe(false);
+    expect(mayActivateClaims("ingested")).toBe(false);
+    expect(mayActivateClaims("claims_activated")).toBe(true);
+  });
+
+  it("keeps records out of the corpus until ingestion", () => {
+    expect(mayHoldRecords("identity_verified")).toBe(false);
+    expect(mayHoldRecords("ingested")).toBe(true);
+  });
+
+  it("refuses to skip a verification stage", () => {
+    // Every intermediate stage exists because something is checked there, and
+    // skipping them is how a recalled edition becomes a citation.
+    const skip = canAdvance("list_approved", "ingested");
+    expect(skip.allowed).toBe(false);
+    expect(skip.reason).toMatch(/Every intermediate stage exists/);
+    expect(canAdvance("list_approved", "identity_verified").allowed).toBe(true);
+  });
+
+  it("treats a regression as a supersede rather than a move", () => {
+    expect(canAdvance("ingested", "proposed").allowed).toBe(false);
+  });
+
+  it("keeps a prohibited claim prohibited at every stage, including activated", () => {
+    // Approving a title, verifying its edition and ingesting it does not
+    // license a claim its own authors withdrew.
+    const prohibited = [
+      {
+        sourceId: "K2.4",
+        claim: "a debt-to-GDP threshold",
+        reason: "the related paper's threshold work was found to contain a spreadsheet error",
+      },
+    ];
+    const blocked = isClaimPermitted("K2.4", "a debt-to-GDP threshold", "claims_activated", prohibited);
+    expect(blocked.permitted).toBe(false);
+    expect(blocked.reason).toMatch(/does not license it/);
+
+    const allowed = isClaimPermitted("K2.4", "the crisis chronology", "claims_activated", prohibited);
+    expect(allowed.permitted).toBe(true);
+  });
+
+  it("blocks any claim from a source that is merely on the approved list", () => {
+    const result = isClaimPermitted("K1.1", "long-run real returns", "list_approved", []);
+    expect(result.permitted).toBe(false);
+    expect(result.reason).toMatch(/separate decision from approving the list/);
   });
 });

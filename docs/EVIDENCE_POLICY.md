@@ -185,23 +185,40 @@ unreachable, and the two must not collapse into one state.
 
 ### The firewall
 
-> **Country context is to allocation what knowledge is to valuation: it may
-> shape what is permitted and what is risky, never what something is worth.**
+> **No country receives an automatic investment preference because it is the
+> subject's residence, home country or emotional anchor. Verified jurisdictional
+> conditions may affect value through named economic channels; unverified
+> country signal may not.**
 
-Country evidence may write to the constraint layer and the risk layer. It may
-not write to the valuation layer or the quality layer.
+Country evidence always writes to the constraint and risk layers. It may also
+write to the **valuation** layer, but only when both hold: the channel is one
+that bears on value (taxation, capital controls, legal ownership,
+transferability, currency risk, liquidity, political risk, transaction costs),
+and the condition is `verified_external_fact` or `governing_domain_rule`.
 
-**May affect:** currency risk · inflation exposure · taxation · regulation ·
-capital controls · ownership rights · custody · liquidity · political risk ·
-inheritance · family obligations · access · transaction costs.
+A verified withholding tax reduces cash flows. A verified capital control
+reduces realisable value. Forbidding those from reaching a valuation would make
+NeoOS wrong about real economics in order to avoid a bias that a narrower rule
+handles better.
 
-**Must not override:** valuation · margin of safety · business quality ·
-downside risk · portfolio fit · evidence quality.
+**May affect:** currency risk · inflation exposure · taxation · capital controls
+· legal ownership · custody · liquidity · political risk · transferability ·
+inheritance · transaction costs · investor access · family obligations ·
+liability matching.
+
+**May reach valuation when verified:** taxation · capital controls · legal
+ownership · transferability · currency risk · liquidity · political risk ·
+transaction costs.
+
+**Must not create:** an automatic country premium · an automatic country penalty
+· an override of asset-specific evidence · a preference derived from residence,
+home country or familiarity.
 
 **No jurisdiction carries a prior.** Residence confers no preference; home
-country confers no preference; neither confers a penalty. Without this rule
-"home market" becomes a reason to buy and "foreign" a reason not to, which is
-home bias with a citation attached.
+country confers no preference; neither confers a penalty. What a jurisdiction
+may confer is a verified economic condition with a citation, entering as an
+input like any other. Without this rule "home market" becomes a reason to buy
+and "foreign" a reason not to, which is home bias with a citation attached.
 
 Enforced rather than asserted: `COUNTRY_RELEVANCE_CHANNELS` and
 `COUNTRY_MUST_NOT_OVERRIDE` are exported constants in

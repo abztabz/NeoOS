@@ -78,6 +78,25 @@ rate limit. The UAE sources publish files rather than an API, so that adapter
 starts as manual import with the operator dropping in a release — which is
 `manual_verified`, an honest state the system already has, not a degraded one.
 
+### Manual import is a bridge, not the target
+
+**The production requirement remains a verified official-statistics adapter**
+carrying source provenance, release dates, observation periods, vintages,
+revisions and freshness handling. Manual import supplies the same record shape
+by hand so the layer can be exercised before an adapter exists; it does not
+reduce what the record must contain.
+
+Every rule holds identically under manual import:
+
+- the correct jurisdiction only — no substituting another country's index,
+  whatever the currency arrangement between them;
+- a nominal rise stays neutral without appropriate inflation evidence;
+- `delayed` and `unavailable` remain distinct states;
+- every observation carries its four times and its citation.
+
+A manually imported figure with no source reference is rejected exactly as a
+fetched one would be.
+
 **Nothing here is a paid service.** No approval needed on cost. The one thing
 worth confirming is registering for the free keys.
 

@@ -566,7 +566,27 @@ NeoOS function.
 
 ## 11. What is being asked
 
-1. **Approve, amend or reject** the 30, individually or as a set.
+**Approval is six decisions, not one.** Staged in
+`src/domain/knowledge/approval.ts`:
+
+| Stage | What it decides |
+|---|---|
+| 1. Proposed source list | Nominated only |
+| 2. **List approved** | The operator accepts these titles. **This approves the titles, not the claims inside them** |
+| 3. Identity and metadata verified | Every ⚠ resolved against the artefact |
+| 4. Licensing and access approved | Some sources may be reference-only |
+| 5. Ingestion order approved | Placed in the plan |
+| 6. Ingestion approved | Records created with resolvable citations |
+| 7. **Claim activation approved** | Morpheus may cite it. A separate decision |
+
+**No source becomes active merely because it appears in this approved proposal.**
+Stages advance one at a time and a prohibited claim — a replication failure, a
+disputed threshold, a folklore statistic — stays prohibited at every stage,
+including after activation.
+
+**What is being asked now is stage 2 only.**
+
+1. **Approve, amend or reject** the 30 titles, individually or as a set.
 2. **Confirm the K5 tier** as a distinct category for method references.
 3. **Confirm the two `research required before nomination` entries** may stay as
    proposals: K1.5 and, in the extended list, the cross-border family-wealth gap.

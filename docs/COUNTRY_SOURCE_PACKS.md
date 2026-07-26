@@ -231,20 +231,40 @@ capital controls · legal ownership · custody · liquidity · political risk ·
 transferability · inheritance · transaction costs · investor access · family
 obligations · liability matching.
 
-Country relevance **must not** override: valuation · margin of safety · asset
-quality · downside risk · expected return · evidence quality · portfolio fit.
+Country relevance **must not create**: an automatic country premium · an
+automatic country penalty · an override of asset-specific evidence · a
+preference derived from residence, home country or familiarity.
+
+**Verified** jurisdictional conditions on the valuation-bearing channels —
+taxation, capital controls, legal ownership, transferability, currency risk,
+liquidity, political risk, transaction costs — **may** affect ownership rights,
+cash flows, discount rates and therefore value. That is economics, not bias.
+Enforced in `mayAffectValuation()`.
+
+An **unverified** belief about a country may inform planning and caution. It may
+not move a valuation input, because a number moved by an unverified belief is
+indistinguishable from a number moved by a prejudice.
 
 Stated as the rule it actually is:
 
-> **Country context is to allocation what knowledge is to valuation: it may
-> shape what is permitted and what is risky, never what something is worth.**
+> **No country receives an automatic investment preference because it is the
+> subject's residence, home country or emotional anchor. Verified jurisdictional
+> conditions may affect value through named economic channels; unverified
+> country signal may not.**
 
-The same shape as KNOWLEDGE_POLICY.md §1, for the same reason. Without it,
-"home market" becomes a reason to buy and "foreign" becomes a reason not to,
-and both are home bias wearing a citation.
+An earlier version said country context may *never* affect what something is
+worth. That was an over-correction and economically wrong — a verified capital
+control genuinely reduces realisable value, and a system forbidden from saying
+so would be wrong about the world in order to avoid a bias it can guard against
+more precisely.
 
-Enforced in code: `COUNTRY_RELEVANCE_CHANNELS` and `COUNTRY_MUST_NOT_OVERRIDE`
-are exported constants, and a test asserts the two sets never intersect.
+The bias it guards against is unchanged: without this rule, "home market"
+becomes a reason to buy and "foreign" a reason not to, and both are home bias
+wearing a citation.
+
+Enforced in code: `COUNTRY_RELEVANCE_CHANNELS`, `VALUATION_AFFECTING_CHANNELS`
+and `COUNTRY_MUST_NOT_CREATE` are exported constants, and `mayAffectValuation()`
+requires both a valuation-bearing channel and a verified epistemic status.
 
 ### Ordering within a pack
 

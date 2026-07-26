@@ -1,4 +1,5 @@
 import type { IntakeProfile } from "@/domain/intake/types";
+import type { EpistemicStatus } from "@/domain/knowledge/epistemic-status";
 
 /**
  * Country source packs — which jurisdictions matter to this position, why, and
@@ -99,25 +100,50 @@ export const COUNTRY_RELEVANCE_CHANNELS = [
 ] as const;
 
 /**
- * What jurisdiction must never override.
+ * What country context must never produce.
  *
- * The firewall, and it is the same shape as the rule that knowledge never
- * enters a valuation: **country context is to allocation what knowledge is to
- * valuation — it may shape what is permitted and what is risky, never what
- * something is worth.**
+ * The firewall, restated. An earlier version said country context may "never"
+ * affect what something is worth. That was an over-correction and economically
+ * wrong: a verified capital control genuinely reduces realisable value, a
+ * verified withholding tax genuinely reduces cash flows, and a verified
+ * ownership restriction genuinely changes what an asset is. Forbidding
+ * jurisdiction from reaching value at all would make NeoOS wrong about real
+ * economics in order to avoid a bias it can guard against more precisely.
  *
- * Without it, "home market" becomes a reason to buy and "foreign" becomes a
- * reason not to, which is home bias with a citation attached.
+ * The narrower and correct invariant: **no country receives an automatic
+ * preference or penalty because it is the subject's residence, home country or
+ * emotional anchor.** Verified jurisdictional conditions may flow into
+ * valuation through named economic channels; unverified country signal may not
+ * flow anywhere.
  */
-export const COUNTRY_MUST_NOT_OVERRIDE = [
-  "valuation",
-  "margin of safety",
-  "asset quality",
-  "downside risk",
-  "expected return",
-  "evidence quality",
-  "portfolio fit",
+export const COUNTRY_MUST_NOT_CREATE = [
+  "automatic country premium",
+  "automatic country penalty",
+  "override of asset-specific evidence",
+  "preference derived from residence",
+  "preference derived from home country",
+  "preference derived from familiarity",
 ] as const;
+
+/**
+ * Channels through which a **verified** jurisdictional condition may legitimately
+ * reach a valuation input.
+ *
+ * A subset of `COUNTRY_RELEVANCE_CHANNELS`. The excluded ones — inheritance,
+ * family obligations, liability matching — bear on planning and suitability
+ * rather than on what an asset is worth to anyone.
+ */
+export const VALUATION_AFFECTING_CHANNELS = [
+  "taxation",
+  "capital controls",
+  "legal ownership",
+  "transferability",
+  "currency risk",
+  "liquidity",
+  "political risk",
+  "transaction costs",
+] as const;
+export type ValuationAffectingChannel = (typeof VALUATION_AFFECTING_CHANNELS)[number];
 
 /* ---------------- activation ---------------- */
 
@@ -273,4 +299,47 @@ export function requiredSourceClasses(depths: PackDepth[]): SourceClass[] {
     classes.add("A2_statistics_agency");
   }
   return [...classes].sort();
+}
+
+
+/* ---------------- what may reach a valuation ---------------- */
+
+/**
+ * Whether a jurisdictional condition may affect a valuation input.
+ *
+ * Two conditions, both required:
+ *
+ * 1. **The channel must be one that bears on value.** Inheritance law changes
+ *    who receives an asset, not what it is worth to its holder.
+ * 2. **The condition must be verified.** A `subject_stated_fact` or a
+ *    `provisional_inference` about a jurisdiction may make NeoOS cautious and
+ *    may shape planning. It may not move a number, because a valuation moved by
+ *    an unverified belief is indistinguishable from a valuation moved by a
+ *    prejudice.
+ *
+ * This is what replaces the blanket prohibition. It permits the economics and
+ * still forbids the bias, which the blanket version achieved only by forbidding
+ * both.
+ */
+export function mayAffectValuation(
+  channel: string,
+  status: EpistemicStatus,
+): { permitted: boolean; reason: string } {
+  const isValuationChannel = (VALUATION_AFFECTING_CHANNELS as readonly string[]).includes(channel);
+  if (!isValuationChannel) {
+    return {
+      permitted: false,
+      reason: `${channel} bears on planning or suitability, not on what an asset is worth.`,
+    };
+  }
+  if (status !== "verified_external_fact" && status !== "governing_domain_rule") {
+    return {
+      permitted: false,
+      reason: `A ${status.replace(/_/g, " ")} about ${channel} may inform planning and caution, but may not move a valuation input until it is verified.`,
+    };
+  }
+  return {
+    permitted: true,
+    reason: `Verified ${channel} affects realisable cash flows, ownership or discount rate, and may enter the valuation as a cited input.`,
+  };
 }
