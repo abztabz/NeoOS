@@ -497,8 +497,15 @@ export function debtBurden(profile: IntakeProfile): Attributed<DebtBurden> {
   const assets = netWorth(profile);
   const debtBase = toBase(totalDebt, profile);
 
+  // A debt whose payment amount is unknown contributes nothing to debtService.
+  // Dividing that incomplete total by income yields a number that looks like a
+  // measurement and is not one — and a low service ratio is precisely the figure
+  // that would justify deploying capital. The ratio is withheld instead.
+  const unpricedPayments = profile.liabilities.filter((l) => l.paymentAmount === null);
+  for (const liability of unpricedPayments) gaps.push(`Payment on ${liability.label}`);
+
   let serviceRatio: number | null = null;
-  if (flow.value !== null) {
+  if (flow.value !== null && unpricedPayments.length === 0) {
     const income = toBase(flow.value.income, profile);
     const service = toBase(flow.value.debtService, profile);
     if (income && service && income.unrated.length === 0 && service.unrated.length === 0 && income.total > 0) {
@@ -879,12 +886,19 @@ export function riskCapacity(profile: IntakeProfile): Attributed<RiskCapacity> {
   if (supported === 0) score += 1;
   else factors.push(`${supported} dependent(s) rely on this capital.`);
 
-  const protection = profile.commitments.filter(
-    (c) => COMMITMENT_PAYS_OUT[c.kind] && c.coverAmount?.amount != null,
-  ).length;
+  const payingPolicies = profile.commitments.filter((c) => COMMITMENT_PAYS_OUT[c.kind]);
+  const protection = payingPolicies.filter((c) => c.coverAmount?.amount != null).length;
   if (protection > 0) {
     score += 1;
     factors.push(`${protection} policy/policies pay out if things go wrong.`);
+  } else if (payingPolicies.length > 0) {
+    // The policy cannot be counted as protection without a figure, so the score
+    // is unchanged. But saying none is recorded would contradict what the subject
+    // just declared, and a system caught misstating the subject's own data loses
+    // the standing to be believed about anything harder.
+    factors.push(
+      `${payingPolicies.length} policy/policies recorded with no cover amount, so the protection cannot be counted.`,
+    );
   } else {
     factors.push("No insurance cover recorded, so a shock lands directly on the portfolio.");
   }

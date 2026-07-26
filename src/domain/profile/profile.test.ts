@@ -347,6 +347,23 @@ describe("debt burden", () => {
     expect(result.value?.serviceRatio).toBe(0);
     expect(result.provenance).toBe("calculated");
   });
+
+  // A debt whose payment is unknown must not report a service ratio of zero.
+  // Zero is a claim — it reads as "this debt costs nothing to service" — and it
+  // is indistinguishable from the true zero above, where there is no debt at all.
+  it("reports an unknown service ratio when a debt has no payment amount", () => {
+    const profile = completeProfile();
+    for (const liability of profile.liabilities) liability.paymentAmount = null;
+    const result = debtBurden(profile);
+    expect(result.value?.serviceRatio).toBeNull();
+    // The balance is still known, so leverage and rate survive.
+    expect(result.value?.debtToAssets).not.toBeNull();
+    expect(result.value?.weightedRatePercent).not.toBeNull();
+  });
+
+  it("still reports a service ratio when every payment is known", () => {
+    expect(debtBurden(completeProfile()).value?.serviceRatio).not.toBeNull();
+  });
 });
 
 describe("allocation, concentration and currency", () => {
@@ -452,6 +469,42 @@ describe("risk capacity", () => {
     const result = riskCapacity(profile);
     expect(result.value?.calculated).toBe("low");
     expect(result.value?.disagreement).toBe(true);
+  });
+
+  // A policy with no stated cover still cannot be counted as protection — the
+  // scoring is right. But telling a subject who has just declared a life policy
+  // that none is recorded is a false statement about their own data, and it is
+  // the kind of error that costs a system its credibility in one line.
+  it("distinguishes no policy at all from a policy with no stated cover", () => {
+    const profile = completeProfile();
+    profile.commitments = [
+      {
+        commitmentId: "c1",
+        subjectId: SUBJECT,
+        kind: "life_insurance",
+        label: "Term Life",
+        premium: {
+          amount: 375,
+          currency: profile.objective.baseCurrency ?? "AED",
+          basis: "statement_balance",
+          asOf: "2026-07-26",
+          note: null,
+        },
+        premiumFrequency: "monthly",
+        coverAmount: null,
+        beneficiary: null,
+        endsOn: null,
+        cancellable: null,
+        jurisdiction: null,
+        notes: null,
+      },
+    ];
+    const factors = riskCapacity(profile).value?.factors.join(" ") ?? "";
+    expect(factors).not.toMatch(/No insurance cover recorded/i);
+    expect(factors).toMatch(/cover amount/i);
+
+    profile.commitments = [];
+    expect(riskCapacity(profile).value?.factors.join(" ")).toMatch(/No insurance cover recorded/i);
   });
 });
 
