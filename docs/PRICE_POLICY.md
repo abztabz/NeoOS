@@ -16,20 +16,40 @@ could tell: it feeds directly into margin of safety, which is what the Buy and
 Strong Buy thresholds turn on. A price six hours old at a moment of volatility
 can turn a Hold into a Strong Buy with no visible symptom.
 
-Without credentials the adapter reports `disabled`, makes no request, and returns
-nothing. Assets then cap at `partial_live` — see
-[LIVE_DATA_STATES.md](LIVE_DATA_STATES.md).
+Without credentials the licensed adapter reports `disabled`, makes no request, and
+returns nothing. Instruments only it would have covered then cap at `partial_live` —
+see [LIVE_DATA_STATES.md](LIVE_DATA_STATES.md). Instruments an official free source
+covers are unaffected.
 
 ---
 
-## 2. Why it ships unconfigured
+## 2. Why the licensed adapter ships unconfigured
 
-Every price feed NeoOS could use requires a paid licence, and the licence terms —
-particularly whether quotes may be described as real-time, and whether they may be
-redistributed — are the operator's to accept, not the build's.
+**This is not a statement that NeoOS needs a paid API.** It does not, and the
+correction is important enough to state plainly:
 
-Shipping with a default vendor would mean shipping an implied agreement to
-somebody's terms on the operator's behalf.
+> The current execution environment cannot directly retrieve external market
+> observations. NeoOS requires a network-enabled production data adapter. Many
+> official, delayed and end-of-day sources are available without paid exchange
+> licensing; true exchange-grade real-time or streaming data may require a
+> licensed provider.
+
+What commercial vendors sell is **venue latency** — a real-time or deliberately
+delayed quote struck on an exchange — and the terms of any such licence,
+particularly whether quotes may be described as real-time and whether they may be
+redistributed, are the operator's to accept, not the build's. Shipping with a
+default vendor would mean shipping an implied agreement to somebody's terms on the
+operator's behalf.
+
+What is *not* licensed: FX reference rates from the ECB, government debt series
+from the U.S. Treasury, and issuer fundamentals from SEC EDGAR. All three are
+published by the institution that creates the fact, free, with documented reuse
+terms, and all three are wired. See
+[MARKET_DATA_ARCHITECTURE.md](MARKET_DATA_ARCHITECTURE.md).
+
+A licensed feed is an upgrade to latency and instrument coverage. It is not the
+door to having a price at all, and `readiness()` reflects that: it appears under
+`optionalUpgrades`, never under `missing`.
 
 ---
 
@@ -52,8 +72,16 @@ The key travels in an `Authorization` header, never a query string.
 ## 4. Timeliness is stated, never inferred
 
 `MARKET_DATA_TIMELINESS` records what the operator's licence actually grants:
-`real_time`, `delayed`, or `end_of_day`. Unset stays `unknown`, which the
-staleness model treats conservatively.
+`real_time`, `delayed`, or `end_of_day`. Unset stays `unknown`, which maps to
+`delayed` — the conservative reading. Understating latency costs a slightly tighter
+freshness window; overstating it makes a false real-time claim on somebody else's
+data.
+
+**"Live" is not a status.** Six observation classes replace it, and every price
+carries exactly one: `real_time`, `delayed`, `end_of_day`, `latest_official`,
+`manual`, `unavailable`. Only the first may ever be described as real-time, and
+only when the operator has said the licence grants it. See
+[MARKET_DATA_ARCHITECTURE.md](MARKET_DATA_ARCHITECTURE.md) §2.
 
 **There is no path that infers real-time** — not from response latency, not from
 market hours, not from anything else. Claiming real-time without the licence to do

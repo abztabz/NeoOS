@@ -210,9 +210,12 @@ start it.
 approving is the **title list**, which is the first of six stages and does not
 approve the claims inside those titles. See §7a.
 
-**4. Provide or import an official CPI release, as a temporary bridge.** I
-cannot fetch. Manual import is a stopgap, not the production target: that
-remains a verified official-statistics adapter carrying source provenance,
+**4. Provide or import an official CPI release, as a temporary bridge.** The
+environment this was built in blocks outbound requests, so nothing could be
+retrieved from here — a restriction of the sandbox, not of the data, which
+national statistics agencies publish free. Manual import is a stopgap, not the
+production target: that remains a verified official-statistics adapter carrying
+source provenance,
 release dates, observation periods, vintages, revisions and freshness handling.
 The existing rules hold either way — correct jurisdiction only, no substituting
 another country's CPI, a nominal rise stays neutral without appropriate

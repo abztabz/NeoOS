@@ -16,21 +16,26 @@ import {
 import type { MarketStatus, QuoteTimeliness } from "@/server/types/live-state";
 
 /**
- * Licensed market-data adapter.
+ * Licensed market-data adapter — the optional low-latency path.
  *
  * Deliberately vendor-neutral. Price vendors differ in field names and little
  * else, so the response mapping is configuration rather than a class per
  * vendor, and swapping vendors is an environment change instead of a code
  * change.
  *
- * The adapter ships **unconfigured**. Every price vendor NeoOS could use
- * requires a paid licence, and the terms of that licence — particularly whether
- * quotes may be described as real-time and whether they may be redistributed —
- * are the operator's to accept, not the build's. Without credentials the
- * adapter reports `disabled`, makes no request, and returns nothing. It never
- * substitutes a fixture, a cached value, or a last-known price, because a stale
- * price presented as current is the single most expensive lie this system
- * could tell.
+ * The adapter ships **unconfigured**, and that is not a statement about data
+ * availability. Exchange-grade real-time and delayed *venue* quotes are what
+ * commercial vendors sell, and the terms of any such licence — particularly
+ * whether quotes may be described as real-time and whether they may be
+ * redistributed — are the operator's to accept, not the build's. Official
+ * primary sources covering other asset classes need no licence at all and are
+ * wired separately under `providers/market/official`; this adapter is one rung
+ * of a hierarchy, not the only door to a price.
+ *
+ * Without credentials the adapter reports `disabled`, makes no request, and
+ * returns nothing. It never substitutes a fixture, a cached value, or a
+ * last-known price, because a stale price presented as current is the single
+ * most expensive lie this system could tell.
  */
 
 export const PRICE_ADAPTER_VERSION = "1.0.0";
@@ -113,7 +118,7 @@ export class MarketDataAdapter implements ProviderAdapter {
       lastSuccessfulRetrieval: this.lastSuccess,
       failureReason: this.configured
         ? this.lastFailure
-        : "No market-data credentials are configured. NeoOS will not estimate, carry forward, or substitute a price, so priced assets stay partial until a licensed feed is connected.",
+        : "No licensed market-data credentials are configured. This is an optional upgrade for venue-latency quotes; official free sources continue to serve the asset classes they cover. NeoOS will not estimate, carry forward, or substitute a price, so instruments this feed would have covered stay partial until it is connected or an official source is found for them.",
       legalNotes:
         this.options.legalNotes ??
         "Market data is licensed, not public. Redistribution terms and whether quotes may be described as real-time are set by the vendor agreement, and NeoOS reports only the timeliness the operator has configured.",

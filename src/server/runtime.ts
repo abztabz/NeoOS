@@ -15,6 +15,12 @@ import {
 } from "@/server/config/env";
 import { EDGAR_COVERAGE, EDGAR_NON_COVERAGE, SecEdgarAdapter } from "@/server/providers/sec-edgar/adapter";
 import { MarketDataAdapter } from "@/server/providers/prices/adapter";
+import { currentNetworkEnvironment, egressBlockedReason } from "@/server/config/network";
+import type { MarketDataProvider } from "@/server/providers/market/provider";
+import { describeMarketCapability, type MarketCapabilityReport } from "@/server/providers/market/resolver";
+import { LicensedMarketDataProvider } from "@/server/providers/market/licensed";
+import { EcbFxProvider } from "@/server/providers/market/official/ecb-fx";
+import { TreasuryYieldProvider } from "@/server/providers/market/official/treasury-yields";
 import { loadPrivateKey, publicKeyFromPrivate } from "@/server/signing/sign";
 import type { AssetContext } from "@/server/orchestration/assess";
 import type { ExecutionContext } from "@/server/types/execution-context";
@@ -37,28 +43,149 @@ export interface Readiness {
   configuration: ReturnType<typeof describeConfiguration>;
   /** What is missing, in the operator's terms. */
   missing: string[];
+  /** Capabilities an optional paid upgrade would add. Never listed as missing. */
+  optionalUpgrades: string[];
   detail: string;
+  /** Which environment this is, and whether it can reach out at all. */
+  network: { environment: string; egressBlockedReason: string | null };
+  market: MarketCapabilityReport;
 }
 
+/**
+ * What this deployment can and cannot do, said precisely.
+ *
+ * The correction embodied here: `missing` lists only things whose absence is a
+ * genuine gap, and an optional licensed feed is not one. It moved to
+ * `optionalUpgrades`, because listing a paid subscription under "missing"
+ * invited exactly the reading that NeoOS is broken without one.
+ *
+ * Egress is reported separately from configuration for the same reason. A
+ * sandbox with no outbound socket and a deployment with no subscription are
+ * different problems with different fixes, and only one of them costs money.
+ */
 export function readiness(): Readiness {
   const configuration = describeConfiguration();
   const missing: string[] = [];
-  if (!configuration.secEdgar) missing.push("SEC_EDGAR_USER_AGENT (free; a contact string the SEC requires)");
-  if (!configuration.marketData) missing.push("MARKET_DATA_BASE_URL and MARKET_DATA_API_KEY (licensed price feed)");
+  const optionalUpgrades: string[] = [];
+
+  if (!configuration.secEdgar) {
+    missing.push("SEC_EDGAR_USER_AGENT (free; a contact string the SEC requires)");
+  }
   if (!configuration.database) missing.push("DATABASE_URL (durable storage)");
   if (!configuration.signing) missing.push("REPORT_SIGNING_PRIVATE_KEY (report signing)");
 
-  const canRunLive = liveProvidersConfigured();
+  if (!configuration.marketData) {
+    optionalUpgrades.push(
+      "MARKET_DATA_BASE_URL and MARKET_DATA_API_KEY — an optional licensed feed. It lowers latency from official daily publication to delayed or real-time venue quotes and widens instrument coverage. No part of the daily briefing requires it.",
+    );
+  }
+  if (!configuration.metals) {
+    optionalUpgrades.push(
+      "METALS_BASE_URL and METALS_API_KEY — an optional licensed spot metals feed. Without it, gold spot must be entered manually with a citation; a futures settlement is never substituted for it.",
+    );
+  }
+
+  const blocked = egressBlockedReason();
+  const market = describeMarketCapability(buildMarketProviders());
+  const canRunLive = liveProvidersConfigured() || market.anyProviderUsable;
+
+  const detail = blocked
+    ? `${blocked} Configuration is unaffected: ${missing.length === 0 ? "nothing required is missing" : `still missing ${missing.join("; ")}`}.`
+    : canRunLive
+      ? missing.length === 0
+        ? `Fully configured. ${market.detail}`
+        : `Retrieval is possible. Still missing: ${missing.join("; ")}. ${market.detail}`
+      : "No provider is reachable and none is configured, so the server cannot produce a current report. It will not substitute fixture data.";
+
   return {
     canRunLive,
     configuration,
     missing,
-    detail: canRunLive
-      ? missing.length === 0
-        ? "Fully configured."
-        : `Live retrieval is possible, but some capabilities are unavailable: ${missing.join("; ")}.`
-      : "No live provider is configured, so the server cannot produce a live report. It will not substitute fixture data.",
+    optionalUpgrades,
+    detail,
+    network: { environment: currentNetworkEnvironment(), egressBlockedReason: blocked },
+    market,
   };
+}
+
+/**
+ * The market-data providers this deployment has, free ones included.
+ *
+ * The two official adapters are always constructed. They need no credentials,
+ * so there is nothing to gate them on — and constructing them unconditionally
+ * is what makes the health endpoint able to say "free FX and Treasury coverage
+ * exists here" rather than reporting an empty provider list whenever no
+ * subscription is present.
+ *
+ * When egress is blocked they are still constructed and still listed, carrying
+ * the reason. A provider that vanishes when the network is down cannot explain
+ * why the network being down is not a licensing problem.
+ */
+export function buildMarketProviders(): MarketDataProvider[] {
+  const blocked = egressBlockedReason();
+  const providers: MarketDataProvider[] = [
+    new EcbFxProvider({
+      egressBlockedReason: blocked,
+      pairs: [
+        // AED is pegged to the USD and is not in the ECB reference set, so the
+        // household's base currency is reached through USD rather than claimed
+        // directly. NPR is likewise absent; both are declared unsupported by
+        // this provider instead of being approximated.
+        { assetId: "fx-eur-usd", quoteCurrency: "USD", instrumentName: "EUR/USD" },
+        { assetId: "fx-usd-eur", quoteCurrency: "USD", invert: true, instrumentName: "USD/EUR" },
+        { assetId: "fx-eur-inr", quoteCurrency: "INR", instrumentName: "EUR/INR" },
+      ],
+    }),
+    new TreasuryYieldProvider({
+      egressBlockedReason: blocked,
+      series: [
+        {
+          assetId: "us-treasury-marketable",
+          securityDescription: "Total Marketable",
+          instrumentName: "US Treasury total marketable average interest rate",
+        },
+      ],
+    }),
+  ];
+
+  const baseUrl = marketDataBaseUrl();
+  const apiKey = marketDataApiKey();
+  if (baseUrl && apiKey) {
+    providers.push(
+      new LicensedMarketDataProvider({
+        baseUrl,
+        apiKey,
+        timeliness: parseTimeliness(marketDataTimeliness()),
+        assetClasses: ["us_listed_equity", "us_listed_etf", "global_equity"],
+        symbols: [
+          { assetId: "apple", providerSymbol: "AAPL", priceUnit: "share" },
+          { assetId: "us-etf", providerSymbol: "SPY", priceUnit: "share" },
+        ],
+        instrumentNames: { apple: "Apple Inc.", "us-etf": "SPDR S&P 500 ETF Trust" },
+      }),
+    );
+  }
+
+  const metalsUrl = metalsBaseUrl();
+  const metalsKey = metalsApiKey();
+  if (metalsUrl && metalsKey) {
+    providers.push(
+      new LicensedMarketDataProvider({
+        providerId: "licensed-metals",
+        providerName: "Licensed precious metals provider",
+        baseUrl: metalsUrl,
+        apiKey: metalsKey,
+        timeliness: parseTimeliness(marketDataTimeliness()),
+        assetClasses: ["gold_spot"],
+        symbols: [{ assetId: "gold", providerSymbol: "XAUUSD", priceUnit: "troy_ounce" }],
+        instrumentNames: { gold: "Gold, London spot unallocated" },
+        legalNotes:
+          "Spot metal prices are licensed market data. The basis (London spot, unallocated) is recorded with every quote, and a futures settlement is never substituted for it — see GOLD_PRICE_BASIS.md.",
+      }),
+    );
+  }
+
+  return providers;
 }
 
 /**

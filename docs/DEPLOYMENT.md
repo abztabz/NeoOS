@@ -45,14 +45,21 @@ All are server-side. **None carries the `NEXT_PUBLIC_` prefix**, which is what
 makes it structurally impossible for Next.js to inline them into a browser
 bundle. A test enforces that (`src/server/security.test.ts`).
 
+**Nothing in this table is required in order to have market data.** Three official
+sources — SEC EDGAR, the ECB, and the U.S. Treasury — need no credentials at all
+and are always wired. What they need is an outbound socket. See
+[NETWORK_ARCHITECTURE.md](NETWORK_ARCHITECTURE.md).
+
 | Variable | Cost | Required for | Absent means |
 |---|---|---|---|
 | `SEC_EDGAR_USER_AGENT` | Free | SEC filings, fundamentals | No filing evidence; no asset can be rated from accounts |
-| `MARKET_DATA_BASE_URL` | Paid | Prices | No prices; every asset caps at partial live |
-| `MARKET_DATA_API_KEY` | Paid | Prices | as above |
-| `MARKET_DATA_TIMELINESS` | Free | Honest quote labelling | Quotes are labelled `unknown` and aged conservatively |
-| `METALS_BASE_URL` | Paid | Gold spot | Gold is unpriced |
-| `METALS_API_KEY` | Paid | Gold spot | as above |
+| `MARKET_DATA_BASE_URL` | Paid, optional | Venue-latency equity quotes | US and global equity prices fall to manual entry; FX, Treasury and fundamentals are unaffected |
+| `MARKET_DATA_API_KEY` | Paid, optional | as above | as above |
+| `MARKET_DATA_TIMELINESS` | Free | Honest quote labelling | Quotes are treated as `delayed`, the conservative reading |
+| `METALS_BASE_URL` | Paid, optional | Gold spot at venue latency | Gold spot falls to manual entry with a citation; a futures settlement is never substituted for it |
+| `METALS_API_KEY` | Paid, optional | as above | as above |
+| `NEOOS_EGRESS_BLOCKED` | Free | Declaring a restricted environment | Egress is assumed available and providers report their own failures |
+| `NEOOS_NETWORK_ENV` | Free | Overriding environment detection | Inferred from `CI`, `VERCEL_ENV`, then `NODE_ENV` |
 | `DATABASE_URL` | Free tier available | Durable storage | Reports and journal live in server memory and are lost on recycle |
 | `REPORT_SIGNING_PRIVATE_KEY` | Free | Report signing | Reports are stored unsigned and cannot be verified later |
 | `REPORT_SIGNING_KEY_ID` | Free | Display only | Derived from the key itself |

@@ -122,7 +122,11 @@ generated, which is the specific illusion that makes stale analysis dangerous.
 
 The cockpit itself. Sprint 3's client pipeline is untouched and continues to run
 fixture and manual-import cycles in the browser, because a demonstration that
-requires a database and a licensed feed is not a demonstration.
+requires a database and a configured provider is not a demonstration.
+
+Providers are never called from the browser regardless — see
+[NETWORK_ARCHITECTURE.md](NETWORK_ARCHITECTURE.md) §4 for the client boundary and
+why it is structural rather than conventional.
 
 The Timeline workspace carries a server-report panel that states which of the two
 you are looking at, per asset, with the signature status attached.

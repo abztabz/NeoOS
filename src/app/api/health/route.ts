@@ -1,5 +1,6 @@
 import { getReportStore } from "@/server/persistence";
-import { buildLiveAdapters, readiness, signingMaterial } from "@/server/runtime";
+import { buildLiveAdapters, buildMarketProviders, readiness, signingMaterial } from "@/server/runtime";
+import { freelyCoveredAssetClasses, unsupportedAssetClasses } from "@/server/providers/market/hierarchy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,12 +39,44 @@ export async function GET() {
 
   const keys = signingMaterial();
 
+  // Market providers are reported separately from the evidence adapters above,
+  // and deliberately include the free official ones even when they are
+  // unreachable. An operator looking at a failing deployment needs to be able to
+  // tell "my environment has no egress" from "this needs a subscription", and a
+  // provider list that omitted the free sources could not show them the
+  // difference.
+  const market = buildMarketProviders().map((provider) => {
+    const d = provider.describe();
+    return {
+      providerId: d.providerId,
+      providerName: d.providerName,
+      sourceName: d.sourceName,
+      sourceClass: d.sourceClass,
+      observationClass: d.observationClass,
+      assetClasses: d.assetClasses,
+      configured: d.configured,
+      requiresCredentials: d.requiresCredentials,
+      requiresPaidSubscription: d.requiresPaidSubscription,
+      outboundHosts: d.outboundHosts,
+      unavailableReason: d.unavailableReason,
+      attribution: d.attribution,
+    };
+  });
+
   return Response.json(
     {
       canRunLive: ready.canRunLive,
       detail: ready.detail,
       missing: ready.missing,
+      optionalUpgrades: ready.optionalUpgrades,
       configuration: ready.configuration,
+      network: ready.network,
+      marketData: {
+        ...ready.market,
+        providers: market,
+        freelyCovered: freelyCoveredAssetClasses(),
+        unsupported: unsupportedAssetClasses(),
+      },
       signing: { configured: keys.privateKey !== null, keyId: keys.keyId },
       storage: storeHealth,
       providers,

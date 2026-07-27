@@ -320,8 +320,16 @@ In order, and each is small:
    see §4, items 7 to 9.
 3. **Set `REPORT_SIGNING_PRIVATE_KEY` and `CRON_SECRET`.** Signed reports and the
    daily schedule. Criteria 10 and 13. Both free.
-4. **A licensed price feed.** The only paid step, and the only one that makes
-   criterion 17 reachable. Deferred at the operator's direction.
+4. **A licensed price feed.** The only paid step. Deferred at the operator's
+   direction.
+
+   > **Corrected 2026-07-27.** This item previously read "the only one that makes
+   > criterion 17 reachable". That was wrong. Venue-latency quotes for listed
+   > equities do need a licensed feed, but FX reference rates, government debt
+   > series and issuer fundamentals are published free by the institutions that
+   > create them, and adapters for all three now exist. What the environment
+   > actually lacked was outbound network access. See
+   > [MARKET_DATA_ARCHITECTURE.md](MARKET_DATA_ARCHITECTURE.md) §0.
 
 Steps 2 and 3 need no money and no approval beyond access to the deployment's
 environment settings.
