@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { INTAKE_SCHEMA_VERSION, intakeProfileSchema } from "@/domain/intake/types";
 import { activatedJurisdictions } from "@/domain/jurisdiction/packs";
-import { calculateProfile } from "@/domain/profile/calculations";
+import { calculateProfile, toBase } from "@/domain/profile/calculations";
 import { assessPersonalisation } from "@/domain/profile/personalisation";
 import { detectStructuralConditions } from "@/domain/trends/position-history";
 
@@ -42,12 +42,29 @@ const profile = parsed.data;
 const calculations = calculateProfile(profile);
 const personalisation = assessPersonalisation(profile, calculations);
 
-const money = (totals: Record<string, number> | null) =>
-  totals === null || Object.keys(totals).length === 0
-    ? "—"
-    : Object.entries(totals)
-        .map(([c, v]) => `${Math.round(v).toLocaleString()} ${c}`)
-        .join(" · ");
+/**
+ * Show a figure in the base currency.
+ *
+ * Holdings are recorded in the currency they are actually denominated in, which
+ * is what keeps currency risk visible. Reading a position split across two
+ * currencies is another matter, so anything convertible is presented in the
+ * base, with the native amounts kept alongside — the conversion is shown, never
+ * substituted, because a converted figure is softer than a declared one and the
+ * reader should be able to see what it was before the rate touched it.
+ *
+ * A currency with no rate is never folded in silently; it is listed as unrated.
+ */
+const money = (totals: Record<string, number> | null) => {
+  if (totals === null || Object.keys(totals).length === 0) return "—";
+  const native = Object.entries(totals)
+    .map(([c, v]) => `${Math.round(v).toLocaleString()} ${c}`)
+    .join(" · ");
+  const converted = toBase(totals, profile);
+  if (converted === null || !converted.usedRates) return native;
+  const head = `${Math.round(converted.total).toLocaleString()} ${converted.currency}`;
+  const tail = converted.unrated.length > 0 ? `, plus unrated ${converted.unrated.join(", ")}` : "";
+  return `${head}   (${native}${tail})`;
+};
 
 console.log(`\n${path} is valid. Nothing has been sent or stored.\n`);
 console.log(`Personal guidance : ${personalisation.state.toUpperCase()}`);

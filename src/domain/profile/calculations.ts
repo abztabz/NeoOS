@@ -52,7 +52,7 @@ interface Converted {
  * Returns `unrated` rather than dropping what it cannot convert. Silently
  * omitting a currency would produce a smaller, cleaner, wrong number.
  */
-function toBase(totals: CurrencyTotals, profile: IntakeProfile): Converted | null {
+export function toBase(totals: CurrencyTotals, profile: IntakeProfile): Converted | null {
   const base = profile.objective.baseCurrency;
   if (base === null) return null;
 
