@@ -247,13 +247,22 @@ export function monthlyCashFlow(profile: IntakeProfile): Attributed<CashFlow> {
 /* ---------------- 4. reserve coverage ---------------- */
 
 export interface ReserveCoverage {
-  /** Months of outflow the liquid position covers. */
+  /** Months of outflow the whole liquid position covers, mobile or not. */
   months: number;
+  /**
+   * Months covered by liquid capital that can actually reach the outflow —
+   * everything in `months` less what sits in a jurisdiction the subject has
+   * flagged as restricted or blocked.
+   */
+  mobileMonths: number;
   /** Months the subject asked for. */
   required: number;
   monthlyOutflow: number;
   currency: string;
+  /** True only when *mobile* capital meets the requirement. */
   funded: boolean;
+  /** Liquid value that cannot leave its jurisdiction, in base currency. */
+  immobile: number;
 }
 
 export function reserveCoverage(profile: IntakeProfile): Attributed<ReserveCoverage> {
@@ -297,13 +306,28 @@ export function reserveCoverage(profile: IntakeProfile): Attributed<ReserveCover
     ]);
   }
 
+  // A reserve exists to meet the outflow. Capital the subject has told us cannot
+  // leave its jurisdiction cannot meet an outflow denominated elsewhere, so
+  // counting it toward the reserve reports a household as protected when the
+  // money it would reach for is unreachable — the one error in this file that
+  // would actively encourage deploying. Both figures are reported: the whole
+  // liquid position, and the part of it that can actually get there.
+  const immobile = immobileValue(profile);
+  const immobileBase = toBase(immobile.totals, profile);
+  const immobileTotal =
+    immobileBase !== null && immobileBase.unrated.length === 0 ? immobileBase.total : 0;
+  const mobile = Math.max(0, liquidBase.total - immobileTotal);
+
   const months = liquidBase.total / outflow.total;
+  const mobileMonths = mobile / outflow.total;
   const result: ReserveCoverage = {
     months,
+    mobileMonths,
     required: required!,
     monthlyOutflow: outflow.total,
     currency: outflow.currency,
-    funded: months >= required!,
+    funded: mobileMonths >= required!,
+    immobile: immobileTotal,
   };
 
   return derive([liquid, flow, userFact(required, "objective.reserveMonths")], basis, () => result);
@@ -780,7 +804,9 @@ export function deploymentStatus(profile: IntakeProfile): Attributed<DeploymentS
   } else if (!coverage.value.funded) {
     status = "reserve_first";
     reasons.push(
-      `Reserve is ${coverage.value.months.toFixed(1)} months against the ${coverage.value.required} you asked for. Funding it comes before deploying.`,
+      coverage.value.immobile > 0
+        ? `Reserve is ${coverage.value.mobileMonths.toFixed(1)} months of the ${coverage.value.required} you asked for, counting only capital that can reach the outflow. It is ${coverage.value.months.toFixed(1)} months on paper. Funding it comes before deploying.`
+        : `Reserve is ${coverage.value.months.toFixed(1)} months against the ${coverage.value.required} you asked for. Funding it comes before deploying.`,
     );
   }
 
@@ -864,11 +890,19 @@ export function riskCapacity(profile: IntakeProfile): Attributed<RiskCapacity> {
   const factors: string[] = [];
   let score = 0;
 
+  // Both figures are quoted whenever they differ, so a reserve that looks ample
+  // and is largely unreachable cannot be read as an ample reserve.
+  const trapped =
+    coverage.value.immobile > 0
+      ? ` ${coverage.value.months.toFixed(1)} months on paper, but the rest cannot leave its jurisdiction.`
+      : "";
   if (coverage.value.funded) {
     score += 2;
-    factors.push(`Reserve funded at ${coverage.value.months.toFixed(1)} months.`);
+    factors.push(`Reserve funded at ${coverage.value.mobileMonths.toFixed(1)} months.${trapped}`);
   } else {
-    factors.push(`Reserve short at ${coverage.value.months.toFixed(1)} of ${coverage.value.required} months.`);
+    factors.push(
+      `Reserve short at ${coverage.value.mobileMonths.toFixed(1)} of ${coverage.value.required} months.${trapped}`,
+    );
   }
 
   const horizon = profile.objective.horizonYears;

@@ -267,37 +267,38 @@ describe("reserve coverage and investable cash", () => {
   });
 });
 
-describe("capital that cannot leave its jurisdiction", () => {
-  /** Liquid cash held in a jurisdiction that restricts outward movement. */
-  function withTrappedCapital(mobility: "restricted" | "blocked" | "free"): IntakeProfile {
-    const profile = completeProfile();
-    profile.assets.push(
-      asset({
-        assetHoldingId: "np-deposits",
-        label: "Kathmandu deposits",
-        amount: 300_000,
+/** Liquid cash held in a jurisdiction that restricts outward movement. */
+function withTrappedCapital(mobility: "restricted" | "blocked" | "free"): IntakeProfile {
+  const profile = completeProfile();
+  profile.assets.push(
+    asset({
+      assetHoldingId: "np-deposits",
+      label: "Kathmandu deposits",
+      amount: 300_000,
+      jurisdiction: "NP",
+    }),
+  );
+  profile.jurisdictionContext = {
+    residence: "AE",
+    homeCountry: "NP",
+    citizenships: ["NP"],
+    taxResidences: ["AE"],
+    intendsToReturnHome: null,
+    constraints: [
+      {
         jurisdiction: "NP",
-      }),
-    );
-    profile.jurisdictionContext = {
-      residence: "AE",
-      homeCountry: "NP",
-      citizenships: ["NP"],
-      taxResidences: ["AE"],
-      intendsToReturnHome: null,
-      constraints: [
-        {
-          jurisdiction: "NP",
-          outboundCapitalMobility: mobility,
-          statedAt: today,
-          verifiedWithProfessional: false,
-          notes: null,
-        },
-      ],
-      notes: null,
-    };
-    return profile;
-  }
+        outboundCapitalMobility: mobility,
+        statedAt: today,
+        verifiedWithProfessional: false,
+        notes: null,
+      },
+    ],
+    notes: null,
+  };
+  return profile;
+}
+
+describe("capital that cannot leave its jurisdiction", () => {
 
   it("excludes trapped capital from what can be allocated globally", () => {
     // Distinct from liquidity, and worse. An illiquid asset can be sold slowly;
@@ -330,6 +331,29 @@ describe("capital that cannot leave its jurisdiction", () => {
     const profile = withTrappedCapital("free");
     profile.jurisdictionContext.constraints = [];
     expect(investableCash(profile).value?.immobileByJurisdiction).toEqual({});
+  });
+});
+
+describe("reserve coverage against trapped capital", () => {
+  // Real position: a reserve held as gold in a jurisdiction the subject flagged
+  // as restricted, against obligations denominated where they live. Counting the
+  // trapped portion reported the reserve as funded at 11.8 months when only 3.5
+  // months could actually reach the outflow — the one error here that would
+  // actively encourage deploying.
+  it("counts only capital that can reach the outflow", () => {
+    const profile = withTrappedCapital("restricted");
+    const result = reserveCoverage(profile);
+    expect(result.value).not.toBeNull();
+    expect(result.value!.immobile).toBeGreaterThan(0);
+    expect(result.value!.mobileMonths).toBeLessThan(result.value!.months);
+    expect(result.value!.funded).toBe(result.value!.mobileMonths >= result.value!.required);
+  });
+
+  it("treats every liquid asset as reserve when nothing is restricted", () => {
+    const profile = withTrappedCapital("free");
+    const result = reserveCoverage(profile);
+    expect(result.value!.immobile).toBe(0);
+    expect(result.value!.mobileMonths).toBeCloseTo(result.value!.months, 6);
   });
 });
 
