@@ -9,6 +9,36 @@ presence booleans, never values.
 
 ---
 
+## 0. The smallest deployment that keeps a declared position
+
+Most of this document is about evidence and scheduled runs. If the only thing
+you need today is somewhere durable to keep the household's declared position,
+two variables are enough and both are free:
+
+```
+DATABASE_URL=postgresql://…?sslmode=require   # any Postgres; free tiers are fine
+OPERATOR_API_TOKEN=<32+ random bytes>          # openssl rand -base64 32
+```
+
+Nothing else is required. Every other endpoint closes itself rather than opening
+when its secret is absent, so a deployment with these two set can record and
+read intake and does nothing else.
+
+**Deploying without `DATABASE_URL` is the one configuration that can lose data
+quietly.** The application falls back to an in-memory store, which is a correct
+choice for local work and a trap on a serverless host: a save returns success,
+the function recycles, and the position is gone. `GET /api/health` reports
+`database: false` and the UI reports `durable: false`, but neither will stop
+you. If you are deploying in order to keep something, set the database first and
+confirm `database: true` before entering anything you would mind losing.
+
+The operator token is a single shared secret, not an account. Anyone holding it
+has the position, and the position is the household's entire financial picture.
+That is the right size for one person's own tool and is not what a
+client-facing deployment would need — see [SECURITY.md](SECURITY.md).
+
+---
+
 ## 1. Environment variables
 
 All are server-side. **None carries the `NEXT_PUBLIC_` prefix**, which is what
