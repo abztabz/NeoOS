@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./helpers";
 import path from "node:path";
 
 const EVIDENCE = (file: string) => path.join(__dirname, "fixtures", "evidence", file);

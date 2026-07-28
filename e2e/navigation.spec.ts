@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./helpers";
 
 function visibleNav(page: Page) {
   return page.locator('nav[aria-label="Workspaces"]:visible');

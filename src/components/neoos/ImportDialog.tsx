@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useReport } from "@/data/report-store";
+import { useActivePortfolio } from "@/data/portfolio-mode";
 import { MAX_REPORT_BYTES, type NeoosReport } from "@/schemas/neoos-report";
 import { providedSections } from "@/domain/report-view";
 import { formatAsOf } from "@/lib/format";
@@ -15,6 +16,7 @@ interface Preview {
 
 export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { source, storageStatus, previewReport, importReport, resetDemo } = useReport();
+  const { hasUserPortfolio } = useActivePortfolio();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -184,18 +186,30 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
           <span className="microlabel">
             Current: {source === "demo" ? "Demo data" : "Imported report"}
           </span>
-          <button
-            type="button"
-            onClick={() => {
-              resetDemo();
-              setApplied(false);
-              setPreview(null);
-              setError(null);
-            }}
-            className="inline-flex min-h-11 items-center rounded-full border border-amber/40 bg-amber/10 px-4 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-amber transition-colors hover:bg-amber/20"
-          >
-            Reset to demo
-          </button>
+          {/*
+            Withdrawn once a position exists. A button that loads a fixture
+            universe over somebody's declared holdings is a way to end up
+            reading Apple as your own, and no amount of labelling fixes a
+            control that puts it there.
+          */}
+          {hasUserPortfolio ? (
+            <span data-testid="demo-reset-withheld" className="max-w-[60%] text-right text-[10px] leading-snug text-muted">
+              Demo data is unavailable now that you have declared a position.
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                resetDemo();
+                setApplied(false);
+                setPreview(null);
+                setError(null);
+              }}
+              className="inline-flex min-h-11 items-center rounded-full border border-amber/40 bg-amber/10 px-4 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-amber transition-colors hover:bg-amber/20"
+            >
+              Reset to demo
+            </button>
+          )}
         </div>
       </div>
     </dialog>

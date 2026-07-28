@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./helpers";
 import { DEMO } from "./expected";
 
 test("primary touch targets are at least 44px tall", async ({ page }) => {

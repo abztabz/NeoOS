@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { useConversation } from "@/data/conversation-store";
 import { useReport } from "@/data/report-store";
 import {
@@ -25,9 +25,63 @@ import {
  * is the whole failure this exists to close.
  */
 
+/**
+ * Whether the operator has opened the worked example.
+ *
+ * A module singleton rather than context, matching the report store, and backed
+ * by sessionStorage rather than localStorage on purpose: exploring the demo is
+ * something you do once while deciding whether to use NeoOS, not a setting you
+ * carry between sessions. Closing the tab ends it.
+ */
+const DEMO_KEY = "neoos.exploring-demo";
+let exploringDemo = false;
+const demoListeners = new Set<() => void>();
+
+function readStoredDemoFlag(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(DEMO_KEY) === "1";
+  } catch {
+    // Storage blocked. In-memory state still works for this session.
+    return exploringDemo;
+  }
+}
+
+export function setExploringDemo(value: boolean): void {
+  exploringDemo = value;
+  try {
+    if (value) window.sessionStorage.setItem(DEMO_KEY, "1");
+    else window.sessionStorage.removeItem(DEMO_KEY);
+  } catch {
+    // Ignored: the in-memory flag above is the source of truth either way.
+  }
+  for (const listener of demoListeners) listener();
+}
+
+function subscribeDemo(listener: () => void): () => void {
+  demoListeners.add(listener);
+  return () => demoListeners.delete(listener);
+}
+
+export function useExploringDemo(): boolean {
+  return useSyncExternalStore(
+    subscribeDemo,
+    () => {
+      // Reconcile once with storage so a refresh mid-exploration is not treated
+      // as a fresh first run.
+      if (!exploringDemo && readStoredDemoFlag()) exploringDemo = true;
+      return exploringDemo;
+    },
+    // The server renders the pre-choice state, always. Rendering demo content
+    // server-side would put fixture holdings in the initial HTML.
+    () => false,
+  );
+}
+
 export function useActivePortfolio(): ActivePortfolio {
   const { profile } = useConversation();
-  return resolveActivePortfolio({ profile });
+  const demo = useExploringDemo();
+  return resolveActivePortfolio({ profile, exploringDemo: demo });
 }
 
 /**

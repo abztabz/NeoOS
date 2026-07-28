@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./helpers";
 import path from "node:path";
 import { DEMO, FIXTURE_V10_PCT } from "./expected";
 

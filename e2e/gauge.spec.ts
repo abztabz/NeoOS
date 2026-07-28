@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./helpers";
 import { DEMO } from "./expected";
 
 test("gauge displays the score and opens the explanation on tap", async ({ page }) => {

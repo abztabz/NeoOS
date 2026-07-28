@@ -264,3 +264,64 @@ accessible name and a 44px target.
 where the cockpit they test now lives. The mobile-nav count assertion moved from
 7 to 8 and gained a width floor — eight tabs on a 390px phone is genuinely tight,
 so it is asserted rather than assumed.
+
+---
+
+## Demo isolation and pricing coverage (added 2026-07-28)
+
+**Unit — `src/domain/portfolio/portfolio.test.ts` (10 tests).** Which portfolio
+is active; that a declared position makes itself active with no prompt; that the
+demo becomes unreachable once one exists *even when `exploringDemo` is set*; the
+isolation rule in both directions; that `reportForSurface` withholds the fixture
+report from a user surface. The last is the load-bearing one — returning the
+fixture there is the original bug.
+
+One test asserts that the fixture universe *does* contain Apple. It reads oddly
+until you need it: if a future change puts fixture instruments on a user
+surface, that test is the written record of why that is wrong.
+
+**Unit — `src/server/pricing/pricing.test.ts` (33 tests).** Quote validation
+(zero, negative, unsourced, undated, future-dated); the single decision gate;
+freshness recomputed from the clock rather than trusted; cache entries keeping
+their original `quoteTimestamp`; identity resolution refusing a bare ticker;
+production refusing to construct a service configured for fake pricing; provider
+fallback recording each source switch with the actual failure reason.
+
+**Unit — `src/domain/watchlist/opportunity.test.ts` (27 tests) and
+`from-report.test.ts` (20 tests).** Current Price, Fair Value and Good Buy Price
+staying three distinct fields; the buy-distance arithmetic; a missing price
+suspending the decision *even at a 95% discount to fair value*; a stale valuation
+suspending the ranking while still showing the verified price; Strong Buy
+omitted rather than zeroed when a gate fails; the interpretation line carrying no
+status codes; report prices shown only where a verified `marketData` evidence
+record can attribute them.
+
+**Unit — `src/domain/gold/uae-gold.test.ts` (16) and
+`src/server/gold/uae-gold-service.test.ts` (11).** Conversion through the exact
+troy-ounce constant; 22K derived by exact purity and asserted strictly below the
+24K valuation; the peg labelled as documented rather than observed; refusal
+without a verified spot or FX; and — with no provider — that the board contains
+no number at all and states the production wording verbatim.
+
+**Unit — `src/domain/valuation/holding-valuation.test.ts` (12) and
+`readiness.test.ts` (9).** Property as a manual estimate with no path to market
+price; a quantity not counting as identification; the unitemized-holdings wording
+including its remedy; the readiness list ordered by declared value with unvalued
+holdings last rather than guessed.
+
+**E2E — `e2e/demo-isolation.spec.ts`.** That the first screen offers a choice
+instead of a fixture; that **no fixture instrument name appears anywhere on it**;
+that opening the worked example survives a reload; that every workspace carries
+the data-state badge while the demo is showing; that every opportunity card
+either names a price source or says the price is unavailable; and that the gold
+board shows a sourced price or no price.
+
+The instrument-name assertion is the tripwire. It fails on any change that puts
+the fixture universe back in front of somebody before they have asked for it.
+
+**The worked-example fixture.** `e2e/helpers.ts` exports a `test` that opens the
+demo through an init script, and every spec written against the fixture universe
+now imports from there instead of `@playwright/test`. `demo-isolation.spec.ts`
+deliberately does not — its subject is what happens *before* that choice. Having
+to opt in is the point: the old behaviour was that every test, and every user,
+got somebody else's portfolio by default.

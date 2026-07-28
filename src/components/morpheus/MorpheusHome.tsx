@@ -5,6 +5,8 @@ import { useMemo } from "react";
 import { AnswerBlock } from "@/components/morpheus/Answer";
 import { Composer } from "@/components/morpheus/Composer";
 import { GapPrompt } from "@/components/morpheus/GapPrompt";
+import { FirstRun } from "@/components/morpheus/FirstRun";
+import { useActivePortfolio } from "@/data/portfolio-mode";
 import { useConversation } from "@/data/conversation-store";
 import { buildBriefing, briefingLimits } from "@/domain/morpheus/briefing";
 import { assessPersonalisation } from "@/domain/profile/personalisation";
@@ -29,6 +31,7 @@ import { assessPersonalisation } from "@/domain/profile/personalisation";
 
 export function MorpheusHome() {
   const { profile, calculations, thread, loading, locked, lastAnswer } = useConversation();
+  const active = useActivePortfolio();
 
   const briefing = useMemo(() => {
     const personalisation =
@@ -52,6 +55,20 @@ export function MorpheusHome() {
   // Only turns raised after the briefing are shown here; the briefing itself is
   // rendered above rather than duplicated into the thread.
   const conversation = thread;
+
+  /*
+    Before anything is declared and before the demo is opened, the briefing
+    below would be the worked example's briefing. Showing it unasked is how a
+    fictional household's posture becomes the first thing somebody reads about
+    their own money.
+
+    Locked counts here too. A locked deployment cannot tell whether a position
+    exists, and "cannot tell" is not grounds for opening with a fixture — it is
+    grounds for asking. FirstRun says so in the locked case.
+  */
+  if (!loading && profile === null && !active.demoVisible) {
+    return <FirstRun locked={locked} />;
+  }
 
   return (
     <div className="mx-auto grid max-w-[760px] gap-4 pb-4">

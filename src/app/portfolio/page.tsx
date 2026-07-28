@@ -3,6 +3,7 @@
 import { ReportGate } from "@/data/portfolio-mode";
 import { SectionCard } from "@/components/neoos/SectionCard";
 import { DeclaredHoldings } from "@/components/morpheus/DeclaredHoldings";
+import { PortfolioReadiness } from "@/components/morpheus/PortfolioReadiness";
 import { RatingPill } from "@/components/neoos/RatingPill";
 import { useReport } from "@/data/report-store";
 import { isDemoFallback, portfolioView } from "@/domain/report-view";
@@ -29,6 +30,7 @@ export default function PortfolioPage() {
         alongside the fixture universe would hide somebody's actual position
         because the engine has not run yet.
       */}
+      <PortfolioReadiness />
       <DeclaredHoldings />
       <ReportGate>
         <div className="grid gap-3.5">

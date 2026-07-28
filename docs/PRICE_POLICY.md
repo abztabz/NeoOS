@@ -3,6 +3,12 @@
 Prices are the one input NeoOS can never derive, infer, interpolate, or carry
 forward.
 
+> The display-side companion to this document is
+> [PRICING_ARCHITECTURE.md](PRICING_ARCHITECTURE.md), which covers the quote
+> model, the single decision gate, instrument identity, environment safety, the
+> UAE gold board, and how property and unitemized holdings are labelled.
+> Demo/real separation is in [PORTFOLIO_ISOLATION.md](PORTFOLIO_ISOLATION.md).
+
 ---
 
 ## 1. Missing means missing

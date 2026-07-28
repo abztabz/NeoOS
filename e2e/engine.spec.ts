@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./helpers";
 import path from "node:path";
 import { DEMO } from "./expected";
 

@@ -77,7 +77,12 @@ Stop only for:
 - Strong Buy must be rare and evidence-heavy.
 - Cash is a first-class asset.
 - Every score must be explainable.
-- Demo data must always be visibly labeled.
+- Demo data must always be visibly labeled, and may never reach a surface where a
+  real portfolio is active. See `docs/PORTFOLIO_ISOLATION.md`.
+- Every displayed price traces to a named source with a timestamp, or is not
+  displayed. Recommendations suspend when price or evidence cannot be verified.
+  See `docs/PRICING_ARCHITECTURE.md`.
+- The three prices stay separate: Current Price, Fair Value, Good Buy Price.
 - No generic fintech dashboard aesthetic.
 - iPhone is the primary acceptance viewport.
 - Never ship a blank shell, broken preview, or JavaScript-only empty state.
@@ -123,7 +128,7 @@ and must all remain:
 - Persistent local report storage with safe fallback
 - Demo reset
 - Portfolio drill-down
-- Opportunity watchlist with Buy Below and Strong Buy Below
+- Top Opportunities watchlist with Good Buy Price and Strong Buy governance
 - Evidence freshness and confidence
 - Responsive mobile bottom navigation and desktop navigation
 - Graceful empty, loading, and invalid-report states

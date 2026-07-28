@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useIntelligence } from "@/data/intelligence-store";
+import { useActivePortfolio } from "@/data/portfolio-mode";
 import { cycleStateLabels } from "@/intelligence/types/cycle";
 import { providerModeLabels } from "@/intelligence/types/provider";
 import type { DailyCycleResult } from "@/intelligence/orchestration/cycle";
@@ -165,6 +166,7 @@ export function IntelligencePanel({ open, onClose }: { open: boolean; onClose: (
     confirmJournalEntry,
     storagePersists,
   } = useIntelligence();
+  const { hasUserPortfolio } = useActivePortfolio();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -227,22 +229,41 @@ export function IntelligencePanel({ open, onClose }: { open: boolean; onClose: (
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void handleFixture(1)}
-            disabled={running}
-            className="inline-flex min-h-11 items-center rounded-full border border-cyan/40 bg-cyan/10 px-4 font-mono text-[10px] font-bold uppercase tracking-wider text-cyan transition-colors hover:bg-cyan/20 disabled:opacity-50"
-          >
-            Run fixture day 1
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleFixture(2)}
-            disabled={running}
-            className="inline-flex min-h-11 items-center rounded-full border border-cyan/40 px-4 font-mono text-[10px] font-bold uppercase tracking-wider text-cyan transition-colors hover:bg-cyan/10 disabled:opacity-50"
-          >
-            Run fixture day 2
-          </button>
+          {/*
+            The fixture days run the pipeline over an invented household. They
+            are a way to see the machinery work, and once a real position exists
+            they are also a way to overwrite it with somebody else's numbers —
+            so they are withdrawn rather than merely labelled.
+          */}
+          {hasUserPortfolio ? (
+            <p
+              data-testid="fixture-runs-withheld"
+              className="text-[11px] leading-relaxed text-muted"
+            >
+              Fixture days are unavailable now that you have declared a position. Use{" "}
+              <em className="not-italic text-ink">Import evidence</em> to run the pipeline over
+              your own sources.
+            </p>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => void handleFixture(1)}
+                disabled={running}
+                className="inline-flex min-h-11 items-center rounded-full border border-cyan/40 bg-cyan/10 px-4 font-mono text-[10px] font-bold uppercase tracking-wider text-cyan transition-colors hover:bg-cyan/20 disabled:opacity-50"
+              >
+                Run fixture day 1
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleFixture(2)}
+                disabled={running}
+                className="inline-flex min-h-11 items-center rounded-full border border-cyan/40 px-4 font-mono text-[10px] font-bold uppercase tracking-wider text-cyan transition-colors hover:bg-cyan/10 disabled:opacity-50"
+              >
+                Run fixture day 2
+              </button>
+            </>
+          )}
           <label className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-line px-4 font-mono text-[10px] font-bold uppercase tracking-wider text-[#8896a1] transition-colors hover:border-line-strong hover:text-ink">
             Import evidence
             <input
