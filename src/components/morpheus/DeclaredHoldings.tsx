@@ -3,6 +3,7 @@
 import { useConversation } from "@/data/conversation-store";
 import { toBase } from "@/domain/profile/calculations";
 import { provenanceLabels } from "@/domain/profile/provenance";
+import { describeHoldingValuation } from "@/domain/valuation/holding-valuation";
 
 import type { AssetHolding } from "@/domain/intake/types";
 
@@ -99,6 +100,7 @@ export function DeclaredHoldings() {
       <ul className="grid gap-2">
         {sorted.map((asset: AssetHolding) => {
           const share = allocation.value?.find((row) => row.bucket === asset.kind)?.share ?? null;
+          const valuation = describeHoldingValuation(asset);
           return (
             <li
               key={asset.assetHoldingId}
@@ -120,12 +122,30 @@ export function DeclaredHoldings() {
 
               <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
                 {LIQUIDITY_LABELS[asset.liquidity] ?? asset.liquidity}
-                {/* The basis travels with the number. An estimate and a
-                    statement balance are not the same claim, and the difference
-                    matters most on the largest holdings. */}
-                {asset.value.basis === "subject_estimate" ? " · your estimate, not a valuation" : ""}
                 {asset.custodian ? ` · held with ${asset.custodian}` : ""}
               </p>
+
+              {/* The method travels with the number, always. An owner's
+                  estimate and a struck price rendered in the same style become
+                  the same claim in the reader's head. */}
+              <p
+                data-testid="holding-valuation-method"
+                data-method={valuation.method}
+                className={`mt-1 text-[11px] leading-relaxed ${
+                  valuation.needsItemization ? "text-amber" : "text-muted"
+                }`}
+              >
+                {valuation.valuationNote}
+              </p>
+
+              {valuation.refreshPrompt ? (
+                <p
+                  data-testid="holding-refresh-prompt"
+                  className="mt-1 text-[11px] leading-relaxed text-amber"
+                >
+                  {valuation.refreshPrompt}
+                </p>
+              ) : null}
 
               {asset.value.note ? (
                 <p className="mt-1 text-[11px] leading-relaxed text-muted">{asset.value.note}</p>

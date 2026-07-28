@@ -88,6 +88,25 @@ function withGaps<T>(value: Attributed<T>, gaps: string[]): Attributed<T> {
 
 /* ---------------- 1. net worth ---------------- */
 
+/**
+ * The subject's share of a holding's stated value.
+ *
+ * Where no share is declared the whole value counts, because whole ownership is
+ * the ordinary case and treating a blank as partial would understate every
+ * position somebody simply did not annotate. Where a share *is* declared it is
+ * applied: a family house held three ways is not three houses' worth of net
+ * worth, and counting it in full is the most consequential overstatement this
+ * household could make.
+ */
+export function attributableValue(asset: {
+  value: { amount: number | null };
+  ownershipPercent?: number | null;
+}): number | null {
+  if (asset.value.amount === null) return null;
+  const share = asset.ownershipPercent;
+  return share === null || share === undefined ? asset.value.amount : asset.value.amount * share;
+}
+
 export function netWorth(profile: IntakeProfile): Attributed<CurrencyTotals> {
   if (profile.assets.length === 0) {
     return unknown<CurrencyTotals>("Assets less liabilities.", ["assets"]);
@@ -96,8 +115,9 @@ export function netWorth(profile: IntakeProfile): Attributed<CurrencyTotals> {
   const totals: CurrencyTotals = {};
   const excluded: string[] = [];
   for (const asset of profile.assets) {
-    if (asset.value.amount === null) excluded.push(`Value of ${asset.label}`);
-    else addTo(totals, asset.value.currency, asset.value.amount);
+    const attributable = attributableValue(asset);
+    if (attributable === null) excluded.push(`Value of ${asset.label}`);
+    else addTo(totals, asset.value.currency, attributable);
   }
   for (const liability of profile.liabilities) {
     if (liability.outstanding.amount === null) excluded.push(`Balance of ${liability.label}`);
@@ -128,12 +148,13 @@ export function liquidNetWorth(profile: IntakeProfile): Attributed<CurrencyTotal
   const totals: CurrencyTotals = {};
   const excluded: string[] = [];
   for (const asset of profile.assets) {
-    if (asset.value.amount === null) {
+    const attributable = attributableValue(asset);
+    if (attributable === null) {
       excluded.push(`Value of ${asset.label}`);
       continue;
     }
     if (isLiquid(asset.liquidity, asset.restricted)) {
-      addTo(totals, asset.value.currency, asset.value.amount);
+      addTo(totals, asset.value.currency, attributable);
     }
   }
 
@@ -373,10 +394,11 @@ function immobileValue(profile: IntakeProfile): { totals: CurrencyTotals; jurisd
   const totals: CurrencyTotals = {};
   const jurisdictions = new Set<string>();
   for (const asset of profile.assets) {
-    if (asset.value.amount === null || asset.jurisdiction === null) continue;
+    const attributable = attributableValue(asset);
+    if (attributable === null || asset.jurisdiction === null) continue;
     if (!restricted.has(asset.jurisdiction)) continue;
     if (!isLiquid(asset.liquidity, asset.restricted)) continue;
-    addTo(totals, asset.value.currency, asset.value.amount);
+    addTo(totals, asset.value.currency, attributable);
     jurisdictions.add(asset.jurisdiction);
   }
   return { totals, jurisdictions: [...jurisdictions].sort() };
@@ -541,7 +563,8 @@ export function debtBurden(profile: IntakeProfile): Attributed<DebtBurden> {
   if (assets.value !== null && debtBase && debtBase.unrated.length === 0) {
     const grossAssets: CurrencyTotals = {};
     for (const asset of profile.assets) {
-      if (asset.value.amount !== null) addTo(grossAssets, asset.value.currency, asset.value.amount);
+      const attributable = attributableValue(asset);
+      if (attributable !== null) addTo(grossAssets, asset.value.currency, attributable);
     }
     const assetBase = toBase(grossAssets, profile);
     if (assetBase && assetBase.unrated.length === 0 && assetBase.total > 0) {
@@ -581,7 +604,7 @@ export function portfolioAllocation(profile: IntakeProfile): Attributed<Allocati
   const byKind: Record<string, CurrencyTotals> = {};
   for (const asset of valued) {
     (byKind[asset.kind] ??= {});
-    addTo(byKind[asset.kind]!, asset.value.currency, asset.value.amount!);
+    addTo(byKind[asset.kind]!, asset.value.currency, attributableValue(asset)!);
   }
 
   const rows: AllocationRow[] = [];

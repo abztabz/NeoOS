@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyProfile, type AssetHolding, type IntakeProfile } from "@/domain/intake/types";
 import {
+  attributableValue,
   calculateProfile,
   concentrationRisk,
   currencyExposure,
@@ -585,5 +586,57 @@ describe("the whole set", () => {
       expect(value.value, `${name} should be missing`).toBeNull();
       expect(value.missing.length, `${name} should say what it needs`).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("ownership share", () => {
+  it("counts the whole value when no share is declared", () => {
+    // A blank means "mine", not "partly mine". Reading it as partial would
+    // understate every holding somebody simply did not annotate.
+    expect(attributableValue({ value: { amount: 1000 } })).toBe(1000);
+    expect(attributableValue({ value: { amount: 1000 }, ownershipPercent: null })).toBe(1000);
+  });
+
+  it("applies a declared share", () => {
+    expect(attributableValue({ value: { amount: 1000 }, ownershipPercent: 0.5 })).toBe(500);
+  });
+
+  it("keeps a missing value missing rather than turning it into zero", () => {
+    expect(attributableValue({ value: { amount: null }, ownershipPercent: 0.5 })).toBeNull();
+  });
+
+  it("reduces net worth by the share the subject does not own", () => {
+    const profile = emptyProfile("subject-1", "profile-1", "2026-07-28T00:00:00.000Z");
+    profile.objective.baseCurrency = "NPR";
+    profile.assets = [
+      {
+        assetHoldingId: "house",
+        subjectId: "subject-1",
+        kind: "real_estate",
+        label: "Family House",
+        value: {
+          amount: 25_200_000,
+          currency: "NPR",
+          basis: "subject_estimate",
+          asOf: "2026-07-01",
+          note: null,
+        },
+        registryAssetId: null,
+        identifier: null,
+        quantity: null,
+        liquidity: "months",
+        jurisdiction: "NP",
+        custodian: null,
+        encumberedBy: null,
+        restricted: false,
+        ownershipPercent: 0.5,
+        appraisalReference: null,
+        notes: null,
+      },
+    ];
+
+    // Half a house, not a whole one. Counting the whole thing is the largest
+    // single overstatement available to this household.
+    expect(netWorth(profile).value?.NPR).toBe(12_600_000);
   });
 });

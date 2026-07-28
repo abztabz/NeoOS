@@ -30,6 +30,7 @@ import {
   valuationBases,
   DEFAULT_LIQUIDITY,
   INTAKE_SCHEMA_VERSION,
+  type AssetHolding,
   type AssetKind,
   type IncomeKind,
   type StatedAmount,
@@ -37,6 +38,7 @@ import {
 import { calculateProfile } from "@/domain/profile/calculations";
 import { assessPersonalisation } from "@/domain/profile/personalisation";
 import { activatedJurisdictions } from "@/domain/jurisdiction/packs";
+import { describeHoldingValuation } from "@/domain/valuation/holding-valuation";
 
 /**
  * The intake form.
@@ -656,12 +658,80 @@ export function IntakeForm({
                     onChange={(value) => update({ custodian: value || null })}
                   />
                 </Field>
+                <Field
+                  label="Ticker or ISIN"
+                  hint="Only for a specific instrument. Without one, NeoOS has nothing to price — a value labelled 'shares' names no security."
+                  htmlFor={`asset-identifier-${index}`}
+                >
+                  <TextInput
+                    id={`asset-identifier-${index}`}
+                    value={asset.identifier ?? ""}
+                    onChange={(value) => update({ identifier: value.trim() || null })}
+                    placeholder="AAPL or US0378331005"
+                  />
+                </Field>
+                <Field
+                  label="Units held"
+                  hint="Shares, grams, coins. Needed alongside the identifier before a holding can be priced."
+                  htmlFor={`asset-quantity-${index}`}
+                >
+                  <NumberInput
+                    id={`asset-quantity-${index}`}
+                    value={asset.quantity}
+                    onChange={(value) => update({ quantity: value && value > 0 ? value : null })}
+                  />
+                </Field>
+                <Field
+                  label="Your share"
+                  hint="Leave blank if it is wholly yours. A jointly-held house counted in full overstates what you have."
+                  htmlFor={`asset-ownership-${index}`}
+                >
+                  <NumberInput
+                    id={`asset-ownership-${index}`}
+                    value={
+                      asset.ownershipPercent == null ? null : Math.round(asset.ownershipPercent * 100)
+                    }
+                    onChange={(value) =>
+                      update({
+                        ownershipPercent:
+                          value == null ? null : Math.min(100, Math.max(0, value)) / 100,
+                      })
+                    }
+                  />
+                </Field>
+                {asset.value.basis === "professional_appraisal" ? (
+                  <Field
+                    label="Appraisal reference"
+                    hint="The firm and date, or a document reference. NeoOS records the reference, never the document."
+                    htmlFor={`asset-appraisal-${index}`}
+                  >
+                    <TextInput
+                      id={`asset-appraisal-${index}`}
+                      value={asset.appraisalReference ?? ""}
+                      onChange={(value) => update({ appraisalReference: value.trim() || null })}
+                      placeholder="Knight Frank, March 2026"
+                    />
+                  </Field>
+                ) : null}
                 <Toggle
                   id={`asset-restricted-${index}`}
                   checked={asset.restricted}
                   onChange={(checked) => update({ restricted: checked })}
                   label="Locked up, vesting, or otherwise not sellable by me"
                 />
+                {/* Says what this entry will be treated as, while it is being
+                    typed. A person who learns at the end that their holding
+                    cannot be priced has already spent the effort. */}
+                <p
+                  data-testid={`asset-valuation-method-${index}`}
+                  className={`col-span-full text-[11px] leading-relaxed ${
+                    describeHoldingValuation(asset as AssetHolding).needsItemization
+                      ? "text-amber"
+                      : "text-muted"
+                  }`}
+                >
+                  {describeHoldingValuation(asset as AssetHolding).valuationNote}
+                </p>
               </>
             );
           }}

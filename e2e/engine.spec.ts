@@ -116,14 +116,30 @@ test.describe("provenance", () => {
     await dialog.getByRole("button", { name: /apply report/i }).click();
     await dialog.getByRole("button", { name: /close import dialog/i }).click();
 
-    await expect(page.getByTestId("threshold-withheld").locator("visible=true").first()).toBeVisible();
+    // No trace behind the file's asserted thresholds, so the card refuses the
+    // decision rather than rendering a Good Buy Price nothing derived.
+    const suspended = page.getByTestId("opportunity-suspended").locator("visible=true").first();
+    await expect(suspended).toBeVisible();
+    await expect(suspended).toContainText(/could not be verified|Valuation review required/i);
   });
 
-  test("demo thresholds show their derivation", async ({ page }) => {
+  test("thresholds show their derivation behind the evidence disclosure", async ({ page }) => {
     await page.goto("/capital");
-    const watchlist = page.locator("section", { hasText: "WATCHLIST" });
-    // Engine-derived thresholds carry method, model version, and source count.
-    await expect(watchlist).toContainText(/model 2\.0\.0/);
+    const board = page.locator("section", { hasText: "TOP OPPORTUNITIES" });
+    const card = board.getByTestId("opportunity-card").first();
+    await card.getByRole("button", { name: /show evidence/i }).click();
+    // Engine-derived thresholds carry method, model version and valuation date.
+    await expect(card.getByTestId("opportunity-evidence")).toContainText(/model 2\.0\.0/);
+  });
+
+  test("the three prices are named separately on every opportunity card", async ({ page }) => {
+    await page.goto("/capital");
+    const card = page.getByTestId("opportunity-card").first();
+    await expect(card).toContainText("Current");
+    await expect(card).toContainText("Good Buy Price");
+    await expect(card).toContainText("Fair Value");
+    // The old label promised a target somebody else had published.
+    await expect(card).not.toContainText(/buy below/i);
   });
 });
 

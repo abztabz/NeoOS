@@ -305,6 +305,22 @@ export const assetHoldingSchema = z.object({
   encumberedBy: z.string().max(64).nullable(),
   /** True where the subject cannot sell — vesting, lock-up, legal restriction. */
   restricted: z.boolean(),
+  /**
+   * The subject's share, 0–1. Optional and defaulting to whole ownership,
+   * because that is the ordinary case and forcing an answer on every holding
+   * would tax the many to serve the few.
+   *
+   * It matters where it matters: a family house held jointly is not wholly the
+   * subject's, and counting all of it inflates net worth by whatever the other
+   * owners hold.
+   */
+  ownershipPercent: z.number().min(0).max(1).nullable().optional(),
+  /**
+   * Reference to a professional valuation — a file name, a firm and date, a
+   * document id. Recorded so an appraisal basis can be checked rather than
+   * taken on trust; NeoOS stores the reference, not the document.
+   */
+  appraisalReference: z.string().max(300).nullable().optional(),
   notes: z.string().max(1000).nullable(),
 });
 export type AssetHolding = z.infer<typeof assetHoldingSchema>;
