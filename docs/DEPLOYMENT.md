@@ -61,6 +61,7 @@ and are always wired. What they need is an outbound socket. See
 | `NEOOS_EGRESS_BLOCKED` | Free | Declaring a restricted environment | Egress is assumed available and providers report their own failures |
 | `NEOOS_NETWORK_ENV` | Free | Overriding environment detection | Inferred from `CI`, `VERCEL_ENV`, then `NODE_ENV` |
 | `DATABASE_URL` | Free tier available | Durable storage | Reports and journal live in server memory and are lost on recycle |
+| `DATABASE_CA_CERT` | Free | Verifying the database's certificate | TLS falls back to whatever `sslmode` asks for; `no-verify` encrypts without authenticating the server |
 | `REPORT_SIGNING_PRIVATE_KEY` | Free | Report signing | Reports are stored unsigned and cannot be verified later |
 | `REPORT_SIGNING_KEY_ID` | Free | Display only | Derived from the key itself |
 | `CRON_SECRET` | Free | Scheduled runs | `/api/cron/daily` returns 503 |
@@ -147,6 +148,27 @@ On Supabase the two poolers are the same host on different ports:
 When it does fail, the operator API now says so: `/api/intake` returns 503 with
 the driver's message and the remedy, rather than a bare 500. See
 `src/server/api/storage-error.ts`.
+
+### TLS
+
+Managed providers sign with their own certificate authority, which Node does not
+trust by default. First connection therefore fails with *"self-signed certificate
+in certificate chain"*, and there are three configurations rather than two:
+
+| Configuration | Encrypted | Server authenticated |
+|---|---|---|
+| `sslmode=require`, no CA | — handshake fails | — |
+| `sslmode=no-verify` | Yes | **No** |
+| `DATABASE_CA_CERT` set to the provider's CA | Yes | **Yes** |
+
+`no-verify` is the common answer and it is a genuine, if small, weakening: traffic
+stays encrypted, but anything answering on that host is accepted. Setting
+`DATABASE_CA_CERT` to the provider's PEM certificate costs one environment
+variable and removes a machine-in-the-middle from the threat model. A CA
+certificate is public by design, so it is configuration rather than a secret.
+
+A supplied CA overrides whatever `sslmode` asked for — an operator who pinned the
+authority meant it.
 
 The schema is created on first use (`migrate()` runs on every cold start and is
 idempotent). It is defined in `src/server/persistence/schema.sql` and is

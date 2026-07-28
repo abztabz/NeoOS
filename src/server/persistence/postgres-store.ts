@@ -39,6 +39,36 @@ const DEFAULT_POOL: Partial<PoolConfig> = {
   connectionTimeoutMillis: 8_000,
 };
 
+/**
+ * TLS for a managed database, done properly where possible.
+ *
+ * Managed providers terminate TLS with their own certificate authority, which
+ * is not in Node's default trust store. That leaves three configurations, and
+ * they are not equally good:
+ *
+ *   1. `sslmode=require` with no CA — encrypted, and the handshake fails with
+ *      "self-signed certificate in certificate chain" because there is nothing
+ *      to verify against.
+ *   2. `sslmode=no-verify` — encrypted, server unauthenticated. Works
+ *      everywhere and accepts whatever answers on that host. It is the common
+ *      configuration and it is a genuine, if small, weakening.
+ *   3. `DATABASE_CA_CERT` set to the provider's CA — encrypted *and* verified.
+ *      The only one of the three that authenticates the database.
+ *
+ * Supplying the CA is what this function enables. It costs one environment
+ * variable and removes a machine-in-the-middle from the threat model, so it is
+ * worth the paste even though option 2 is quicker.
+ */
+export function sslConfigFrom(caCertificate: string | null): PoolConfig["ssl"] {
+  if (caCertificate === null || caCertificate.trim().length === 0) return undefined;
+  return {
+    ca: caCertificate,
+    // Explicit rather than implied. The whole point of supplying a CA is that
+    // the chain is checked against it.
+    rejectUnauthorized: true,
+  };
+}
+
 export class PostgresReportStore implements ReportStore, IntakeStore {
   private readonly pool: Pool;
   private migrated = false;
@@ -47,12 +77,15 @@ export class PostgresReportStore implements ReportStore, IntakeStore {
     connectionString: string,
     private readonly migrationSql: string,
     poolOverrides: Partial<PoolConfig> = {},
+    caCertificate: string | null = null,
   ) {
+    const ssl = sslConfigFrom(caCertificate);
     this.pool = new Pool({
       connectionString,
-      // Managed providers terminate TLS with their own chain; verification is
-      // handled by the connection string's sslmode rather than disabled here.
       ...DEFAULT_POOL,
+      // A supplied CA wins over whatever the connection string asked for: an
+      // operator who went to the trouble of pinning the authority meant it.
+      ...(ssl ? { ssl } : {}),
       ...poolOverrides,
     });
   }

@@ -27,7 +27,9 @@ describe("naming known database faults", () => {
   });
 
   it("recognises bad credentials without echoing them", () => {
-    const failure = describeStorageFailure(pgError("28P01", "password authentication failed for user postgres"));
+    const failure = describeStorageFailure(
+      pgError("28P01", "password authentication failed for user postgres"),
+    );
     expect(failure.message).toContain("refused the credentials");
     expect(failure.message).not.toContain("postgres");
     expect(failure.remedy).toContain("redeploy");
@@ -43,7 +45,7 @@ describe("the transaction-pooler case", () => {
   // mode accepts SELECT 1 and rejects the migration's dollar-quoted PL/pgSQL,
   // so health reports the database reachable while every real query fails.
   const poolerErrors = [
-    "prepared statement \"s1\" does not exist",
+    'prepared statement "s1" does not exist',
     "unsupported startup parameter: options",
     "cannot insert multiple commands into a prepared statement",
     "server closed the connection unexpectedly",
@@ -57,6 +59,35 @@ describe("the transaction-pooler case", () => {
       expect(failure.remedy).toContain("6543");
     });
   }
+});
+
+describe("the TLS chain case", () => {
+  // What a managed provider produces on first connection. Both ways out are
+  // named because they are not equivalent, and the operator should pick
+  // knowingly rather than take the first answer a search offers.
+  const tlsErrors = [
+    "self-signed certificate in certificate chain",
+    "unable to verify the first certificate",
+    "unable to get local issuer certificate",
+  ];
+
+  for (const message of tlsErrors) {
+    it(`explains "${message.slice(0, 30)}…" and names both remedies`, () => {
+      const failure = describeStorageFailure(new Error(message));
+      expect(failure.message).toContain("could not be verified");
+      expect(failure.remedy).toContain("DATABASE_CA_CERT");
+      expect(failure.remedy).toContain("no-verify");
+      // The verified option is presented first, because it is the better one.
+      expect(failure.remedy!.indexOf("DATABASE_CA_CERT")).toBeLessThan(
+        failure.remedy!.indexOf("no-verify"),
+      );
+    });
+  }
+
+  it("does not mistake a TLS failure for a pooler failure", () => {
+    const failure = describeStorageFailure(new Error("self-signed certificate in certificate chain"));
+    expect(failure.remedy).not.toContain("session pooler");
+  });
 });
 
 describe("faults it cannot interpret", () => {

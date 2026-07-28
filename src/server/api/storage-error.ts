@@ -84,6 +84,24 @@ export function describeStorageFailure(error: unknown): StorageFailure {
   if (known) return { message: known.message, remedy: known.remedy, code };
 
   const lower = raw.toLowerCase();
+
+  // TLS chain failures deserve their own answer, because the two ways out are
+  // not equivalent and the operator should choose knowingly rather than reach
+  // for whichever one a search result offers first.
+  if (
+    lower.includes("self-signed certificate") ||
+    lower.includes("self signed certificate") ||
+    lower.includes("unable to verify the first certificate") ||
+    lower.includes("unable to get local issuer certificate")
+  ) {
+    return {
+      message: `The database's TLS certificate could not be verified: ${raw}`,
+      remedy:
+        "Managed providers sign with their own certificate authority, which Node does not trust by default. Best: set DATABASE_CA_CERT to the provider's CA certificate, which keeps the connection both encrypted and verified. Quicker: change sslmode=require to sslmode=no-verify in DATABASE_URL, which keeps the encryption but stops authenticating the server.",
+      code,
+    };
+  }
+
   if (POOLER_HINTS.some((hint) => lower.includes(hint))) {
     return { message: `The database rejected the request: ${raw}`, remedy: POOLER_REMEDY, code };
   }

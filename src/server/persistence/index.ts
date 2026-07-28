@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { databaseUrl } from "@/server/config/env";
+import { databaseCaCertificate, databaseUrl } from "@/server/config/env";
 import type { IntakeStore } from "@/server/persistence/intake-store";
 import { MemoryReportStore } from "@/server/persistence/memory-store";
 import { PostgresReportStore } from "@/server/persistence/postgres-store";
@@ -37,7 +37,9 @@ function getStore(): CombinedStore {
   const key = url ?? "memory";
   if (cached && cachedFor === key) return cached;
 
-  cached = url ? new PostgresReportStore(url, migrationSql()) : new MemoryReportStore();
+  cached = url
+    ? new PostgresReportStore(url, migrationSql(), {}, databaseCaCertificate())
+    : new MemoryReportStore();
   cachedFor = key;
   return cached;
 }

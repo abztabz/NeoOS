@@ -67,6 +67,21 @@ export function databaseUrl(): string | null {
   return optional("DATABASE_URL");
 }
 
+/**
+ * PEM certificate authority for the database's TLS certificate.
+ *
+ * Optional, and the difference between an encrypted connection and a verified
+ * one. Managed providers sign with their own CA, which Node does not trust by
+ * default; without this the choices are a failed handshake or
+ * `sslmode=no-verify`, which encrypts without authenticating the server.
+ *
+ * Not a secret — a CA certificate is public by design — but it lives here
+ * because it is configuration the server reads and the browser must never see.
+ */
+export function databaseCaCertificate(): string | null {
+  return optional("DATABASE_CA_CERT");
+}
+
 /** Base64url-encoded Ed25519 private key (PKCS#8). Server memory only. */
 export function signingPrivateKey(): string | null {
   return optional("REPORT_SIGNING_PRIVATE_KEY");

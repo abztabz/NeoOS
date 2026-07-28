@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { emptyProfile } from "@/domain/intake/types";
 import { profileIntegrityHash } from "@/server/persistence/intake-store";
-import { PostgresReportStore } from "@/server/persistence/postgres-store";
+import { PostgresReportStore, sslConfigFrom } from "@/server/persistence/postgres-store";
 import { PIPELINE_VERSION, REPORT_ENVELOPE_SCHEMA_VERSION, type ReportEnvelope } from "@/server/types/report-envelope";
 
 /**
@@ -398,5 +398,23 @@ suite("PostgresReportStore against a real database", () => {
                '2.0.0', '4.0.0', '{"not":"an envelope"}'::jsonb)`,
     );
     await expect(store.getReport("report-corrupt")).rejects.toThrow(/envelope schema/i);
+  });
+});
+
+describe("TLS configuration", () => {
+  it("verifies the chain when a CA is supplied", () => {
+    const ssl = sslConfigFrom("-----BEGIN CERTIFICATE-----\nMII...\n-----END CERTIFICATE-----");
+    expect(ssl).toEqual({
+      ca: "-----BEGIN CERTIFICATE-----\nMII...\n-----END CERTIFICATE-----",
+      rejectUnauthorized: true,
+    });
+  });
+
+  it("defers to the connection string when no CA is supplied", () => {
+    // Returning undefined rather than a permissive object matters: it leaves
+    // sslmode in charge instead of silently overriding it.
+    expect(sslConfigFrom(null)).toBeUndefined();
+    expect(sslConfigFrom("")).toBeUndefined();
+    expect(sslConfigFrom("   ")).toBeUndefined();
   });
 });
