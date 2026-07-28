@@ -133,33 +133,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS intake_profiles_supersedes_idx
 -- codebase. It does not stop a determined operator, and nothing in a database
 -- the operator controls could.
 
--- Manually entered market observations.
---
--- The last rung of every source hierarchy, and for several asset classes the
--- only one: UAE and Nepal equities have no public structured feed, and a gold
--- spot reference is licensed. A system that refused manual evidence would have
--- nothing to say about most of this household's wealth.
---
--- Append-only like everything else, and for a sharper reason here. An operator
--- correcting yesterday's gold rate is stating a new fact about today, not
--- retracting the old one; the superseded figure is what makes it possible to
--- ask later whether the corrections were drifting in one direction.
---
--- `expires_at` is mandatory. A price somebody typed six months ago is not
--- evidence about today, and without an expiry nothing would ever say so.
-CREATE TABLE IF NOT EXISTS manual_observations (
-  observation_id TEXT PRIMARY KEY,
-  asset_id       TEXT        NOT NULL,
-  asset_class    TEXT        NOT NULL,
-  observed_at    TIMESTAMPTZ NOT NULL,
-  expires_at     TIMESTAMPTZ NOT NULL,
-  payload        JSONB       NOT NULL,
-  stored_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS manual_observations_asset_idx
-  ON manual_observations (asset_id, observed_at DESC);
-
 CREATE OR REPLACE FUNCTION neoos_append_only() RETURNS trigger AS $$
 BEGIN
   RAISE EXCEPTION
@@ -173,7 +146,7 @@ DO $$
 DECLARE
   t TEXT;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['reports','journal_entries','decisions','outcomes','intake_profiles','manual_observations'] LOOP
+  FOREACH t IN ARRAY ARRAY['reports','journal_entries','decisions','outcomes','intake_profiles'] LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS %I ON %I', t || '_append_only', t);
     -- FOR EACH STATEMENT, not FOR EACH ROW: a row-level trigger never fires when
     -- the statement matches nothing, so `DELETE FROM reports` against an empty

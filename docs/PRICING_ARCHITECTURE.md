@@ -138,37 +138,8 @@ not the number.
 - Every reference carries `GOLD_REFERENCE_EXCLUSIONS`: making charges, premiums,
   taxes and dealer spreads. On jewellery that gap can swamp any market move.
 
-With no gold provider configured and nothing entered, the board shows **no
-number at all** and states the production wording above.
-
-### Manual gold entry
-
-The rung that actually reaches gold today. The LBMA reference restricts
-automated redistribution, no free spot source has terms NeoOS can confirm, and
-scraping a rendered page is out — so the operator enters the rate.
-
-| Piece | File |
-|---|---|
-| Entry ↔ stored row, expiry | `src/server/providers/market/manual-store.ts` |
-| Append-only table | `manual_observations` in `schema.sql` |
-| Submit and list | `/api/manual-observations` (operator-authenticated) |
-| Entry form | `src/components/neoos/GoldRateEntry.tsx` |
-
-- **The citation and the date are required fields.** A price with neither is a
-  rumour, and a rumour rendered in the same font as a quote is worse than a
-  blank.
-- **"Checked against the primary source" defaults to no,** and no is displayed
-  rather than corrected. A default of yes would collect an assurance nobody gave.
-- **Entries expire after seven days** by default. Gold moves several percent in a
-  week and this household holds enough that a fortnight-old figure would misstate
-  its wealth. A shorter life can be set; a longer one has to be stated.
-- **An expired entry makes the board unavailable rather than stale.** Silence
-  would be worse — the operator would not know to re-enter it.
-- **The entry values the gold but cannot issue a Buy.** `canUsePriceForDecision`
-  rejects `manual`, so the figure tells the household what it holds and never
-  what to do about it.
-- The stored row is kept after expiry. Dropping it at the storage boundary would
-  erase the record that a figure was entered and allowed to lapse.
+With no gold provider configured the board shows **no number at all** and states
+the production wording above.
 
 ## Property and unitemized holdings
 

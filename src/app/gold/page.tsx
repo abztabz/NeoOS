@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
-
 import { ReportGate } from "@/data/portfolio-mode";
 import { SectionCard } from "@/components/neoos/SectionCard";
 import { UaeGoldBoard } from "@/components/neoos/UaeGoldBoard";
-import { GoldRateEntry } from "@/components/neoos/GoldRateEntry";
 import { RatingPill } from "@/components/neoos/RatingPill";
 import { Bar } from "@/components/neoos/Bar";
 import { useReport } from "@/data/report-store";
@@ -14,9 +11,6 @@ import { provenanceLabel, valuationProvenance } from "@/domain/provenance";
 import { formatRange } from "@/lib/format";
 
 export default function GoldPage() {
-  // Bumped after an entry is recorded so the board refetches and the operator
-  // sees their own rate rather than the state before it.
-  const [boardKey, setBoardKey] = useState(0);
   const { report, engine } = useReport();
   const gold = goldView(report);
   const goldFallback = isDemoFallback(report, gold);
@@ -30,9 +24,8 @@ export default function GoldPage() {
         market and about the household's own metal; it does not become
         unavailable because no analysed report has been generated yet.
       */}
-      <div className="mb-3.5 grid gap-3.5 lg:grid-cols-[1.2fr_.8fr]">
-        <UaeGoldBoard key={boardKey} />
-        <GoldRateEntry onSaved={() => setBoardKey((n) => n + 1)} />
+      <div className="mb-3.5">
+        <UaeGoldBoard />
       </div>
 
       <ReportGate>

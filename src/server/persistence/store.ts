@@ -47,23 +47,6 @@ export interface DecisionRecord {
   payload: unknown;
 }
 
-/**
- * A market observation the operator typed in.
- *
- * Stored with its own expiry because the alternative — a manual figure that
- * never goes stale — is how a price somebody entered six months ago ends up
- * sizing a position today. The full entry lives in `payload`; the columns are
- * the ones a query needs to find the newest live entry for an asset.
- */
-export interface ManualObservationRecord {
-  observationId: string;
-  assetId: string;
-  assetClass: string;
-  observedAt: string;
-  expiresAt: string;
-  payload: unknown;
-}
-
 export interface OutcomeRecord {
   outcomeId: string;
   decisionId: string;
@@ -99,11 +82,6 @@ export interface ReportStore {
 
   saveDecision(decision: DecisionRecord): Promise<void>;
   listDecisions(limit: number): Promise<DecisionRecord[]>;
-
-  /** Append a manual observation. Re-writing an id is a no-op, never an edit. */
-  saveManualObservation(observation: ManualObservationRecord): Promise<void>;
-  /** Newest first. Expiry is applied by the caller, so the audit trail keeps expired rows. */
-  listManualObservations(limit: number): Promise<ManualObservationRecord[]>;
 
   saveOutcome(outcome: OutcomeRecord): Promise<void>;
   listOutcomes(limit: number): Promise<OutcomeRecord[]>;
