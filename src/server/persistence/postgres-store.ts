@@ -9,6 +9,7 @@ import {
 import { reportEnvelopeSchema, type ReportEnvelope } from "@/server/types/report-envelope";
 import type {
   DecisionRecord,
+  ManualObservationRecord,
   JournalRecord,
   OutcomeRecord,
   ReportStore,
@@ -240,6 +241,34 @@ export class PostgresReportStore implements ReportStore, IntakeStore {
     return rows.map(toDecision);
   }
 
+  async saveManualObservation(observation: ManualObservationRecord): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO manual_observations
+         (observation_id, asset_id, asset_class, observed_at, expires_at, payload)
+       VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (observation_id) DO NOTHING`,
+      [
+        observation.observationId,
+        observation.assetId,
+        observation.assetClass,
+        observation.observedAt,
+        observation.expiresAt,
+        JSON.stringify(observation.payload),
+      ],
+    );
+  }
+
+  async listManualObservations(limit: number): Promise<ManualObservationRecord[]> {
+    // Expired rows are returned, not filtered here. Expiry is a display and
+    // decision concern; dropping them at the storage boundary would erase the
+    // record that a figure was once entered and allowed to lapse.
+    const { rows } = await this.pool.query<ManualObservationRow>(
+      `SELECT observation_id, asset_id, asset_class, observed_at, expires_at, payload
+         FROM manual_observations ORDER BY observed_at DESC LIMIT $1`,
+      [limit],
+    );
+    return rows.map(toManualObservation);
+  }
+
   async saveOutcome(outcome: OutcomeRecord): Promise<void> {
     await this.pool.query(
       `INSERT INTO outcomes (outcome_id, decision_id, reviewed_at, payload)
@@ -400,6 +429,14 @@ interface DecisionRow extends QueryResultRow {
   kind: string;
   payload: unknown;
 }
+interface ManualObservationRow extends QueryResultRow {
+  observation_id: string;
+  asset_id: string;
+  asset_class: string;
+  observed_at: string;
+  expires_at: string;
+  payload: unknown;
+}
 interface OutcomeRow extends QueryResultRow {
   outcome_id: string;
   decision_id: string;
@@ -449,6 +486,17 @@ function toDecision(r: DecisionRow): DecisionRecord {
     assetId: r.asset_id,
     recordedAt: new Date(r.recorded_at).toISOString(),
     kind: r.kind,
+    payload: r.payload,
+  };
+}
+
+function toManualObservation(r: ManualObservationRow): ManualObservationRecord {
+  return {
+    observationId: r.observation_id,
+    assetId: r.asset_id,
+    assetClass: r.asset_class,
+    observedAt: new Date(r.observed_at).toISOString(),
+    expiresAt: new Date(r.expires_at).toISOString(),
     payload: r.payload,
   };
 }

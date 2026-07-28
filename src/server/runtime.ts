@@ -21,6 +21,9 @@ import { describeMarketCapability, type MarketCapabilityReport } from "@/server/
 import { LicensedMarketDataProvider } from "@/server/providers/market/licensed";
 import { EcbFxProvider } from "@/server/providers/market/official/ecb-fx";
 import { TreasuryYieldProvider } from "@/server/providers/market/official/treasury-yields";
+import { ManualEvidenceProvider } from "@/server/providers/market/manual";
+import { liveEntries, toEntries } from "@/server/providers/market/manual-store";
+import { getReportStore } from "@/server/persistence";
 import { loadPrivateKey, publicKeyFromPrivate } from "@/server/signing/sign";
 import type { AssetContext } from "@/server/orchestration/assess";
 import type { ExecutionContext } from "@/server/types/execution-context";
@@ -121,6 +124,41 @@ export function readiness(): Readiness {
  * the reason. A provider that vanishes when the network is down cannot explain
  * why the network being down is not a licensing problem.
  */
+/**
+ * The retrieval providers plus whatever the operator has typed in.
+ *
+ * Separate from `buildMarketProviders()` because reading stored entries is
+ * asynchronous and `readiness()` is not. Splitting them keeps the health
+ * endpoint synchronous and cheap while letting a request that actually needs a
+ * price consult the manual rung.
+ *
+ * Manual entries are loaded live rather than cached: an operator who has just
+ * entered today's gold rate expects the next page load to use it, and a cache
+ * that made them wait would teach them the entry had not worked.
+ */
+export async function marketProvidersWithManualEntries(
+  now: Date = new Date(),
+): Promise<MarketDataProvider[]> {
+  const providers = buildMarketProviders();
+
+  try {
+    const store = getReportStore();
+    await store.migrate();
+    const records = await store.listManualObservations(200);
+    // Expired entries are dropped here, not in storage. The row stays as the
+    // record that a figure was entered and allowed to lapse.
+    const entries = liveEntries(toEntries(records), now);
+    providers.push(new ManualEvidenceProvider({ entries, now: () => now.getTime() }));
+  } catch {
+    // Storage being unreachable must not remove the retrieval providers. A
+    // failure to read manual entries means there are none to add, which the
+    // resolver already reports honestly as no coverage from that rung.
+    providers.push(new ManualEvidenceProvider({ entries: [], now: () => now.getTime() }));
+  }
+
+  return providers;
+}
+
 export function buildMarketProviders(): MarketDataProvider[] {
   const blocked = egressBlockedReason();
   const providers: MarketDataProvider[] = [

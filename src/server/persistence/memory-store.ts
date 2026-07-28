@@ -6,6 +6,7 @@ import {
 } from "@/server/persistence/intake-store";
 import type {
   DecisionRecord,
+  ManualObservationRecord,
   JournalRecord,
   OutcomeRecord,
   ReportStore,
@@ -31,6 +32,7 @@ export class MemoryReportStore implements ReportStore, IntakeStore {
   private order: string[] = [];
   private journal: JournalRecord[] = [];
   private decisions: DecisionRecord[] = [];
+  private readonly manualObservations: ManualObservationRecord[] = [];
   private outcomes: OutcomeRecord[] = [];
   /** Newest first, matching the order the Postgres queries return. */
   private profiles: IntakeProfile[] = [];
@@ -98,6 +100,17 @@ export class MemoryReportStore implements ReportStore, IntakeStore {
 
   async listDecisions(limit: number): Promise<DecisionRecord[]> {
     return this.decisions.slice(0, limit);
+  }
+
+  async saveManualObservation(observation: ManualObservationRecord): Promise<void> {
+    // Same append-only contract as the durable store: an id already present is
+    // a no-op, never an overwrite.
+    if (this.manualObservations.some((o) => o.observationId === observation.observationId)) return;
+    this.manualObservations.unshift(observation);
+  }
+
+  async listManualObservations(limit: number): Promise<ManualObservationRecord[]> {
+    return this.manualObservations.slice(0, limit);
   }
 
   async saveOutcome(outcome: OutcomeRecord): Promise<void> {

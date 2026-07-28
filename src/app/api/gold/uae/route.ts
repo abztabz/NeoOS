@@ -1,5 +1,5 @@
 import { buildUaeGoldBoard } from "@/server/gold/uae-gold-service";
-import { buildMarketProviders } from "@/server/runtime";
+import { marketProvidersWithManualEntries } from "@/server/runtime";
 import { unhandled } from "@/server/api/storage-error";
 
 export const runtime = "nodejs";
@@ -21,7 +21,7 @@ export const maxDuration = 30;
 export async function GET() {
   try {
     const board = await buildUaeGoldBoard({
-      providers: buildMarketProviders(),
+      providers: await marketProvidersWithManualEntries(),
       now: new Date(),
       // NeoOS publishes no gold Good Buy discipline per gram yet. Passing null
       // means the board omits the row rather than inventing a level.
