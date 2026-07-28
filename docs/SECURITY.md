@@ -54,6 +54,17 @@ and never a stack trace or configuration detail.
 operator token authorises that plus the write endpoints. A cron secret reaching an
 operator endpoint is rejected — verified against a running server.
 
+**Which surfaces are public.** `/api/health` and `/api/gold/uae` are open. Health
+carries booleans and provider ids, never a credential value. The gold board is a
+reference price for a metal, which is a public fact and not a statement about
+anybody's holdings.
+
+`/api/pricing/quote` is operator-authenticated even though a share price is also
+public, because the *question* is not: the list of instruments somebody asks
+about is itself a statement about what they own. Its response carries provider
+ids and outcomes so a reader can see which sources were consulted, and never an
+endpoint, a URL or a key.
+
 **Rate limiting.** Per-instance and honestly documented as such: it resets on cold
 start and does not coordinate across instances. It stops an accidental loop, not a
 determined attacker. Real rate limiting belongs at the edge.
@@ -87,6 +98,7 @@ source kinds with stated reasons, not merely unimplemented ones.
 | Report id in a path | Regex-validated before touching storage, on top of parameterised queries |
 | Stored rows | Re-validated on read; storage is untrusted input |
 | Prices | Rejected if zero, negative, NaN, currency-less, timestamp-less, or moved implausibly in one step |
+| Instrument descriptions | Zod-validated; no caller-supplied identity — `resolveIdentity` derives it, so an ambiguous symbol cannot be asserted as verified |
 
 The price guards matter more than they look. A malfunctioning feed is more
 dangerous than a missing one: it produces a plausible margin of safety from a

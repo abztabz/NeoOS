@@ -72,6 +72,42 @@ silently, so the evidence view can never attribute a price to a source that did
 not return it. Falling back means trying another *source*, never another
 *number*.
 
+## How it is wired
+
+The service is reachable, not merely tested.
+
+| Piece | File |
+|---|---|
+| Registry — which providers this deployment has | `src/server/pricing/registry.ts` |
+| Bridge from the older evidence adapter | `src/server/pricing/licensed-provider.ts` |
+| Operator-authenticated quote endpoint | `src/app/api/pricing/quote/route.ts` |
+| Capability on `/api/health` | `pricing` key |
+
+A provider is constructed **only** when its credentials are present. An
+unconfigured provider left in the fallback order would consume a rung and fail
+every request, which reads to an operator as an outage rather than as a missing
+subscription.
+
+`LicensedPricingProvider` translates the pre-existing `MarketDataAdapter` rather
+than duplicating the vendor client. Two clients both claiming to be "the price
+from the vendor" would eventually disagree about a guard.
+
+Two details in that bridge are load-bearing:
+
+- **Unstated timeliness becomes `stale`,** not "probably fine". A feed that will
+  not say how old its quotes are cannot support a Buy.
+- **The vendor lookup key is `providerMappings[providerId]`,** never the
+  canonical instrument id. The adapter holds its own `assetId → vendor symbol`
+  table, so passing the canonical id makes every request report
+  `unsupported_symbol` — which reads as "the vendor does not cover this asset"
+  when the truth is that nobody told the adapter what to call it.
+
+`/api/pricing/quote` is operator-authenticated, unlike `/api/gold/uae`. A gold
+reference is a public fact about a metal; the list of instruments somebody asks
+about is itself a statement about what they own. The route takes no `id` — the
+identity is derived by `resolveIdentity`, so a caller cannot assert an identity
+the resolver never agreed to.
+
 ## What the deployment may claim
 
 `describeCapability()` returns, when no provider is registered, exactly:

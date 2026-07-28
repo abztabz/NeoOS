@@ -1,6 +1,7 @@
 import { getReportStore } from "@/server/persistence";
 import { buildLiveAdapters, buildMarketProviders, readiness, signingMaterial } from "@/server/runtime";
 import { freelyCoveredAssetClasses, unsupportedAssetClasses } from "@/server/providers/market/hierarchy";
+import { pricingService } from "@/server/pricing/registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,6 +78,10 @@ export async function GET() {
         freelyCovered: freelyCoveredAssetClasses(),
         unsupported: unsupportedAssetClasses(),
       },
+      // What this deployment may honestly claim about the prices it displays.
+      // Booleans and provider ids only: whether a credential exists is
+      // operational fact, what it is never leaves the server.
+      pricing: pricingService().describeCapability(),
       signing: { configured: keys.privateKey !== null, keyId: keys.keyId },
       storage: storeHealth,
       providers,
