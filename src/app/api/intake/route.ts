@@ -5,6 +5,7 @@ import { calculateProfile } from "@/domain/profile/calculations";
 import { assessPersonalisation } from "@/domain/profile/personalisation";
 import { computePositionTrends } from "@/domain/trends/position-history";
 import { authorizeOperator, denied, rateLimit } from "@/server/api/auth";
+import { storageFailed } from "@/server/api/storage-error";
 import { getIntakeStore } from "@/server/persistence";
 
 export const runtime = "nodejs";
@@ -35,12 +36,20 @@ export async function GET(request: Request) {
   if (!auth.ok) return denied(auth);
 
   const store = getIntakeStore();
-  // Every route migrates. The schema is created on first use and the call is
-  // idempotent, so a cold start against a fresh database works rather than
-  // failing with an undefined table.
-  await store.migrate();
-  const profile = await store.getCurrentProfile(SOLE_SUBJECT_ID);
-  const history = await store.listProfileHistory(SOLE_SUBJECT_ID, 50);
+  let profile: IntakeProfile | null;
+  let history: Awaited<ReturnType<typeof store.listProfileHistory>>;
+  try {
+    // Every route migrates. The schema is created on first use and the call is
+    // idempotent, so a cold start against a fresh database works rather than
+    // failing with an undefined table.
+    await store.migrate();
+    profile = await store.getCurrentProfile(SOLE_SUBJECT_ID);
+    history = await store.listProfileHistory(SOLE_SUBJECT_ID, 50);
+  } catch (error) {
+    // The caller is the operator, and the operator is the only person who can
+    // fix a database fault. A bare 500 tells them nothing they can act on.
+    return storageFailed(error);
+  }
 
   if (profile === null) {
     return Response.json(
@@ -105,8 +114,13 @@ export async function POST(request: Request) {
   }
 
   const store = getIntakeStore();
-  await store.migrate();
-  const current = await store.getCurrentProfile(SOLE_SUBJECT_ID);
+  let current: IntakeProfile | null;
+  try {
+    await store.migrate();
+    current = await store.getCurrentProfile(SOLE_SUBJECT_ID);
+  } catch (error) {
+    return storageFailed(error);
+  }
 
   const profile: IntakeProfile = {
     schemaVersion: INTAKE_SCHEMA_VERSION,
@@ -119,7 +133,12 @@ export async function POST(request: Request) {
     ...parsed.data,
   };
 
-  const result = await store.saveProfile(profile);
+  let result: Awaited<ReturnType<typeof store.saveProfile>>;
+  try {
+    result = await store.saveProfile(profile);
+  } catch (error) {
+    return storageFailed(error);
+  }
   if (!result.stored) {
     return Response.json({ error: result.reason }, { status: 409 });
   }

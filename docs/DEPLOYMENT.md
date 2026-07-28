@@ -125,8 +125,28 @@ string on serverless hosts; a direct connection exhausts the database's
 connection limit under load.
 
 ```
-DATABASE_URL=postgresql://user:password@host:6543/postgres?sslmode=require
+DATABASE_URL=postgresql://user:password@host:5432/postgres?sslmode=require
 ```
+
+**Use a session-mode pooler, not a transaction-mode one.** This matters and the
+failure it causes is genuinely confusing:
+
+`migrate()` creates a PL/pgSQL function and two `DO $$…$$` blocks that install
+the append-only triggers. A pooler in **transaction mode** cannot carry
+dollar-quoted multi-statement DDL, but it handles `SELECT 1` perfectly well — so
+`GET /api/health` reports the database as reachable while every real query
+fails. Two contradictory-looking facts, both true.
+
+On Supabase the two poolers are the same host on different ports:
+
+| Port | Mode | Works |
+|---|---|---|
+| 5432 | Session | Yes — use this |
+| 6543 | Transaction | Health checks only; migration fails |
+
+When it does fail, the operator API now says so: `/api/intake` returns 503 with
+the driver's message and the remedy, rather than a bare 500. See
+`src/server/api/storage-error.ts`.
 
 The schema is created on first use (`migrate()` runs on every cold start and is
 idempotent). It is defined in `src/server/persistence/schema.sql` and is

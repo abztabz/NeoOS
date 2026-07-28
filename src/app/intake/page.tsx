@@ -52,8 +52,18 @@ export default function IntakePage() {
         return;
       }
       if (!response.ok) {
-        const body = (await response.json().catch(() => ({}))) as { error?: string };
-        setError(body.error ?? `Could not load the profile (${response.status}).`);
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          remedy?: string | null;
+        };
+        // The remedy is shown with the fault rather than behind it. An operator
+        // reading "the database rejected the request" needs the next step in the
+        // same breath, not in a document they have to go and find.
+        setError(
+          [body.error ?? `Could not load the profile (${response.status}).`, body.remedy]
+            .filter(Boolean)
+            .join(" "),
+        );
         return;
       }
       const body = (await response.json()) as { profile: IntakeProfile | null };
