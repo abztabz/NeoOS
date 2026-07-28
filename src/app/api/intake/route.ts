@@ -1,11 +1,16 @@
 import { randomUUID } from "node:crypto";
-import { intakeProfileSchema, INTAKE_SCHEMA_VERSION, type IntakeProfile } from "@/domain/intake/types";
+import {
+  emptyProfile,
+  intakeProfileSchema,
+  INTAKE_SCHEMA_VERSION,
+  type IntakeProfile,
+} from "@/domain/intake/types";
 import { SOLE_SUBJECT_ID } from "@/domain/intake/subject";
 import { calculateProfile } from "@/domain/profile/calculations";
 import { assessPersonalisation } from "@/domain/profile/personalisation";
 import { computePositionTrends } from "@/domain/trends/position-history";
 import { authorizeOperator, denied, rateLimit } from "@/server/api/auth";
-import { storageFailed } from "@/server/api/storage-error";
+import { storageFailed, unhandled } from "@/server/api/storage-error";
 import { getIntakeStore } from "@/server/persistence";
 
 export const runtime = "nodejs";
@@ -65,38 +70,46 @@ export async function GET(request: Request) {
     return storageFailed(error);
   }
 
-  if (profile === null) {
+  try {
+    if (profile === null) {
+      return Response.json(
+        {
+          profile: null,
+          schemaVersion: INTAKE_SCHEMA_VERSION,
+          history,
+          // Stated rather than implied by an empty body. Nothing declared and
+          // nothing owned are different things.
+          personalisation: assessPersonalisation(emptyForAssessment()),
+          calculations: null,
+          trends: computePositionTrends([]),
+        },
+        { headers: { "cache-control": "no-store" } },
+      );
+    }
+
+    const calculations = calculateProfile(profile);
+    const stored = await Promise.all(
+      history.map(async (h) => store.getProfile(SOLE_SUBJECT_ID, h.profileId)),
+    );
+
     return Response.json(
       {
-        profile: null,
+        profile,
         schemaVersion: INTAKE_SCHEMA_VERSION,
         history,
-        // Stated rather than implied by an empty body. Nothing declared and
-        // nothing owned are different things.
-        personalisation: assessPersonalisation(emptyForAssessment()),
-        calculations: null,
-        trends: computePositionTrends([]),
+        calculations,
+        personalisation: assessPersonalisation(profile, calculations),
+        trends: computePositionTrends(
+          stored.filter((p): p is IntakeProfile => p !== null),
+        ),
       },
       { headers: { "cache-control": "no-store" } },
     );
+  } catch (error) {
+    // Reading the position is arithmetic over declared figures, so a throw here
+    // is a defect. Naming it beats a platform-generated 500 with no body.
+    return unhandled(error, "reading your position");
   }
-
-  const calculations = calculateProfile(profile);
-  const stored = await Promise.all(
-    history.map(async (h) => store.getProfile(SOLE_SUBJECT_ID, h.profileId)),
-  );
-
-  return Response.json(
-    {
-      profile,
-      schemaVersion: INTAKE_SCHEMA_VERSION,
-      history,
-      calculations,
-      personalisation: assessPersonalisation(profile, calculations),
-      trends: computePositionTrends(stored.filter((p): p is IntakeProfile => p !== null)),
-    },
-    { headers: { "cache-control": "no-store" } },
-  );
 }
 
 export async function POST(request: Request) {
@@ -105,14 +118,20 @@ export async function POST(request: Request) {
 
   const limit = rateLimit("intake:write", 120, 60 * 60 * 1000);
   if (!limit.allowed) {
-    return Response.json({ error: "Too many saves this hour." }, { status: 429 });
+    return Response.json(
+      { error: "Too many saves this hour." },
+      { status: 429 },
+    );
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "Request body is not valid JSON." }, { status: 400 });
+    return Response.json(
+      { error: "Request body is not valid JSON." },
+      { status: 400 },
+    );
   }
 
   const parsed = submissionSchema.safeParse(body);
@@ -121,7 +140,9 @@ export async function POST(request: Request) {
     return Response.json(
       {
         error: `Profile is invalid — ${issue?.path.join(".") || "root"}: ${issue?.message ?? "invalid"}.`,
-        issues: parsed.error.issues.slice(0, 20).map((i) => ({ path: i.path.join("."), message: i.message })),
+        issues: parsed.error.issues
+          .slice(0, 20)
+          .map((i) => ({ path: i.path.join("."), message: i.message })),
       },
       { status: 400 },
     );
@@ -170,44 +191,14 @@ export async function POST(request: Request) {
   );
 }
 
-/** An empty profile purely for reporting what is missing before anything exists. */
+/**
+ * An empty profile, purely for reporting what is missing before anything exists.
+ *
+ * Delegates to the canonical factory rather than rebuilding the shape here. The
+ * hand-written duplicate this replaces omitted `jurisdictionContext` when the
+ * schema gained it, so `parse()` threw on the one path that runs when nothing
+ * has been stored yet — the first request every new deployment makes.
+ */
 function emptyForAssessment(): IntakeProfile {
-  return intakeProfileSchema.parse({
-    schemaVersion: INTAKE_SCHEMA_VERSION,
-    subjectId: SOLE_SUBJECT_ID,
-    profileId: "none",
-    recordedAt: new Date().toISOString(),
-    supersedes: null,
-    incomeSources: [],
-    assets: [],
-    liabilities: [],
-    commitments: [],
-    futureObligations: [],
-    household: {
-      dependents: [],
-      monthlyObligations: null,
-      succession: { structure: "unknown", jurisdiction: null, reviewedRecently: null, knownTransferRisks: [], notes: null },
-      continuityContactExists: null,
-      notes: null,
-    },
-    objective: {
-      reserveMonths: null,
-      horizonYears: null,
-      creationVersusPreservation: null,
-      maxSingleAssetPercent: null,
-      maxDrawdownTolerancePercent: null,
-      baseCurrency: null,
-      exchangeRatesToBase: {},
-      excludedAssetKinds: [],
-      restrictions: [],
-      monthlyInvestable: null,
-      minimumLiquidHolding: null,
-      maxAssetKindPercent: null,
-      maxCurrencyPercent: null,
-      maxJurisdictionPercent: null,
-      statedRiskCapacity: null,
-      goals: [],
-      notes: null,
-    },
-  });
+  return emptyProfile(SOLE_SUBJECT_ID, "none", new Date().toISOString());
 }

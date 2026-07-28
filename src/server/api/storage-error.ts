@@ -145,3 +145,31 @@ export function storageFailed(error: unknown): Response {
     { status: 503, headers: { "cache-control": "no-store" } },
   );
 }
+
+/**
+ * Last resort for an operator route.
+ *
+ * Everything above handles a fault the code anticipated. This handles the ones
+ * it did not: a schema drift, a null dereference, a library throwing something
+ * new. Without it those surface as a platform-generated 500 with no body, and
+ * the interface can only say "(500)" — which is where this whole module
+ * started.
+ *
+ * It runs only behind operator authorisation, so returning the message is
+ * telling the operator about their own deployment. It still never echoes a
+ * connection string, a credential, or row data, because it only ever forwards
+ * the error's own text.
+ */
+export function unhandled(error: unknown, where: string): Response {
+  const message = error instanceof Error ? error.message : String(error);
+  return Response.json(
+    {
+      error: `NeoOS failed while ${where}: ${message}`,
+      remedy:
+        "This is a defect rather than a configuration problem. The message above names where it happened.",
+      code: null,
+      stored: false,
+    },
+    { status: 500, headers: { "cache-control": "no-store" } },
+  );
+}
