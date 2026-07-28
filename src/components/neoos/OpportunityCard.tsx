@@ -71,7 +71,10 @@ export function OpportunityCard({ opportunity }: { opportunity: ReportOpportunit
     <li
       data-testid="opportunity-card"
       data-decision={o.decision}
-      className="rounded-[14px] border border-[#222d36] bg-panel2 p-3.5"
+      // min-w-0 because a grid item defaults to min-width:auto, so the card's
+      // min-content width — a long source name, a six-figure currency string —
+      // otherwise widens the whole page rather than truncating inside the card.
+      className="min-w-0 rounded-[14px] border border-[#222d36] bg-panel2 p-3.5"
     >
       <div className="flex items-start justify-between gap-2.5">
         <div className="min-w-0">
@@ -91,7 +94,12 @@ export function OpportunityCard({ opportunity }: { opportunity: ReportOpportunit
         </em>
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      {/*
+        Three across wherever there is room. Below 360px there is not: three
+        currency figures and their labels overflow the viewport, and a price
+        card that forces horizontal scrolling is worse than a stacked one.
+      */}
+      <div className="mt-3 grid gap-2 min-[360px]:grid-cols-3">
         <PriceCell label="Current" value={o.currentPrice} currency={o.currency} />
         <PriceCell
           label="Good Buy Price"
@@ -111,7 +119,7 @@ export function OpportunityCard({ opportunity }: { opportunity: ReportOpportunit
         />
       </div>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
         <span
           data-testid="opportunity-status"
           className={`font-mono text-[9px] uppercase tracking-wider ${

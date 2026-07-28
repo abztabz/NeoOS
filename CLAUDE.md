@@ -86,7 +86,13 @@ Stop only for:
 - No generic fintech dashboard aesthetic.
 - iPhone is the primary acceptance viewport.
 - Never ship a blank shell, broken preview, or JavaScript-only empty state.
-- Use server/static rendering for the initial cockpit so useful content is visible before hydration.
+- Use server/static rendering so useful content is visible before hydration.
+  This no longer means server-rendering the cockpit by default: whether the
+  worked example is open is a client decision, and the server must not paint
+  fixture holdings for a visitor who has not asked for them. What the server
+  paints before hydration is the navigation, the header, and either the
+  first-run choice or the no-analysis card — real content, and nothing about
+  anybody's money. Isolation wins where the two rules meet.
 
 ## Approved visual baseline
 Use `reference/approved-visual-baseline-v2.html` as the baseline for hierarchy, proportions, and visual direction.

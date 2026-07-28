@@ -72,3 +72,26 @@ fixture holdings never appear in initial HTML.
 
 The E2E spec `e2e/demo-isolation.spec.ts` asserts that no fixture instrument
 name appears anywhere on the first screen. That test is the tripwire.
+
+## The pre-hydration trade-off
+
+NeoOS's build directive says to server-render the cockpit so useful content is
+visible before hydration. Isolation cuts across that, and isolation wins.
+
+Whether the worked example is open is a **client** decision — sessionStorage,
+with a server snapshot of `false` — so the server cannot know it. Rendering the
+fixture cockpit by default is precisely what put Apple in front of somebody who
+owns none of it.
+
+The guarantee underneath the rule survives intact: **never a blank shell.** The
+server still paints the header, the workspace navigation, and either the
+first-run choice or the no-analysis card. That is real content, and it says
+nothing about anybody's money.
+
+The lost guarantee was narrower than it looked. A real subject's position is
+fetched client-side behind the operator token and was never in the server HTML;
+the only thing that ever server-rendered was the fixture.
+
+`e2e/rendering.spec.ts` runs with JavaScript disabled, which is the true default
+HTML every visitor receives first, and asserts that no fixture instrument name
+appears in it.

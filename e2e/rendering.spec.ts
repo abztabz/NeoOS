@@ -1,36 +1,59 @@
 import { expect, test } from "./helpers";
 import { DEMO } from "./expected";
 
-const routes = ["/", "/markets", "/portfolio", "/gold", "/cash", "/timeline"];
+// `/capital` included deliberately: it carries the densest cards on the
+// narrowest viewport, and it was the one route the overflow loops missed.
+const routes = ["/", "/capital", "/markets", "/portfolio", "/gold", "/cash", "/timeline"];
 
+/**
+ * Pre-hydration rendering, after demo isolation.
+ *
+ * These tests used to assert that the demo cockpit — score, recommendation,
+ * posture, radar — was server-rendered before hydration. That guarantee was
+ * only ever about the *fixture* universe: a real subject's position is fetched
+ * client-side behind the operator token and was never in the server HTML.
+ *
+ * Isolation supersedes it. Whether the worked example is open is a client
+ * decision held in sessionStorage, so the server cannot know it, and rendering
+ * fixture holdings by default is exactly what put Apple in front of somebody
+ * who owns none. The rule that survives is the one that mattered underneath:
+ * **never a blank shell.** The server still paints real, honest content — the
+ * navigation, the header, and either the choice or the no-analysis card — and
+ * it paints nothing about anybody's money.
+ */
 test.describe("pre-hydration rendering", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("cockpit shows the deployment answer without JavaScript", async ({ page }) => {
+  test("the app is not a blank shell without JavaScript", async ({ page }) => {
     await page.goto("/capital");
-    // The primary decision is server-rendered: score, recommendation, posture.
-    await expect(page.getByTestId("deployment-score")).toHaveText(DEMO.deploymentPct);
-    await expect(page.locator("strong", { hasText: DEMO.recommendation }).first()).toBeVisible();
-    await expect(page.locator("strong", { hasText: DEMO.posture })).toBeVisible();
-    // Demo labeling is visible pre-hydration too.
-    await expect(page.getByTestId("mode-badge")).toBeVisible();
-    // Not a blank shell: the engine's radar content is present. The first item
-    // is engine-derived, so assert against it rather than a fixed headline.
-    await expect(page.getByText(DEMO.firstRadarTitle)).toBeVisible();
+    await expect(page.getByRole("banner")).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Workspaces" })).toBeVisible();
+    // Real content, not a spinner and not an empty main.
+    const main = await page.locator("main").innerText();
+    expect(main.trim().length).toBeGreaterThan(40);
   });
 
-  test("gauge is visible and not clipped without JavaScript", async ({ page }) => {
+  test("no fixture holding is server-rendered before the choice is made", async ({ page }) => {
     await page.goto("/capital");
-    const score = page.getByTestId("deployment-score");
-    await expect(score).toBeVisible();
-    const box = await score.boundingBox();
-    const viewport = page.viewportSize();
-    expect(box).not.toBeNull();
-    expect(viewport).not.toBeNull();
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width + 1);
-    // The gauge answers within the first viewport — no excessive scrolling.
-    expect(box!.y).toBeLessThan(viewport!.height);
+    const body = await page.locator("body").innerText();
+    // The load-bearing assertion. With JavaScript off the init script never
+    // runs, so this is the true default HTML every visitor receives first.
+    expect(body).not.toMatch(/apple/i);
+    expect(body).not.toMatch(/S&P 500/i);
+    expect(body).not.toContain(DEMO.deploymentPct);
+  });
+
+  test("the home screen server-renders the choice rather than a briefing", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("first-run")).toBeVisible();
+    await expect(page.getByTestId("create-portfolio")).toBeVisible();
+  });
+
+  test("a gated workspace explains itself rather than rendering empty", async ({ page }) => {
+    await page.goto("/capital");
+    const gate = page.getByTestId("analysis-unavailable").first();
+    await expect(gate).toBeVisible();
+    await expect(gate).toContainText(/analysed/i);
   });
 });
 

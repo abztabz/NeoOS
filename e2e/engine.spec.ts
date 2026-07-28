@@ -2,7 +2,9 @@ import { expect, test } from "./helpers";
 import path from "node:path";
 import { DEMO } from "./expected";
 
-const routes = ["/", "/markets", "/portfolio", "/gold", "/cash", "/timeline"];
+// `/capital` included deliberately: it carries the densest cards on the
+// narrowest viewport, and it was the one route the overflow loops missed.
+const routes = ["/", "/capital", "/markets", "/portfolio", "/gold", "/cash", "/timeline"];
 
 test.describe("data state and report metadata", () => {
   test("the header shows the data state and opens exact report metadata", async ({ page }) => {
