@@ -4,10 +4,10 @@ import type { ObservationSourceClass } from "@/server/types/market-observation";
 /**
  * Source hierarchy — which source is preferred for which asset class, and why.
  *
- * The default order is: official primary, then licensed, then official
- * republished, then free or delayed, then verified secondary, then manual, then
- * unavailable. Several asset classes deviate, and every deviation states its
- * reason, because an unexplained reordering is indistinguishable from a mistake.
+ * The default order is: official primary, then official republished, then free
+ * delayed, then licensed, then verified secondary, then manual. Several asset
+ * classes deviate, and every deviation states its reason, because an unexplained
+ * reordering is indistinguishable from a mistake.
  *
  * `coverage` is the honest part. An asset class with `none` has no provider path
  * implemented, and NeoOS reports it as unsupported rather than degrading it
@@ -33,12 +33,31 @@ export interface AssetClassSourcePolicy {
   reason: string;
 }
 
-/** The default order, stated once so deviations are visible as deviations. */
+/**
+ * The default order, stated once so deviations are visible as deviations.
+ *
+ * **Free delayed sources outrank licensed ones.** That looks backwards until you
+ * remember what NeoOS is for: it answers "should capital be deployed today, and
+ * how aggressively" on a daily-to-strategic horizon. A quote fifteen minutes old
+ * and a quote fifteen seconds old produce the same posture, so paying for the
+ * second one buys nothing this product uses.
+ *
+ * Latency is not free of cost either. A licensed feed carries redistribution
+ * terms and a bill; a free delayed one usually carries neither. Preferring the
+ * expensive rung by default would have NeoOS spending money to answer a question
+ * that did not need the money spent.
+ *
+ * The licensed rung stays in the order, below rather than absent, because an
+ * operator who *does* hold a subscription should still get the benefit of it for
+ * instruments the free sources do not cover. Where a genuinely intraday decision
+ * is being made, that is a horizon the caller declares — see `DecisionHorizon` —
+ * not something this ordering should decide on their behalf.
+ */
 export const DEFAULT_SOURCE_ORDER: ObservationSourceClass[] = [
   "official_primary",
-  "licensed_market_data",
   "official_republished",
   "free_delayed_provider",
+  "licensed_market_data",
   "verified_secondary",
   "manual_operator_entry",
 ];
@@ -49,7 +68,7 @@ export const ASSET_CLASS_SOURCE_POLICIES: AssetClassSourcePolicy[] = [
     order: DEFAULT_SOURCE_ORDER,
     coverage: "implemented_optional_paid",
     reason:
-      "SEC EDGAR supplies fundamentals free and is already wired, but it publishes no prices. A US equity price therefore comes from a licensed feed or a free delayed provider, neither of which ships configured by default. Fundamentals alone make the asset partial, not unpriced-and-unratable.",
+      "SEC EDGAR supplies fundamentals free and is already wired, but it publishes no prices. A US equity price therefore comes from a free delayed provider, or failing that a licensed feed; neither ships configured by default. Fundamentals alone make the asset partial, not unpriced-and-unratable.",
   },
   {
     assetClass: "us_listed_etf",
@@ -81,10 +100,10 @@ export const ASSET_CLASS_SOURCE_POLICIES: AssetClassSourcePolicy[] = [
   },
   {
     assetClass: "gold_spot",
-    order: ["official_primary", "licensed_market_data", "free_delayed_provider", "manual_operator_entry"],
+    order: ["official_primary", "free_delayed_provider", "licensed_market_data", "manual_operator_entry"],
     coverage: "implemented_optional_paid",
     reason:
-      "The LBMA price is the official primary reference and is published under terms that restrict automated redistribution. Spot therefore comes from a licensed feed or, failing that, manual entry with a citation. Spot is never satisfied by a futures quote — see GOLD_PRICE_BASIS.md.",
+      "The LBMA price is the official primary reference and is published under terms that restrict automated redistribution. A delayed spot reference is sufficient for a daily posture, so the free rung is preferred over a licensed feed; failing both, manual entry with a citation. Spot is never satisfied by a futures quote — see GOLD_PRICE_BASIS.md.",
   },
   {
     assetClass: "gold_futures",
