@@ -3,8 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+/**
+ * Morpheus first, then the six workspaces, then the position.
+ *
+ * The ordering is the product hierarchy made navigable. Morpheus is not one tab
+ * among eight — it is the first, and it is where the thread lives. The six
+ * workspaces keep their places and their names; they are supporting routes now
+ * rather than the spine of the product.
+ */
 const tabs = [
-  { href: "/", label: "Capital" },
+  { href: "/", label: "Morpheus" },
+  { href: "/capital", label: "Capital" },
   { href: "/markets", label: "Markets" },
   { href: "/portfolio", label: "Portfolio" },
   { href: "/gold", label: "Gold" },
@@ -43,7 +52,7 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Workspaces"
-      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-[#27323b] bg-[#070a0c]/[0.98] px-1 pt-1 pb-[max(env(safe-area-inset-bottom),4px)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-8 border-t border-[#27323b] bg-[#070a0c]/[0.98] px-0.5 pt-1 pb-[max(env(safe-area-inset-bottom),4px)] md:hidden"
     >
       {tabs.map((tab) => {
         const active = pathname === tab.href;
@@ -52,7 +61,7 @@ export function MobileNav() {
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg text-center font-mono text-[9px] uppercase tracking-wide ${
+            className={`flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg text-center font-mono text-[8px] uppercase tracking-tight ${
               active ? "font-bold text-cyan" : "text-[#77848e]"
             }`}
           >

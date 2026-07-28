@@ -232,3 +232,35 @@ throwaway Postgres, run `next start` with `DATABASE_URL` and
 `OPERATOR_API_TOKEN`, then exercise unauthenticated, wrong-token and
 authenticated requests, a save, and a correction — checking the supersedes chain
 and the drift trends that follow from it.
+
+---
+
+## Conversational-first coverage (added 2026-07-28)
+
+**Unit — `src/domain/morpheus/morpheus.test.ts` (31 tests).** Intent
+classification including the honest `unrecognised` outcome; refusal phrasing;
+determinism (same question, same words); the forbidden-vocabulary assertion that
+keeps "personalisation unavailable" and "blocking fields" out of every visible
+sentence; follow-up continuity; briefing shape; one-question-at-a-time gap
+ordering; voice helpers.
+
+The vocabulary assertion looks fussy and is the point. "Personalisation
+unavailable. Blocking fields: dependants" is a correct sentence and a product
+failure, and the only way to keep it out is to assert it stays out.
+
+**E2E — `e2e/morpheus.spec.ts`,** run on desktop and both iPhone viewports:
+Morpheus opens the app rather than a dashboard; the conclusion is above the fold
+and free of internal vocabulary; all six workspaces remain reachable; the Capital
+dashboard survives at `/capital`; typed and suggested questions produce answers;
+unrecognised questions are refused honestly; evidence is hidden until requested
+then shows provenance; the thread survives navigation *and* a hard reload; each
+workspace carries its own strip without replaying another workspace's
+conversation; the gap prompt shows exactly one question; guided intake asks one
+question at a time; no horizontal overflow at 320/390/430; the composer has an
+accessible name and a 44px target.
+
+**Repointed specs.** `gauge`, `import`, `import-v11`, `intelligence`, `engine`,
+`rendering`, `a11y` and one `axe` case now target `/capital`, because that is
+where the cockpit they test now lives. The mobile-nav count assertion moved from
+7 to 8 and gained a width floor — eight tabs on a 390px phone is genuinely tight,
+so it is asserted rather than assumed.

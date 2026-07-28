@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { SectionCard } from "@/components/neoos/SectionCard";
 import { IntakeForm } from "@/components/intake/IntakeForm";
+import { GuidedIntake } from "@/components/intake/GuidedIntake";
+import type { GuidedSession } from "@/domain/intake/guided";
 import { toSubmission, type IntakeSubmission } from "@/domain/intake/submission";
 import type { IntakeProfile } from "@/domain/intake/types";
 
@@ -32,6 +34,8 @@ export default function IntakePage() {
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [mode, setMode] = useState<"form" | "guided">("form");
+  const [guided, setGuided] = useState<GuidedSession | null>(null);
 
   const load = useCallback(async (operatorToken: string) => {
     setLoading(true);
@@ -153,5 +157,49 @@ export default function IntakePage() {
     );
   }
 
-  return <IntakeForm initial={initial} onSave={save} saving={saving} error={error} savedAt={savedAt} />;
+  // Two doors, one schema. The guided flow is offered first to somebody with
+  // nothing recorded, because a blank forty-field form is where people stop;
+  // anyone with a position already loaded goes straight to the form, because
+  // correcting one figure through eleven questions would be absurd.
+  if (mode === "guided") {
+    return (
+      <div className="mx-auto max-w-[680px]">
+        <GuidedIntake
+          onSwitchToForm={() => setMode("form")}
+          onComplete={(session) => {
+            setGuided(session);
+            setMode("form");
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-3">
+      {guided ? (
+        <p
+          data-testid="guided-handoff"
+          className="rounded-xl border border-cyan/25 bg-cyan/[0.04] px-3.5 py-3 text-[12px] leading-relaxed text-[#c8f3ff]"
+        >
+          I&apos;ve carried across what you told me. Holdings, debts and dependants are below —
+          those need entering row by row, because splitting an estimate into holdings you never
+          stated is exactly the guess I won&apos;t make.
+        </p>
+      ) : null}
+
+      {!guided && initial === null ? (
+        <button
+          type="button"
+          data-testid="start-guided"
+          onClick={() => setMode("guided")}
+          className="inline-flex min-h-11 w-fit items-center rounded-full border border-cyan/40 px-4 font-mono text-[10px] font-bold uppercase tracking-wider text-cyan transition-colors hover:bg-cyan/10"
+        >
+          Rather answer questions instead?
+        </button>
+      ) : null}
+
+      <IntakeForm initial={initial} onSave={save} saving={saving} error={error} savedAt={savedAt} />
+    </div>
+  );
 }

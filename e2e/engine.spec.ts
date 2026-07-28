@@ -6,7 +6,7 @@ const routes = ["/", "/markets", "/portfolio", "/gold", "/cash", "/timeline"];
 
 test.describe("data state and report metadata", () => {
   test("the header shows the data state and opens exact report metadata", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const badge = page.getByTestId("mode-badge");
     await expect(badge).toContainText(/demo/i);
 
@@ -23,7 +23,7 @@ test.describe("data state and report metadata", () => {
   });
 
   test("a stale report is labeled stale rather than shown as current", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     await page.getByRole("button", { name: "Data", exact: true }).click();
     const dialog = page.locator("dialog[open]", { hasText: "Import NeoOS JSON" });
     await dialog
@@ -49,7 +49,7 @@ test.describe("insufficient evidence is visible", () => {
   });
 
   test("the action board gives insufficient evidence its own group", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const board = page.locator("section", { hasText: "ACTION BOARD" });
     await expect(
       board.getByText("Insufficient Evidence", { exact: false }).locator("visible=true").first(),
@@ -93,7 +93,7 @@ test.describe("explainability", () => {
   });
 
   test("the posture explanation names drivers and what would move the score", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     await page.getByRole("button", { name: /why this score/i }).click();
     const dialog = page.locator("dialog[open]", { hasText: "Why" });
     await expect(dialog).toContainText(/Primary drivers/i);
@@ -106,7 +106,7 @@ test.describe("explainability", () => {
 
 test.describe("provenance", () => {
   test("thresholds are withheld when a report carries no valuation trace", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     // A v1.1 file asserts buyBelow with nothing behind it.
     await page.getByRole("button", { name: "Data", exact: true }).click();
     const dialog = page.locator("dialog[open]", { hasText: "Import NeoOS JSON" });
@@ -120,7 +120,7 @@ test.describe("provenance", () => {
   });
 
   test("demo thresholds show their derivation", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const watchlist = page.locator("section", { hasText: "WATCHLIST" });
     // Engine-derived thresholds carry method, model version, and source count.
     await expect(watchlist).toContainText(/model 2\.0\.0/);
@@ -141,7 +141,7 @@ test.describe("mobile layout at the narrowest supported width", () => {
   }
 
   test("the cockpit still answers the primary question at 320px", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     await expect(page.getByTestId("deployment-score")).toHaveText(DEMO.deploymentPct);
     await expect(page.getByTestId("mode-badge")).toBeVisible();
   });

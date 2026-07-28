@@ -62,7 +62,7 @@ test.describe("accessibility", () => {
   test("no serious or critical violations with the briefing and decision form rendered", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     await page.getByRole("button", { name: "Run", exact: true }).click();
     const panel = page.locator("dialog[open]", { hasText: "Daily cycle" });
     await panel.getByRole("button", { name: "Run fixture day 1" }).click();

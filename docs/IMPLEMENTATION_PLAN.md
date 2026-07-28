@@ -5,6 +5,24 @@ Engineering constraints: `docs/ARCHITECTURE.md`. Definition of done: `tests/ACCE
 Visual truth: `reference/approved-visual-baseline-v2.html` + `reference/approved-mobile-direction.png`.
 Data contract: `schemas/neoos-report.schema.json` (v1.0).
 
+## 0. Controlling interface decision (added 2026-07-28)
+
+**Morpheus leads. Workspaces support. Evidence remains inspectable.**
+
+`/` is the Morpheus conversational home. The Capital dashboard moved intact to
+`/capital`. All six workspaces remain in mobile and desktop navigation as
+supporting routes. Intake has two doors — conversational guided flow and the
+structured form — writing to the same schema with the same provenance rules.
+
+New modules: `src/domain/morpheus/` (answer contract, voice, intents, answers,
+briefing, gaps), `src/domain/intake/guided.ts`,
+`src/data/conversation-store.tsx`, `src/components/morpheus/`,
+`src/components/intake/GuidedIntake.tsx`.
+
+See [CONVERSATIONAL_ARCHITECTURE.md](CONVERSATIONAL_ARCHITECTURE.md).
+
+---
+
 ## 1. Goal
 
 A production-grade, installable, mobile-first capital-allocation cockpit. The home screen answers

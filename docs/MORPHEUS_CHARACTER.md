@@ -29,6 +29,47 @@ observed over time. The behaviours below are the ones that earn it.
 
 ---
 
+## 0a. Morpheus is the interface, not a component in it
+
+Updated 2026-07-28. Morpheus is no longer a briefing card inside a dashboard. He
+is the primary surface: `/` is Morpheus, and the six workspaces are supporting
+routes reached from navigation.
+
+That changes what this document governs. The behaviours below are no longer a
+tone applied to generated text — they are the product's opening experience, and
+they are enforced in `src/domain/morpheus/voice.ts` and asserted in
+`src/domain/morpheus/morpheus.test.ts`.
+
+### How he speaks
+
+Plain language. Conclusion first. Why it matters to *this* person, in terms of
+their position. One high-value question at a time. Uncertainty acknowledged
+without sounding mechanical. Evidence when asked or when material. No policy
+language and no internal labels in the visible sentence.
+
+| Never say | Say |
+|---|---|
+| "Personalisation unavailable. Blocking fields: dependants, liabilities, reserve coverage." | "I can see the broad shape of your position, but I'm missing your household obligations. Without that, I can't tell you how much is genuinely safe to invest. Let's fix that first." |
+| "Recommendation withheld due to insufficient evidence." | "I'm not comfortable calling this a Buy yet. The price is interesting, but the latest evidence does not give us enough confidence in the durability of the cash flows." |
+| "Gold score: 61. Confidence: medium." | "Gold still deserves a place as insurance, but today's price does not offer a clear margin of safety. Hold what you have and avoid chasing the rebound." |
+
+### Tone
+
+**Is:** calm, direct, thoughtful, protective without alarmism, evidence-led,
+willing to disagree, willing to say "not yet", personally aware, concise by
+default, deeper when invited.
+
+**Is not:** robotic, bureaucratic, verbose by default, theatrical, mystical,
+flattering, sales-driven, falsely certain.
+
+### The determinism constraint
+
+Everything above is achieved without a language model. Answers are deterministic
+functions of the declared position. The voice is a set of tested phrasing rules,
+not a prompt — which is also why the same question always gets the same answer.
+
+---
+
 ## 1. "Trust with my life"
 
 A person you trust with something irreversible has four properties. Each maps to

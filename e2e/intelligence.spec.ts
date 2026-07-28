@@ -19,7 +19,7 @@ async function runFixtureDay(page: Page, day: 1 | 2) {
 
 test.describe("intelligence cycle", () => {
   test("runs the fixture cycle and reports an honest state and label", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await runFixtureDay(page, 1);
 
     // A run with rejected records must not present as a clean success.
@@ -30,7 +30,7 @@ test.describe("intelligence cycle", () => {
   });
 
   test("shows the evidence ingestion summary", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await runFixtureDay(page, 1);
     const summary = panel.locator("section", { hasText: "Evidence ingested" });
     await expect(summary).toContainText("Raw records ingested");
@@ -39,14 +39,14 @@ test.describe("intelligence cycle", () => {
   });
 
   test("surfaces identity-resolution warnings", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await runFixtureDay(page, 1);
     await expect(panel.getByTestId("identity-warning")).toBeVisible();
     await expect(panel.getByTestId("identity-warning")).toContainText(/never guessed at/i);
   });
 
   test("surfaces conflicts, including an unresolved one", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await runFixtureDay(page, 1);
     const conflicts = panel.getByTestId("conflict-item");
     await expect(conflicts.first()).toBeVisible();
@@ -56,14 +56,14 @@ test.describe("intelligence cycle", () => {
   });
 
   test("lists rejected records with their reasons behind disclosure", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await runFixtureDay(page, 1);
     await panel.getByText(/Diagnostics/).click();
     await expect(panel.getByTestId("rejected-record").first()).toBeVisible();
   });
 
   test("shows provider status including the unconfigured example vendor", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await openIntelligence(page);
     // The manual-import path registers the example HTTP provider so its
     // unconfigured state is inspectable.
@@ -78,7 +78,7 @@ test.describe("intelligence cycle", () => {
   });
 
   test("manual evidence import runs the whole pipeline", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await openIntelligence(page);
     await panel.locator('input[type="file"]').setInputFiles(EVIDENCE("valid.json"));
     await expect(panel.getByTestId("cycle-state")).toBeVisible({ timeout: 15_000 });
@@ -86,7 +86,7 @@ test.describe("intelligence cycle", () => {
   });
 
   test("a malformed evidence file is rejected without changing state", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await openIntelligence(page);
     await panel.locator('input[type="file"]').setInputFiles({
       name: "broken.json",
@@ -98,7 +98,7 @@ test.describe("intelligence cycle", () => {
   });
 
   test("applying a run report updates the cockpit", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await runFixtureDay(page, 1);
     await panel.getByRole("button", { name: /apply report/i }).click();
     await panel.getByRole("button", { name: /close intelligence panel/i }).click();
@@ -112,7 +112,7 @@ test.describe("intelligence cycle", () => {
 
 test.describe("daily briefing", () => {
   test("renders with typed statements and expands to all sections", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await runFixtureDay(page, 1);
     await panel.getByRole("button", { name: /close intelligence panel/i }).click();
 
@@ -128,7 +128,7 @@ test.describe("daily briefing", () => {
   });
 
   test("states the data provenance label on the briefing", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await runFixtureDay(page, 1);
     await panel.getByRole("button", { name: /close intelligence panel/i }).click();
     await expect(page.locator("section", { hasText: "MORPHEUS DAILY BRIEFING" })).toContainText(
@@ -139,7 +139,7 @@ test.describe("daily briefing", () => {
 
 test.describe("decision capture and journal", () => {
   test("records a decision and appends a journal entry", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await runFixtureDay(page, 1);
     await panel.getByRole("button", { name: /append journal entry/i }).click();
     await panel.getByRole("button", { name: /close intelligence panel/i }).click();
@@ -159,7 +159,7 @@ test.describe("decision capture and journal", () => {
   });
 
   test("journal entries survive a reload", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await runFixtureDay(page, 1);
     await panel.getByRole("button", { name: /append journal entry/i }).click();
     await panel.getByRole("button", { name: /close intelligence panel/i }).click();
@@ -171,7 +171,7 @@ test.describe("decision capture and journal", () => {
   });
 
   test("a failed evidence file leaves the last valid report in place", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await runFixtureDay(page, 1);
     await panel.getByRole("button", { name: /apply report/i }).click();
     const applied = await page.getByTestId("deployment-score").textContent();
@@ -192,7 +192,7 @@ test.describe("intelligence panel accessibility and layout", () => {
   for (const width of [320, 390, 430]) {
     test(`no horizontal overflow with the panel open at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
-      await page.goto("/");
+      await page.goto("/capital");
       await runFixtureDay(page, 1);
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -202,7 +202,7 @@ test.describe("intelligence panel accessibility and layout", () => {
   }
 
   test("the panel is keyboard operable and closes on Escape", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/capital");
     const panel = await openIntelligence(page);
     // Focus is inside the dialog and reachable by keyboard.
     await page.keyboard.press("Tab");

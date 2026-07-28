@@ -7,6 +7,28 @@ This document governs. Where it disagrees with a completion report, this wins.
 
 ---
 
+## 0. The interface this product wears
+
+**Morpheus leads. Workspaces support. Evidence remains inspectable.**
+
+Added 2026-07-28, after the specification gap was identified: the repository had
+never defined a conversational interface, so a dashboard was built to spec. That
+was a missing requirement rather than a build error, and it is now controlling.
+
+The product answers its question through an ongoing conversation with a seasoned
+adviser, not through a grid of scores. The user gets judgment first, explanation
+second, evidence on demand, and the analytical detail behind progressive
+disclosure. The six workspaces remain — Capital, Markets, Portfolio, Gold, Cash,
+Timeline — as supporting analytical routes reached from navigation, not as the
+opening experience.
+
+The rigour is unchanged. Evidence, provenance, confidence, jurisdiction, audit
+and decision controls sit underneath exactly as before; what changed is that the
+user meets a sentence rather than a table. See
+[CONVERSATIONAL_ARCHITECTURE.md](CONVERSATIONAL_ARCHITECTURE.md).
+
+---
+
 ## 1. The question the product answers
 
 > **Where is the best place to allocate my money to advance generational wealth

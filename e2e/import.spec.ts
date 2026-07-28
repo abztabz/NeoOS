@@ -12,7 +12,7 @@ async function openImportDialog(page: Page) {
 }
 
 test("valid v1 report updates the cockpit after preview and apply", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   await expect(page.getByTestId("deployment-score")).toHaveText(DEMO.deploymentPct);
 
   const dialog = await openImportDialog(page);
@@ -32,7 +32,7 @@ test("valid v1 report updates the cockpit after preview and apply", async ({ pag
 });
 
 test("imported report survives a refresh when storage is available", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   const dialog = await openImportDialog(page);
   await dialog.locator('input[type="file"]').setInputFiles(fixture);
   await dialog.getByRole("button", { name: /apply report/i }).click();
@@ -43,7 +43,7 @@ test("imported report survives a refresh when storage is available", async ({ pa
 });
 
 test("invalid JSON shows a clear error and never destroys current state", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   const dialog = await openImportDialog(page);
   await dialog.locator('input[type="file"]').setInputFiles({
     name: "broken.json",
@@ -57,7 +57,7 @@ test("invalid JSON shows a clear error and never destroys current state", async 
 });
 
 test("schema-invalid report is rejected with the failing path", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   const dialog = await openImportDialog(page);
   await dialog.locator('input[type="file"]').setInputFiles({
     name: "wrong-version.json",
@@ -70,7 +70,7 @@ test("schema-invalid report is rejected with the failing path", async ({ page })
 });
 
 test("oversized file is rejected", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   const dialog = await openImportDialog(page);
   await dialog.locator('input[type="file"]').setInputFiles({
     name: "huge.json",
@@ -81,7 +81,7 @@ test("oversized file is rejected", async ({ page }) => {
 });
 
 test("reset to demo restores the baseline", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   let dialog = await openImportDialog(page);
   await dialog.locator('input[type="file"]').setInputFiles(fixture);
   await dialog.getByRole("button", { name: /apply report/i }).click();
@@ -104,7 +104,7 @@ test.describe("blocked browser storage", () => {
         },
       });
     });
-    await page.goto("/");
+    await page.goto("/capital");
     // Demo content renders despite storage being blocked.
     await expect(page.getByTestId("deployment-score")).toHaveText(DEMO.deploymentPct);
 

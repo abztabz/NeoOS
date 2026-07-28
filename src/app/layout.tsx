@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ReportProvider } from "@/data/report-store";
 import { IntelligenceProvider } from "@/data/intelligence-store";
+import { ConversationProvider } from "@/data/conversation-store";
+import { WorkspaceThread } from "@/components/morpheus/WorkspaceThread";
 import { AppHeader } from "@/components/neoos/AppHeader";
 import { DesktopNav, MobileNav } from "@/components/neoos/WorkspaceNav";
 
@@ -39,15 +41,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="overflow-x-hidden">
         <ReportProvider>
           <IntelligenceProvider>
+          {/*
+            The conversation provider wraps every route, which is what makes
+            "the thread survives navigation to a supporting workspace" true by
+            construction rather than by synchronisation: moving from Morpheus to
+            Gold is a route change inside this provider, so nothing remounts and
+            nothing is lost.
+          */}
+          <ConversationProvider>
           <div className="mx-auto max-w-[1320px] px-4 pt-4 pb-24 md:pb-10">
             <AppHeader />
             <DesktopNav />
             <main>{children}</main>
+            {/*
+              One insertion point for the workspace conversation strip. It sits
+              after the page rather than inside it so a workspace's own layout
+              grid never adopts it as a column.
+            */}
+            <WorkspaceThread />
             <footer className="mt-8 px-0.5 text-center font-mono text-[9px] uppercase leading-relaxed tracking-[0.08em] text-[#61707d]">
               NeoOS Investment Constitution v1.0 · Demonstration data only · Not financial advice
             </footer>
           </div>
           <MobileNav />
+          </ConversationProvider>
           </IntelligenceProvider>
         </ReportProvider>
       </body>

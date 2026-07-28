@@ -16,7 +16,7 @@ async function importFixture(page: Page, fixture: string) {
 }
 
 test("v1.1 report drives every workspace section", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   await importFixture(page, v11Fixture);
 
   // Cockpit: gauge and regime come from the report.
@@ -45,7 +45,7 @@ test("v1.1 report drives every workspace section", async ({ page }) => {
 });
 
 test("v1.1 import preview names the provided workspace sections", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   await page.getByRole("button", { name: "Data", exact: true }).click();
   const dialog = page.locator("dialog[open]", { hasText: "Import NeoOS JSON" });
   await dialog.locator('input[type="file"]').setInputFiles(v11Fixture);
@@ -54,7 +54,7 @@ test("v1.1 import preview names the provided workspace sections", async ({ page 
 });
 
 test("v1.0 report still imports via migration with demo-labeled workspaces", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   await page.getByRole("button", { name: "Data", exact: true }).click();
   const dialog = page.locator("dialog[open]", { hasText: "Import NeoOS JSON" });
   await dialog.locator('input[type="file"]').setInputFiles(v10Fixture);

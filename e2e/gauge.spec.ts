@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { DEMO } from "./expected";
 
 test("gauge displays the score and opens the explanation on tap", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   await expect(page.getByTestId("deployment-score")).toHaveText(DEMO.deploymentPct);
 
   await page.getByRole("button", { name: /why this score/i }).click();
@@ -19,7 +19,7 @@ test("gauge displays the score and opens the explanation on tap", async ({ page 
 test("explanation is keyboard accessible: opens with Enter, closes with Escape", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   const trigger = page.getByRole("button", { name: /why this score/i });
   await trigger.focus();
   await page.keyboard.press("Enter");
@@ -33,7 +33,7 @@ test("explanation is keyboard accessible: opens with Enter, closes with Escape",
 });
 
 test("gauge meter exposes value semantics", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/capital");
   const meter = page.getByRole("meter", { name: "Deployment intensity" });
   await expect(meter).toHaveAttribute("aria-valuenow", DEMO.deploymentValue);
   await expect(meter).toHaveAttribute("aria-valuetext", new RegExp(DEMO.recommendation));
