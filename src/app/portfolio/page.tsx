@@ -1,6 +1,7 @@
 "use client";
 
 import { SectionCard } from "@/components/neoos/SectionCard";
+import { DeclaredHoldings } from "@/components/morpheus/DeclaredHoldings";
 import { RatingPill } from "@/components/neoos/RatingPill";
 import { useReport } from "@/data/report-store";
 import { isDemoFallback, portfolioView } from "@/domain/report-view";
@@ -21,6 +22,13 @@ export default function PortfolioPage() {
 
   return (
     <div className="grid gap-3.5">
+      {/*
+        Declared first, analysed second. What the household actually owns
+        outranks a worked example, and the two are kept visibly separate rather
+        than merged — a declared estimate inside the analysed table would borrow
+        a credibility it has not earned.
+      */}
+      <DeclaredHoldings />
       <SectionCard
         title="PORTFOLIO"
         meta={`${holdings.length} HOLDINGS`}
