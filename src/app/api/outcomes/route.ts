@@ -11,6 +11,9 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** Runs the schema migration on first use. See the note in the intake route. */
+export const maxDuration = 60;
+
 /**
  * Outcome reviews — the feedback loop on recorded decisions.
  *

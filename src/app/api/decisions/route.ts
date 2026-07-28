@@ -6,6 +6,9 @@ import { reviewDueAt } from "@/server/outcome/review";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** Runs the schema migration on first use. See the note in the intake route. */
+export const maxDuration = 60;
+
 /**
  * Recorded decisions.
  *

@@ -12,6 +12,20 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
+ * The schema migration runs here, on first use, against a cold database.
+ *
+ * That is why this route needs a duration allowance and the read-only ones do
+ * not. Creating five tables, their indexes, a PL/pgSQL function, the
+ * append-only triggers and the grants takes longer than a serverless
+ * platform's default limit once a cold start and a TLS handshake are added in
+ * front of it. Exceeding that limit is the worst kind of failure to debug: the
+ * function is killed without producing a response at all, so the browser
+ * reports a bare "load failed" and the honest error handling below never gets
+ * to run.
+ */
+export const maxDuration = 60;
+
+/**
  * The subject's declared position.
  *
  * Authenticated with the operator token, like every other write. This is the
