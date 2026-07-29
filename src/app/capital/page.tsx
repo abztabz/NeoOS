@@ -1,7 +1,9 @@
 "use client";
 
-import { ReportGate } from "@/data/portfolio-mode";
+import { ReportGate, useActivePortfolio, useReportMode } from "@/data/portfolio-mode";
+import { mayRender } from "@/domain/portfolio/portfolio";
 import { Gauge } from "@/components/neoos/Gauge";
+import { GaugeAwaiting } from "@/components/neoos/GaugeAwaiting";
 import { ScoreCard } from "@/components/neoos/ScoreCard";
 import { SectionCard } from "@/components/neoos/SectionCard";
 import { BriefingCard } from "@/components/neoos/BriefingCard";
@@ -56,6 +58,10 @@ function opportunityBoard(assets: NeoosAsset[], engine: EngineReport | null): Re
 
 export default function CapitalPage() {
   const { report, engine } = useReport();
+  const active = useActivePortfolio();
+  const reportMode = useReportMode();
+  // The real gauge only when the report on screen may actually be shown here.
+  const showRealGauge = mayRender(active, reportMode);
   const { scores, assets } = report;
   const opportunities = opportunityBoard(assets, engine);
   const tiers = tiersView(report);
@@ -63,9 +69,25 @@ export default function CapitalPage() {
   const commentary = commentaryView(report);
 
   return (
-    <ReportGate>
-      <>
+    <>
+      {/*
+        The gauge sits OUTSIDE the report gate.
+
+        It is the dominant hero component, and gating it meant that declaring a
+        real position deleted the flagship element from the product — a blank
+        where the primary question belongs. What the gate is for is stopping the
+        worked example's *numbers* reaching a real position, not stopping the
+        question being asked. So the frame always renders; only the score is
+        withheld, and it is withheld visibly.
+      */}
+      {showRealGauge ? (
         <Gauge report={report} posture={engine?.posture ?? null} />
+      ) : (
+        <GaugeAwaiting />
+      )}
+
+      <ReportGate>
+      <>
 
         <section
           aria-label="Key scores"
@@ -178,6 +200,7 @@ export default function CapitalPage() {
           </aside>
         </div>
       </>
-    </ReportGate>
+      </ReportGate>
+    </>
   );
 }
