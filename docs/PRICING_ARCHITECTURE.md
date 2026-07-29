@@ -141,6 +141,14 @@ not the number.
 With no gold provider configured the board shows **no number at all** and states
 the production wording above.
 
+No gold provider is configured today. The candidate that was investigated and
+rejected — and what would unblock it — is recorded in
+[GOLD_SOURCE_ACCESS_REQUEST.md](GOLD_SOURCE_ACCESS_REQUEST.md). The short
+version: the available implementation scrapes a rendered page with a spoofed
+browser User-Agent, and NeoOS forbids that for UAE equities already. Holding
+the household's largest priceable asset to a looser standard than its equities
+would be the wrong way round.
+
 ## Property and unitemized holdings
 
 `src/domain/valuation/holding-valuation.ts`.
