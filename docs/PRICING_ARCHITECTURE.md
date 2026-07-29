@@ -141,13 +141,66 @@ not the number.
 With no gold provider configured the board shows **no number at all** and states
 the production wording above.
 
-No gold provider is configured today. The candidate that was investigated and
-rejected — and what would unblock it — is recorded in
-[GOLD_SOURCE_ACCESS_REQUEST.md](GOLD_SOURCE_ACCESS_REQUEST.md). The short
-version: the available implementation scrapes a rendered page with a spoofed
-browser User-Agent, and NeoOS forbids that for UAE equities already. Holding
-the household's largest priceable asset to a looser standard than its equities
-would be the wrong way round.
+### Gold metal value (Gold-API.com)
+
+The active gold path. `src/domain/gold/metal-value.ts`,
+`src/server/gold/gold-api-provider.ts`, `src/server/gold/metal-value-service.ts`.
+
+`GET https://api.gold-api.com/price/XAU` — free, keyless, called **server-side
+only**. A browser fetch would skip the cache, the validation and the
+plausibility guard, which is everything that makes the number worth showing.
+
+**This is a metal value, not a retail rate.** It is what the metal is worth at
+the market price, before making charges, retailer premium, VAT and the dealer
+buyback spread. On jewellery that gap is large, so the naming says "Metal
+Value" everywhere and the explanation is shown in full rather than as a
+footnote. It is explicitly not the Dubai Jewellery Group suggested retail rate.
+
+The arithmetic, per karat and never chained:
+
+```
+pure   = xauUsdPerTroyOunce × 3.6725 ÷ 31.1034768
+24K    = pure × 0.999
+22K    = pure × 0.916
+```
+
+22K is computed from `pure`, **not** from the 24K figure. Chaining would give
+`pure × 0.999 × 0.916` — a different and wrong number — and would let an error
+in 24K propagate invisibly into 22K. A test asserts the two are not chained.
+
+**Freshness** is recomputed from the clock on every read: `live`, `delayed`
+after 30 minutes, `stale` after 6 hours, `unavailable` on an unparseable or
+future-dated timestamp. A cached figure ages by sitting still.
+
+**Caching** is one process-wide entry with a 10-minute TTL — not per user, not
+per page load. A failure never erases the last verified figure; it returns the
+retained one with its true age and names the error alongside it. What never
+happens is the third option: showing a retained figure without saying so.
+
+**Validation** refuses non-numeric, zero, negative, implausibly-ranged
+(outside 100–100,000 USD/oz), non-XAU, timestamp-less, and any move exceeding
+20% against the last verified price.
+
+#### Why the parser discovers field names
+
+The response schema could not be observed when this was built: the build
+environment's egress policy blocks `api.gold-api.com`. Rather than hardcode a
+guess at `price` and `updatedAt`, the parser reads a candidate list, records
+which key it used in `parsedFrom`, and **refuses when nothing validates** —
+returning the keys the payload actually had. `/api/gold/metal-value?diagnose=1`
+surfaces that, so the first production call confirms the mapping instead of a
+mis-parse reaching the screen. The real guard is `validateObservation`: a
+mis-parsed field must survive being finite, positive, inside the XAU/USD band,
+and carrying a sane timestamp. Almost nothing does that by accident.
+
+#### The DJG route, and why it was not taken
+
+Recorded in [GOLD_SOURCE_ACCESS_REQUEST.md](GOLD_SOURCE_ACCESS_REQUEST.md). The
+short version: the available implementation scrapes a rendered page with a
+spoofed browser User-Agent, and NeoOS forbids that for UAE equities already.
+Holding the household's largest priceable asset to a looser standard than its
+equities would be the wrong way round. That route is abandoned; this section
+supersedes it.
 
 ## Property and unitemized holdings
 

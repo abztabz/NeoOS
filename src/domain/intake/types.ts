@@ -321,6 +321,16 @@ export const assetHoldingSchema = z.object({
    * taken on trust; NeoOS stores the reference, not the document.
    */
   appraisalReference: z.string().max(300).nullable().optional(),
+  /**
+   * Purity of a precious-metal holding, and the weight it applies to.
+   *
+   * Optional because most holdings are not metal. Where a holding *is* gold,
+   * both are required before it can be valued: without the karat NeoOS would
+   * have to pick one, and valuing 22K at the 24K figure overstates it by about
+   * 9% while looking entirely reasonable.
+   */
+  goldPurity: z.enum(["24K", "22K"]).nullable().optional(),
+  goldWeightGrams: z.number().positive().nullable().optional(),
   notes: z.string().max(1000).nullable(),
 });
 export type AssetHolding = z.infer<typeof assetHoldingSchema>;

@@ -2,7 +2,7 @@
 
 import { ReportGate } from "@/data/portfolio-mode";
 import { SectionCard } from "@/components/neoos/SectionCard";
-import { UaeGoldBoard } from "@/components/neoos/UaeGoldBoard";
+import { GoldMetalValue } from "@/components/neoos/GoldMetalValue";
 import { RatingPill } from "@/components/neoos/RatingPill";
 import { Bar } from "@/components/neoos/Bar";
 import { useReport } from "@/data/report-store";
@@ -25,7 +25,7 @@ export default function GoldPage() {
         unavailable because no analysed report has been generated yet.
       */}
       <div className="mb-3.5">
-        <UaeGoldBoard />
+        <GoldMetalValue />
       </div>
 
       <ReportGate>
