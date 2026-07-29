@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { SectionCard } from "@/components/neoos/SectionCard";
-import { goldStatusLabels, type GoldStatus } from "@/domain/gold/metal-value";
+import { BELOW_SHOP_RATE_NOTE, goldStatusLabels, type GoldStatus } from "@/domain/gold/metal-value";
 import type { GoldMetalValueBoard } from "@/server/gold/metal-value-service";
 import { formatAsOf, formatCurrency } from "@/lib/format";
 
@@ -151,7 +151,19 @@ function Available({ board }: { board: GoldMetalValueBoard }) {
         <Row label="Calculation" value={values.calculationVersion} />
       </dl>
 
-      <p className="mt-2.5 text-[10px] leading-relaxed text-faint">{board.resaleCaveat}</p>
+      {/*
+        Directional, and placed with the numbers rather than in the small print.
+        Anyone holding gold in Dubai will compare this against a shop board
+        within seconds; being told which way the gap runs before they ask is
+        what separates a careful figure from a broken-looking one.
+      */}
+      <p
+        data-testid="gold-below-shop-rate"
+        className="mt-2.5 text-[10px] leading-relaxed text-[#8e9aa5]"
+      >
+        {BELOW_SHOP_RATE_NOTE}
+      </p>
+      <p className="mt-1.5 text-[10px] leading-relaxed text-faint">{board.resaleCaveat}</p>
     </div>
   );
 }

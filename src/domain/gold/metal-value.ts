@@ -52,6 +52,20 @@ export const METAL_VALUE_EXPLANATION =
 
 export const GOLD_UNAVAILABLE_MESSAGE = "Gold price temporarily unavailable.";
 
+/**
+ * Says which way the difference runs.
+ *
+ * The explanation above lists what is excluded, which is accurate and still
+ * leaves a reader to work out the direction for themselves. In practice the
+ * first thing anyone does is compare this against the rate on a Dubai shop
+ * board, find it lower, and wonder which number is broken.
+ *
+ * Neither is. Saying so directionally, before they have to ask, is the
+ * difference between a figure that looks wrong and one that looks careful.
+ */
+export const BELOW_SHOP_RATE_NOTE =
+  "This reads below the rate quoted on a Dubai shop board. That gap is the retail premium and the making charge — real money, and not part of what the metal itself is worth.";
+
 /* ---------------- the calculation ---------------- */
 
 /**
