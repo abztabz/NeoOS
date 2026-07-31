@@ -174,21 +174,26 @@ describe("looking the instrument up in the vendor's table", () => {
 });
 
 describe("the registry", () => {
-  it("registers nothing when no credentials are present", () => {
+  it("registers no credentialled provider when no credentials are present", () => {
     // An unconfigured provider left in the fallback order would consume a rung
     // and fail every request, which reads as an outage rather than a missing
-    // subscription.
-    expect(buildPricingProviders()).toHaveLength(0);
+    // subscription. Free providers are exempt: there is nothing to configure,
+    // so they cannot be in a half-configured state.
+    const registered = buildPricingProviders().map((p) => p.describe());
+    expect(registered.filter((d) => d.requiresCredentials)).toHaveLength(0);
+    expect(registered.length).toBeGreaterThan(0);
+    expect(registered.every((d) => !d.requiresPaidSubscription)).toBe(true);
   });
 
-  it("states the production wording when nothing is configured", async () => {
+  it("is live on free sources alone, and says they are not real-time", async () => {
     resetPricingService();
     const { pricingService } = await import("@/server/pricing/registry");
     const capability = pricingService().describeCapability();
-    expect(capability.livePricingActive).toBe(false);
-    expect(capability.detail).toBe(
-      "Production pricing architecture is implemented, but live pricing remains inactive until approved provider credentials are configured.",
-    );
+    // Live because free public sources genuinely return sourced, timestamped
+    // quotes with no credential — not because anything was assumed.
+    expect(capability.livePricingActive).toBe(true);
+    expect(capability.detail).toMatch(/no licensed feed configured/i);
+    expect(capability.detail).toMatch(/end-of-day or delayed rather than real-time/i);
   });
 
   it("exposes no credential in what it describes", () => {

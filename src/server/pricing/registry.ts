@@ -1,5 +1,7 @@
 import { MarketDataAdapter } from "@/server/providers/prices/adapter";
 import { LicensedPricingProvider } from "@/server/pricing/licensed-provider";
+import { PublicEquityPricingProvider } from "@/server/pricing/public-equity-provider";
+import { PublicGoldPricingProvider } from "@/server/pricing/public-gold-provider";
 import { PricingService, QuoteCache } from "@/server/pricing/service";
 import type { PricingProvider } from "@/server/pricing/provider";
 import {
@@ -20,13 +22,19 @@ import type { QuoteTimeliness } from "@/server/types/live-state";
  * feeds the scoring engine's evidence record, the other decides what number
  * appears next to an asset on screen.
  *
- * A provider is constructed only when its credentials are present. That is not
- * a convenience: an unconfigured provider that still appeared in the fallback
- * order would consume a rung of the hierarchy and fail on every request, which
- * reads to an operator as an outage rather than as a missing subscription.
+ * A *credentialled* provider is constructed only when its credentials are
+ * present. That is not a convenience: an unconfigured provider that still
+ * appeared in the fallback order would consume a rung of the hierarchy and fail
+ * on every request, which reads to an operator as an outage rather than as a
+ * missing subscription.
  *
- * When nothing is configured this returns an empty list, and the service says
- * so in the exact production wording rather than serving a fixture.
+ * Free public providers have no such gate, because there is nothing to
+ * configure — they are always constructed and always consulted first.
+ *
+ * The list is therefore never empty, but that is not the same as always having
+ * a price. Every provider here can still fail or decline, and when they all do,
+ * the service reports the price as unavailable with the reasons attached rather
+ * than substituting a fixture.
  */
 
 function parseTimeliness(value: string | null): QuoteTimeliness {
@@ -40,6 +48,18 @@ function parseTimeliness(value: string | null): QuoteTimeliness {
 export function buildPricingProviders(): PricingProvider[] {
   const providers: PricingProvider[] = [];
   const timeliness = parseTimeliness(marketDataTimeliness());
+
+  // Free public sources first. They need no credential, so they are always
+  // constructed — a deployment with no subscription still prices what it holds
+  // rather than showing every card as unavailable.
+  //
+  // They are consulted BEFORE licensed feeds (lower priority number) on cost,
+  // not on quality: an operator paying for a feed still gets it whenever the
+  // free source cannot answer, and the switch is recorded as a SourceSwitch so
+  // the evidence view never attributes a price to a provider that did not
+  // return it.
+  providers.push(new PublicEquityPricingProvider({ priority: 60 }));
+  providers.push(new PublicGoldPricingProvider({ priority: 60 }));
 
   const baseUrl = marketDataBaseUrl();
   const apiKey = marketDataApiKey();

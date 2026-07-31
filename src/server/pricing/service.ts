@@ -277,13 +277,25 @@ export class PricingService {
     });
 
     const livePricingActive = providers.length > 0;
+    const free = providers.filter((p) => !p.requiresCredentials).length;
+    const licensed = providers.length - free;
+
+    // The composition, not just the count. An operator reading "2 providers"
+    // cannot tell whether they are paying for real-time quotes or relying on
+    // free end-of-day closes, and that difference decides how much weight the
+    // number on screen can carry.
+    const composition =
+      licensed === 0
+        ? `${free} free provider(s) registered and no licensed feed configured. Prices come from free public sources, which are end-of-day or delayed rather than real-time.`
+        : `${providers.length} pricing provider(s) registered: ${free} free, ${licensed} licensed.`;
+
     return {
       environment,
       policy: pricingPolicy(environment),
       providers,
       livePricingActive,
       detail: livePricingActive
-        ? `${providers.length} pricing provider(s) registered.`
+        ? composition
         : "Production pricing architecture is implemented, but live pricing remains inactive until approved provider credentials are configured.",
     };
   }
