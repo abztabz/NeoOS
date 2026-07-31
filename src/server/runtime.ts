@@ -15,6 +15,7 @@ import {
 } from "@/server/config/env";
 import { EDGAR_COVERAGE, EDGAR_NON_COVERAGE, SecEdgarAdapter } from "@/server/providers/sec-edgar/adapter";
 import { MarketDataAdapter } from "@/server/providers/prices/adapter";
+import { FreePriceAdapter } from "@/server/providers/prices/free-adapter";
 import { currentNetworkEnvironment, egressBlockedReason } from "@/server/config/network";
 import type { MarketDataProvider } from "@/server/providers/market/provider";
 import { describeMarketCapability, type MarketCapabilityReport } from "@/server/providers/market/resolver";
@@ -197,6 +198,15 @@ export function buildMarketProviders(): MarketDataProvider[] {
  */
 export function buildLiveAdapters(): ProviderAdapter[] {
   const adapters: ProviderAdapter[] = [];
+
+  // Free public prices, always. There is no credential to be half-configured,
+  // so the reasoning above about disabled providers implying consultation does
+  // not apply: this one is genuinely consulted on every run.
+  //
+  // It is registered here as well as in `buildPricingProviders()` because the
+  // two pipelines feed different surfaces. The opportunity cards read the
+  // report, and only what runs here reaches the report.
+  adapters.push(new FreePriceAdapter());
 
   const userAgent = secEdgarUserAgent();
   if (userAgent) adapters.push(new SecEdgarAdapter({ userAgent }));

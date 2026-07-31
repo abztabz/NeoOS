@@ -277,6 +277,34 @@ export class MarketDataAdapter implements ProviderAdapter {
   }
 }
 
+/**
+ * Quote unit → the normalizer's canonical unit vocabulary.
+ *
+ * `PriceQuote.priceUnit` says what one price buys ("share", "troy_ounce");
+ * `SUPPORTED_UNITS` in the normalizer names the same quantities differently
+ * ("currency_per_share", "currency_per_troy_ounce"). Passing the quote's word
+ * through unchanged makes normalization reject the record as an unsupported
+ * unit, which silently drops every price this adapter produces — the record is
+ * built, ingested, and then blocked one stage before it could reach a
+ * valuation.
+ *
+ * Translated here rather than at either call site so the licensed and free
+ * adapters cannot disagree about it.
+ */
+const NORMALIZER_UNIT: Record<string, string> = {
+  share: "currency_per_share",
+  troy_ounce: "currency_per_troy_ounce",
+};
+
+/**
+ * An unmapped unit is passed through deliberately. The normalizer will refuse
+ * it with a stated reason, which is the correct outcome for a unit nobody has
+ * decided the meaning of — better than guessing a mapping here.
+ */
+function normalizerUnit(priceUnit: string): string {
+  return NORMALIZER_UNIT[priceUnit] ?? priceUnit;
+}
+
 /** Turn a normalized quote into the pipeline's raw evidence shape. */
 export function priceQuoteToRecord(quote: PriceQuote, providerId: string): RawEvidenceRecord {
   const base = {
@@ -304,7 +332,7 @@ export function priceQuoteToRecord(quote: PriceQuote, providerId: string): RawEv
     ],
     evidenceCategory: "price" as const,
     rawValue: quote.price,
-    rawUnit: quote.priceUnit,
+    rawUnit: normalizerUnit(quote.priceUnit),
     rawCurrency: quote.currency,
     geographicScope: null,
     rawConfidence: null,

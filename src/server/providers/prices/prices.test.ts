@@ -215,7 +215,11 @@ describe("price evidence records", () => {
       "market-data",
     );
     expect(verifyChecksum(record)).toBe(true);
-    expect(record.rawUnit).toBe("share");
+    // The normalizer's vocabulary, not the quote's. "share" is not in
+    // SUPPORTED_UNITS, so emitting it here got the record blocked at
+    // normalization and the price never reached a valuation. Do not "simplify"
+    // this back to quote.priceUnit.
+    expect(record.rawUnit).toBe("currency_per_share");
     expect(record.rawConfidence).toBeNull();
   });
 });
