@@ -1,8 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useIntelligence } from "@/data/intelligence-store";
 import { useActivePortfolio } from "@/data/portfolio-mode";
+import { useReport } from "@/data/report-store";
+import {
+  describeOutcome,
+  isFault,
+  readOperatorToken,
+  triggerServerRun,
+  NO_TOKEN_MESSAGE,
+  type RunNowOutcome,
+} from "@/data/run-now";
 import { cycleStateLabels } from "@/intelligence/types/cycle";
 import { providerModeLabels } from "@/intelligence/types/provider";
 import type { DailyCycleResult } from "@/intelligence/orchestration/cycle";
@@ -167,9 +177,12 @@ export function IntelligencePanel({ open, onClose }: { open: boolean; onClose: (
     storagePersists,
   } = useIntelligence();
   const { hasUserPortfolio } = useActivePortfolio();
+  const { importReport } = useReport();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [serverRunning, setServerRunning] = useState(false);
+  const [serverOutcome, setServerOutcome] = useState<RunNowOutcome | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -177,6 +190,44 @@ export function IntelligencePanel({ open, onClose }: { open: boolean; onClose: (
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
   }, [open]);
+
+  /**
+   * Ask the server for a real run.
+   *
+   * The endpoint existed before this button did, which meant the only runs
+   * reachable from the interface were fixtures over an invented household.
+   * Pressing this may well produce a refusal — the server declines when it
+   * cannot run against verified sources — and that refusal is the point: it
+   * names the missing input instead of failing silently.
+   */
+  const handleServerRun = async () => {
+    setError(null);
+    setStatus(null);
+    setServerOutcome(null);
+
+    const token = readOperatorToken();
+    if (!token) {
+      setError(NO_TOKEN_MESSAGE);
+      return;
+    }
+
+    setServerRunning(true);
+    try {
+      const outcome = await triggerServerRun({ token });
+      // Apply before describing, so the description reflects what actually
+      // happened to the cockpit rather than what was expected to.
+      const applied =
+        outcome.kind === "ran" && outcome.reportText !== null
+          ? importReport(outcome.reportText)
+          : null;
+      setServerOutcome(outcome);
+      const described = describeOutcome(outcome, applied);
+      if (isFault(outcome)) setError(described);
+      else setStatus(described);
+    } finally {
+      setServerRunning(false);
+    }
+  };
 
   const handleFixture = async (day: 1 | 2) => {
     setError(null);
@@ -228,6 +279,81 @@ export function IntelligencePanel({ open, onClose }: { open: boolean; onClose: (
           never writes one.
         </p>
 
+        {/*
+          The real run, given its own row above the fixtures. It is the only
+          control here that produces numbers about the operator's own position,
+          so it does not sit in a line of buttons that mostly do not.
+        */}
+        <div className="mt-4 rounded-xl border border-green/30 bg-green/[0.06] p-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <b className="block text-[12px] text-ink">Run against your own position</b>
+              <span className="mt-0.5 block text-[10px] leading-relaxed text-[#8e9aa5]">
+                Server-side, signed and stored. Declines rather than guesses when a source
+                cannot be verified.
+              </span>
+            </div>
+            <button
+              type="button"
+              data-testid="run-now"
+              onClick={() => void handleServerRun()}
+              disabled={serverRunning || running}
+              className="inline-flex min-h-11 items-center rounded-full border border-green/50 bg-green/15 px-5 font-mono text-[10px] font-bold uppercase tracking-wider text-green transition-colors hover:bg-green/25 disabled:opacity-50"
+            >
+              {serverRunning ? "Running…" : "Run now"}
+            </button>
+          </div>
+
+          {serverOutcome?.kind === "refused" ? (
+            /*
+              A refusal is an answer, not an error. It is rendered in the
+              product's "here is what is missing" register rather than as a
+              failure, because the server behaved correctly and the operator
+              now has something specific to go and fix.
+            */
+            <div
+              data-testid="run-refusal"
+              className="mt-3 rounded-lg border border-amber/30 bg-amber/[0.07] p-3 text-[11px] leading-relaxed text-[#ffe1c2]"
+            >
+              <b className="block text-amber">The server declined to run.</b>
+              <p className="mt-1">{serverOutcome.reason}</p>
+              {serverOutcome.missing.length > 0 ? (
+                <>
+                  <span className="microlabel mt-2 block text-[8px] text-amber">Not configured</span>
+                  <ul className="mt-1 grid gap-0.5">
+                    {serverOutcome.missing.map((item) => (
+                      <li key={item} className="font-mono text-[10px]">
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+
+          {serverOutcome?.kind === "ran" && serverOutcome.alerts.length > 0 ? (
+            <ul data-testid="run-alerts" className="mt-3 grid gap-1 text-[10px] leading-snug text-amber">
+              {serverOutcome.alerts.map((alert, index) => (
+                <li key={`${alert}-${index}`}>{alert}</li>
+              ))}
+            </ul>
+          ) : null}
+
+          {/*
+            Not `text-faint`: against this card's green tint it measures 4.4:1,
+            just under the AA threshold. The tinted panel is what moved it —
+            the same token clears the bar on the neutral background elsewhere.
+          */}
+          <p className="mt-2.5 text-[10px] leading-relaxed text-[#8e9aa5]">
+            Uses the operator token held in this session. Enter it on{" "}
+            <Link href="/intake" className="text-cyan underline underline-offset-2">
+              Intake
+            </Link>{" "}
+            if the run reports that none is held.
+          </p>
+        </div>
+
         <div className="mt-4 flex flex-wrap gap-2">
           {/*
             The fixture days run the pipeline over an invented household. They
@@ -249,7 +375,7 @@ export function IntelligencePanel({ open, onClose }: { open: boolean; onClose: (
               <button
                 type="button"
                 onClick={() => void handleFixture(1)}
-                disabled={running}
+                disabled={running || serverRunning}
                 className="inline-flex min-h-11 items-center rounded-full border border-cyan/40 bg-cyan/10 px-4 font-mono text-[10px] font-bold uppercase tracking-wider text-cyan transition-colors hover:bg-cyan/20 disabled:opacity-50"
               >
                 Run fixture day 1
@@ -257,7 +383,7 @@ export function IntelligencePanel({ open, onClose }: { open: boolean; onClose: (
               <button
                 type="button"
                 onClick={() => void handleFixture(2)}
-                disabled={running}
+                disabled={running || serverRunning}
                 className="inline-flex min-h-11 items-center rounded-full border border-cyan/40 px-4 font-mono text-[10px] font-bold uppercase tracking-wider text-cyan transition-colors hover:bg-cyan/10 disabled:opacity-50"
               >
                 Run fixture day 2

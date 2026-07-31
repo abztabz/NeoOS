@@ -216,6 +216,32 @@ A run that cannot happen returns 409 with a list of what is missing. It does not
 fall back to fixture data — see [SERVER_ARCHITECTURE.md](SERVER_ARCHITECTURE.md)
 for why that refusal matters more than it might appear.
 
+### From the interface, without a terminal
+
+The **Run** control in the header opens the intelligence panel, and its **Run
+now** button calls the same endpoint with the operator token held in session
+storage. It is the only control on that panel that produces numbers about the
+operator's own position; the fixture days beside it run an invented household.
+
+`src/data/run-now.ts` holds the orchestration, and it refuses three things that
+would each be easier to allow:
+
+- **Treating the 409 as a failure.** The reason and the missing inputs are shown
+  verbatim, in the "here is what is missing" register rather than as an error,
+  because the server behaved correctly and the operator now has something
+  specific to fix.
+- **Loading a report that did not verify.** `/api/report/latest` deliberately
+  returns a tampered report so the tampering is visible. Putting it in the
+  cockpit would render those numbers as ordinary content.
+- **Adopting a report from an earlier run.** The stored report is applied only
+  when its `reportId` matches the one this run returned. Without that check, a
+  run that stored nothing would silently inherit its predecessor's numbers and
+  look successful.
+
+The token comes from `sessionStorage["neoos.operator-token"]`, which the Intake
+screen writes. No token means the button says so and sends nothing, rather than
+provoking a 401 whose message is about authorisation instead of about what to do.
+
 ---
 
 ## 7. What the browser cockpit is

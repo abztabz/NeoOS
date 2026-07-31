@@ -106,27 +106,39 @@ test.describe("prices never appear without a source", () => {
     );
   });
 
-  test("the gold board shows a price with a source, or no price at all", async ({ page }) => {
+  test("the gold board shows a value with a source, or no value at all", async ({ page }) => {
     await page.goto("/gold");
-    const board = page.locator("section", { hasText: "UAE GOLD PRICE" }).first();
+    const board = page.locator("section", { hasText: "GOLD METAL VALUE" }).first();
     await expect(board).toBeVisible();
 
-    const unavailable = board.getByTestId("gold-board-unavailable");
+    // The board fetches on mount, so it passes through a loading state in
+    // which neither outcome is present. Reading it then would find no figure
+    // and no refusal, and fall through to the wrong branch — so wait for it to
+    // settle on one of the two before deciding which is on screen.
+    const unavailable = board.getByTestId("gold-metal-unavailable");
+    const figure = board.getByTestId("gold-metal-24k");
+    await expect(unavailable.or(figure).first()).toBeVisible({ timeout: 15_000 });
+
+    // Either state is correct. What is not correct is a number without a
+    // named source and a timestamp beside it, which is what this asserts.
     if (await unavailable.isVisible().catch(() => false)) {
-      // No provider configured in this environment. No number may be shown.
-      await expect(board.getByTestId("gold-price-24K")).toHaveCount(0);
-      await expect(board.getByTestId("gold-price-22K")).toHaveCount(0);
+      await expect(board.getByTestId("gold-metal-24k")).toHaveCount(0);
+      await expect(board.getByTestId("gold-metal-22k")).toHaveCount(0);
     } else {
-      await expect(board.getByTestId("gold-price-24K")).toBeVisible();
-      await expect(board.getByTestId("gold-price-22K")).toBeVisible();
+      await expect(board.getByTestId("gold-metal-24k")).toBeVisible();
+      await expect(board.getByTestId("gold-metal-22k")).toBeVisible();
       await expect(board).toContainText(/AED/);
+      await expect(board.getByTestId("gold-status")).toBeVisible();
+      await expect(board).toContainText(/Source/);
     }
   });
 
-  test("the gold reference always names what it excludes", async ({ page }) => {
+  test("the gold value always names what it excludes", async ({ page }) => {
     await page.goto("/gold");
-    await expect(page.locator("section", { hasText: "UAE GOLD PRICE" }).first()).toContainText(
-      /making charges/i,
-    );
+    const board = page.locator("section", { hasText: "GOLD METAL VALUE" }).first();
+    await expect(board).toContainText(/making charges/i);
+    // And that it is not the shop rate — the comparison a reader in the UAE
+    // makes within seconds of seeing the figure.
+    await expect(board).toContainText(/not the Dubai Jewellery Group suggested retail rate/i);
   });
 });
