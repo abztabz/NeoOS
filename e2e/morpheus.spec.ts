@@ -102,6 +102,7 @@ test.describe("evidence on demand", () => {
 test.describe("conversation survives navigation", () => {
   test("a question asked at home is still there after visiting a workspace", async ({ page }) => {
     await page.goto("/");
+    await page.getByTestId("composer-input").waitFor({ state: "visible", timeout: 5000 });
     await page.getByTestId("composer-input").fill("how much is truly deployable?");
     await page.getByTestId("composer-submit").click();
     await expect(page.getByTestId("conversation-thread")).toContainText("deployable");
@@ -128,7 +129,9 @@ test.describe("conversation survives navigation", () => {
     await page.goto("/gold");
     const strip = page.getByTestId("workspace-thread");
     await strip.scrollIntoViewIfNeeded();
+    await strip.getByTestId("composer-input").waitFor({ state: "visible", timeout: 5000 });
     await strip.getByTestId("composer-input").fill("should I reduce gold?");
+    await strip.getByTestId("composer-submit").waitFor({ state: "enabled", timeout: 5000 });
     await strip.getByTestId("composer-submit").click();
     await expect(strip.getByTestId("thread-question")).toContainText("gold");
 
