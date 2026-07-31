@@ -177,7 +177,6 @@ const evidence: EvidenceRecord[] = [
   ev({ assetId: "value-etf", factor: "technical", type: "marketData", source: "Exchange consolidated tape", ref: "tape-2026-07-23", claim: "Price below 200-day average, stabilising", value: 58, confidence: 86, ageDays: 1 }),
   ev({ assetId: "value-etf", factor: "portfolioFit", type: "institutionalResearch", source: "Allocation policy review", ref: "alloc-2026", claim: "Fills the opportunistic value sleeve, currently underweight", value: 84, confidence: 85, ageDays: 30 }),
   ev({ assetId: "value-etf", factor: "governance", type: "officialFiling", source: "Fund prospectus", ref: "prospectus-2026", claim: "Transparent rules-based mandate, low fee, no leverage", value: 86, confidence: 91, ageDays: 70 }),
-  ev({ assetId: "value-etf", factor: null, type: "marketData", source: "Real-time market quotation", ref: "vt-price-2026-07-24", claim: "Current market price per share", value: 41.8, confidence: 99, ageDays: 0 }),
 
   // ---- gold ----
   ev({ assetId: "gold", factor: "financialStrength", type: "marketData", source: "Central bank reserve statistics", ref: "cb-reserves-2026-q2", claim: "Central bank buying", value: 86, confidence: 90, ageDays: 4, notes: "Structural reserve diversification continues" }),
@@ -192,7 +191,6 @@ const evidence: EvidenceRecord[] = [
   // Custody standards are an audited disclosure, not market data — a market-data
   // horizon (5 days) would expire this within a week and silently drop governance.
   ev({ assetId: "gold", factor: "governance", type: "officialFiling", source: "Vault custody audit", ref: "custody-2026", claim: "Allocated custody with audited bar lists", value: 82, confidence: 86, ageDays: 50 }),
-  ev({ assetId: "gold", factor: null, type: "marketData", source: "Real-time spot market quotation", ref: "gold-price-2026-07-24", claim: "Current spot price per troy ounce", value: 2380, unit: "USD", confidence: 99, ageDays: 0 }),
 
   // ---- broad US market ETF ----
   ev({ assetId: "us-etf", factor: "financialStrength", type: "officialFiling", source: "Index constituent filings aggregate", ref: "sp-aggregate-2026-q2", claim: "Aggregate interest cover 8.1x, net leverage moderate", value: 80, confidence: 89, ageDays: 55 }),
@@ -203,7 +201,6 @@ const evidence: EvidenceRecord[] = [
   ev({ assetId: "us-etf", factor: "technical", type: "marketData", source: "Exchange consolidated tape", ref: "tape-2026-07-23", claim: "Near all-time highs; breadth narrow", value: 48, confidence: 88, ageDays: 1 }),
   ev({ assetId: "us-etf", factor: "portfolioFit", type: "institutionalResearch", source: "Allocation policy review", ref: "alloc-2026", claim: "Core growth sleeve near target weight", value: 72, confidence: 84, ageDays: 30 }),
   ev({ assetId: "us-etf", factor: "governance", type: "officialFiling", source: "Fund prospectus", ref: "spy-prospectus", claim: "Unit investment trust, transparent, deeply liquid", value: 88, confidence: 92, ageDays: 80 }),
-  ev({ assetId: "us-etf", factor: null, type: "marketData", source: "Real-time market quotation", ref: "spy-price-2026-07-24", claim: "Current market price per share", value: 545, confidence: 99, ageDays: 0 }),
 
   // ---- Apple ----
   ev({ assetId: "apple", factor: "financialStrength", type: "officialFiling", source: "Issuer quarterly report", ref: "aapl-10q-2026-q3", claim: "Net cash position; operating cash flow covers capex 6x", value: 92, confidence: 95, ageDays: 38 }),
@@ -215,7 +212,6 @@ const evidence: EvidenceRecord[] = [
   ev({ assetId: "apple", factor: "technical", type: "marketData", source: "Exchange consolidated tape", ref: "tape-2026-07-23", claim: "Trading in upper half of 52-week range", value: 52, confidence: 88, ageDays: 1 }),
   ev({ assetId: "apple", factor: "portfolioFit", type: "institutionalResearch", source: "Allocation policy review", ref: "alloc-2026", claim: "Quality compounder sleeve, within single-name limit", value: 78, confidence: 84, ageDays: 30 }),
   ev({ assetId: "apple", factor: "governance", type: "officialFiling", source: "Proxy statement", ref: "aapl-proxy-2026", claim: "Independent board majority; no unresolved audit findings", value: 84, confidence: 90, ageDays: 100 }),
-  ev({ assetId: "apple", factor: null, type: "marketData", source: "Real-time market quotation", ref: "aapl-price-2026-07-24", claim: "Current market price per share", value: 214, confidence: 99, ageDays: 0 }),
 
   // ---- speculative AI basket: deliberately evidence-poor ----
   ev({ assetId: "ai-basket", factor: "technical", type: "sentiment", source: "Retail sentiment aggregator", ref: "sentiment-2026-07-22", claim: "Momentum and retail interest elevated", value: 68, confidence: 41, ageDays: 2, verification: "unverified" }),
