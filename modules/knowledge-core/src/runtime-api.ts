@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import type {
   AuthorityClass,
   FreshnessRequirement,
@@ -10,12 +10,15 @@ import type {
   VerificationStatus,
 } from "./contracts.js";
 import type { TextIngestionRequest, TextIngestionResult } from "./ingest.js";
-import type { KnowledgeRuntimeContext } from "./neon.js";
 import type { KnowledgeRuntimeHealth } from "./postgres-telemetry.js";
 import type { UrlIngestionRequest } from "./url-ingest.js";
 
 export const KNOWLEDGE_RUNTIME_SCHEMA_VERSION = "neoos-knowledge-runtime-v1" as const;
 export type RuntimeScope = "query" | "ingest" | "admin";
+
+export interface RuntimeActorContext {
+  actor?: string;
+}
 
 export interface RuntimeRequest {
   method: string;
@@ -31,9 +34,9 @@ export interface RuntimeResponse {
 }
 
 export interface KnowledgeRuntimeService {
-  query(request: KnowledgeQueryRequest, context?: KnowledgeRuntimeContext): Promise<KnowledgeQueryResult>;
-  ingest(request: TextIngestionRequest, context?: KnowledgeRuntimeContext): Promise<TextIngestionResult>;
-  ingestUrl(request: UrlIngestionRequest, context?: KnowledgeRuntimeContext): Promise<TextIngestionResult>;
+  query(request: KnowledgeQueryRequest, context?: RuntimeActorContext): Promise<KnowledgeQueryResult>;
+  ingest(request: TextIngestionRequest, context?: RuntimeActorContext): Promise<TextIngestionResult>;
+  ingestUrl(request: UrlIngestionRequest, context?: RuntimeActorContext): Promise<TextIngestionResult>;
   health(): Promise<KnowledgeRuntimeHealth>;
 }
 
@@ -77,11 +80,12 @@ function safeConsumer(value: string): string {
   return /^[a-z0-9][a-z0-9-]{1,63}$/.test(normalized) ? normalized : "";
 }
 
+function tokenDigest(value: string): Uint8Array {
+  return new TextEncoder().encode(createHash("sha256").update(value, "utf8").digest("hex"));
+}
+
 function constantTimeMatch(actual: string, expected: string): boolean {
-  const encoder = new TextEncoder();
-  const a = encoder.encode(actual);
-  const b = encoder.encode(expected);
-  return a.byteLength === b.byteLength && timingSafeEqual(a, b);
+  return timingSafeEqual(tokenDigest(actual), tokenDigest(expected));
 }
 
 function parseConsumerCredentials(env: RuntimeEnv): Record<string, ConsumerCredential> {
@@ -202,8 +206,16 @@ function parseTextIngestion(body: unknown): TextIngestionRequest {
 
 function parseUrlIngestion(body: unknown): UrlIngestionRequest {
   if (!plainObject(body)) throw new Error("JSON object body required");
+  const url = boundedString(body.url, "url", 2_048)!;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("url is invalid");
+  }
+  if (parsed.protocol !== "https:") throw new Error("url must use HTTPS");
   return {
-    url: boundedString(body.url, "url", 2_048)!,
+    url: parsed.toString(),
     source: parseSource(body.source),
     document: parseDocument(body.document),
     ...parseChunking(body),
@@ -249,9 +261,17 @@ export async function handleKnowledgeRuntimeRequest(
     try {
       const health = await runtime.health();
       const ok = health.databaseReachable && health.vectorEnabled && health.knowledgeSchemaPresent;
-      return response(ok ? 200 : 503, { schemaVersion: KNOWLEDGE_RUNTIME_SCHEMA_VERSION, service: "neoos-knowledge-core", status: ok ? "ok" : "degraded" });
+      return response(ok ? 200 : 503, {
+        schemaVersion: KNOWLEDGE_RUNTIME_SCHEMA_VERSION,
+        service: "neoos-knowledge-core",
+        status: ok ? "ok" : "degraded",
+      });
     } catch {
-      return response(503, { schemaVersion: KNOWLEDGE_RUNTIME_SCHEMA_VERSION, service: "neoos-knowledge-core", status: "unavailable" });
+      return response(503, {
+        schemaVersion: KNOWLEDGE_RUNTIME_SCHEMA_VERSION,
+        service: "neoos-knowledge-core",
+        status: "unavailable",
+      });
     }
   }
 
@@ -259,12 +279,17 @@ export async function handleKnowledgeRuntimeRequest(
     if (method !== "POST") return response(405, { error: "Method not allowed" });
     const auth = authorize(request, env, "query");
     if (!auth.ok) return authFailure(auth);
+    let parsed: KnowledgeQueryRequest;
     try {
-      const result = await runtime.query(parseQuery(request.body), { actor: auth.consumer });
-      return response(200, { schemaVersion: KNOWLEDGE_RUNTIME_SCHEMA_VERSION, ...result });
+      parsed = parseQuery(request.body);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Invalid request";
-      return response(400, { error: message });
+      return response(400, { error: error instanceof Error ? error.message : "Invalid request" });
+    }
+    try {
+      const result = await runtime.query(parsed, { actor: auth.consumer });
+      return response(200, { schemaVersion: KNOWLEDGE_RUNTIME_SCHEMA_VERSION, ...result });
+    } catch {
+      return response(500, { error: "Knowledge query failed" });
     }
   }
 
@@ -272,10 +297,18 @@ export async function handleKnowledgeRuntimeRequest(
     if (method !== "POST") return response(405, { error: "Method not allowed" });
     const auth = authorize(request, env, "ingest");
     if (!auth.ok) return authFailure(auth);
+
+    let parsed: TextIngestionRequest | UrlIngestionRequest;
+    try {
+      parsed = request.path.endsWith("/url") ? parseUrlIngestion(request.body) : parseTextIngestion(request.body);
+    } catch (error) {
+      return response(400, { error: error instanceof Error ? error.message : "Invalid request" });
+    }
+
     try {
       const result = request.path.endsWith("/url")
-        ? await runtime.ingestUrl(parseUrlIngestion(request.body), { actor: auth.consumer })
-        : await runtime.ingest(parseTextIngestion(request.body), { actor: auth.consumer });
+        ? await runtime.ingestUrl(parsed as UrlIngestionRequest, { actor: auth.consumer })
+        : await runtime.ingest(parsed as TextIngestionRequest, { actor: auth.consumer });
       return response(201, {
         schemaVersion: KNOWLEDGE_RUNTIME_SCHEMA_VERSION,
         documentId: result.document.id,
@@ -283,9 +316,10 @@ export async function handleKnowledgeRuntimeRequest(
         contentHash: result.document.contentHash,
         chunkCount: result.chunks.length,
       });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Ingestion failed";
-      return response(422, { error: message });
+    } catch {
+      return response(request.path.endsWith("/url") ? 422 : 500, {
+        error: request.path.endsWith("/url") ? "URL ingestion failed" : "Knowledge ingestion failed",
+      });
     }
   }
 
