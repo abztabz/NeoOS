@@ -20,3 +20,5 @@
 | D-016 | Use GitHub as durable source of truth | Adopted; repository setup in progress |
 | D-017 | Claude Code may act as implementation engineer under Atlas | Approved operating model |
 | D-018 | Founder interacts through one product interface; internal roles remain hidden by default | Product direction adopted |
+| D-019 | Build shared NeoOS Knowledge Core; projects consume it rather than creating isolated general-purpose knowledge systems | Approved direction; implementation proposed in PR |
+| D-020 | Keep NeoOS Knowledge Core separate from NeoOS CIO data infrastructure | Approved direction; implementation proposed in PR |
