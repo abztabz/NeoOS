@@ -16,6 +16,7 @@ export interface NeonKnowledgeRuntimeOptions {
   embedder?: EmbeddingProvider;
   registry?: SourceRegistryAdapter;
   urlPolicy?: UrlIngestionPolicy;
+  captureQueryText?: boolean;
 }
 
 export function createNeonSqlExecutor(databaseUrl?: string): SqlExecutor {
@@ -44,7 +45,9 @@ const actorFrom = (context?: KnowledgeRuntimeContext): string => context?.actor?
 export function createNeonKnowledgeRuntime(options: NeonKnowledgeRuntimeOptions = {}) {
   const sql = createNeonSqlExecutor(options.databaseUrl);
   const repository = new PostgresKnowledgeRepository(sql);
-  const telemetry = new PostgresKnowledgeTelemetry(sql);
+  const telemetry = new PostgresKnowledgeTelemetry(sql, {
+    captureQueryText: options.captureQueryText === true || process.env.NEO_KNOWLEDGE_CAPTURE_QUERY_TEXT === "true",
+  });
   const registry = options.registry ?? registryFromEnvironment();
 
   return {
