@@ -53,26 +53,41 @@ const result: KnowledgeQueryResult = {
   route: { lexical: true, semantic: false, decisions: true, registry: true },
 };
 
-test("recordQuery persists evidence links and external provenance without copying external payload data", async () => {
+const queryRequest = {
+  query: "current topic",
+  projectScope: "NeoContent",
+  freshnessRequirement: "current" as const,
+  registryCapabilities: ["news-discovery"],
+};
+
+test("recordQuery hashes raw query text by default and does not copy external payload data", async () => {
   const sql = new RecordingSql();
   const telemetry = new PostgresKnowledgeTelemetry(sql);
-  const id = await telemetry.recordQuery(
-    { query: "current topic", projectScope: "NeoContent", freshnessRequirement: "current", registryCapabilities: ["news-discovery"] },
-    result,
-    "neocontent",
-  );
+  const id = await telemetry.recordQuery(queryRequest, result, "neocontent");
 
   assert.equal(id, "query-1");
   assert.equal(sql.calls.length, 4);
+  const queryInsert = sql.calls[0];
   const knowledgeEvidence = sql.calls[1];
   const decisionEvidence = sql.calls[2];
   const externalEvidence = sql.calls[3];
+  assert.ok(String(queryInsert?.params[0]).startsWith("sha256:"));
+  assert.ok(!String(queryInsert?.params[0]).includes("current topic"));
+  assert.ok(String(queryInsert?.params[5]).includes('"queryTextCaptured":false'));
   assert.ok(knowledgeEvidence?.text.includes("knowledge_query_evidence"));
   assert.equal(knowledgeEvidence?.params[1], "chunk-1");
   assert.equal(decisionEvidence?.params[2], "decision-1");
   const persistedExternal = JSON.stringify(externalEvidence?.params ?? []);
   assert.ok(persistedExternal.includes("news-discovery"));
   assert.ok(!persistedExternal.includes("must-not-be-persisted"));
+});
+
+test("raw query telemetry is captured only when explicitly enabled", async () => {
+  const sql = new RecordingSql();
+  const telemetry = new PostgresKnowledgeTelemetry(sql, { captureQueryText: true });
+  await telemetry.recordQuery(queryRequest, { ...result, evidence: [], externalCandidates: [] }, "operator");
+  assert.equal(sql.calls[0]?.params[0], "current topic");
+  assert.ok(String(sql.calls[0]?.params[5]).includes('"queryTextCaptured":true'));
 });
 
 test("audit records actor and action without requiring a database schema change", async () => {
