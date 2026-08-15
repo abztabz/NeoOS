@@ -61,11 +61,12 @@ test("queryKnowledge keeps adopted internal decisions distinct from external kno
   assert.equal(result.liveResearchRequired, false);
 });
 
-test("schema blueprint keeps Knowledge Core private and RLS-enabled", () => {
+test("schema blueprint remains provider-neutral, private, pgvector-ready, and RLS-enabled", () => {
   const schema = readFileSync(new URL("../../sql/schema.sql", import.meta.url), "utf8");
   const tables = ["knowledge_sources", "knowledge_documents", "knowledge_chunks", "neoos_decisions", "ingestion_jobs", "knowledge_queries", "knowledge_query_evidence", "audit_log"];
-  assert.ok(schema.includes("revoke all on schema knowledge_core from public, anon, authenticated"));
-  assert.ok(schema.includes("revoke all on all tables in schema knowledge_core from public, anon, authenticated"));
-  assert.ok(!/grant\s+(select|insert|update|delete|all).*\bto\s+(anon|authenticated)\b/i.test(schema));
+  assert.ok(schema.includes("create extension if not exists vector;"));
+  assert.ok(schema.includes("revoke all on schema knowledge_core from public;"));
+  assert.ok(schema.includes("revoke all on all tables in schema knowledge_core from public;"));
+  assert.ok(!/\b(anon|authenticated|service_role)\b/i.test(schema), "provider-specific database roles must not be embedded in the core schema");
   for (const table of tables) assert.ok(schema.includes(`alter table knowledge_core.${table} enable row level security;`), `${table} must have RLS enabled`);
 });
