@@ -22,6 +22,36 @@ declare module "node:net" {
   export function isIP(input: string): 0 | 4 | 6;
 }
 
+declare module "node:https" {
+  type LookupCallback = (error: Error | null, address: string, family: 4 | 6) => void;
+  interface RequestOptions {
+    protocol?: string;
+    hostname?: string;
+    port?: number;
+    path?: string;
+    method?: string;
+    servername?: string;
+    rejectUnauthorized?: boolean;
+    signal?: AbortSignal;
+    lookup?: (hostname: string, options: unknown, callback: LookupCallback) => void;
+    headers?: Record<string, string>;
+  }
+  interface IncomingMessage {
+    statusCode?: number;
+    headers: Record<string, string | string[] | undefined>;
+    resume(): void;
+    destroy(error?: Error): void;
+    on(event: "data", listener: (chunk: Uint8Array) => void): this;
+    on(event: "end", listener: () => void): this;
+    on(event: "error", listener: (error: Error) => void): this;
+  }
+  interface ClientRequest {
+    on(event: "error", listener: (error: Error) => void): this;
+    end(): void;
+  }
+  export function request(options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest;
+}
+
 declare module "node:assert/strict" {
   const assert: {
     equal(actual: unknown, expected: unknown, message?: string): void;
