@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { KnowledgeQueryRequest, KnowledgeQueryResult } from "./contracts.js";
 import type { SqlExecutor, SqlRow } from "./postgres-repository.js";
 
@@ -7,28 +8,44 @@ export interface KnowledgeRuntimeHealth {
   knowledgeSchemaPresent: boolean;
 }
 
+export interface KnowledgeTelemetryOptions {
+  captureQueryText?: boolean;
+}
+
 const rowId = (row: SqlRow | undefined): string => String(row?.id ?? "");
+const sha256 = (value: string): string => createHash("sha256").update(value, "utf8").digest("hex");
 
 export class PostgresKnowledgeTelemetry {
-  constructor(private readonly sql: SqlExecutor) {}
+  constructor(
+    private readonly sql: SqlExecutor,
+    private readonly options: KnowledgeTelemetryOptions = {},
+  ) {}
 
   async recordQuery(
     request: KnowledgeQueryRequest,
     result: KnowledgeQueryResult,
     requestedBy?: string,
   ): Promise<string> {
+    const queryRecord = this.options.captureQueryText === true
+      ? request.query
+      : `sha256:${sha256(request.query)}`;
     const rows = await this.sql.query(
       `insert into knowledge_core.knowledge_queries
          (query, project_scope, freshness_requirement, requested_by, live_research_required, route)
        values ($1,$2,$3,$4,$5,$6::jsonb)
        returning id`,
       [
-        request.query,
+        queryRecord,
         request.projectScope ?? "global",
         request.freshnessRequirement ?? "stable",
         requestedBy ?? null,
         result.liveResearchRequired,
-        JSON.stringify({ ...result.route, registryCapabilities: request.registryCapabilities ?? [] }),
+        JSON.stringify({
+          ...result.route,
+          registryCapabilities: request.registryCapabilities ?? [],
+          queryTextCaptured: this.options.captureQueryText === true,
+          queryLength: request.query.length,
+        }),
       ],
     );
     const queryId = rowId(rows[0]);
