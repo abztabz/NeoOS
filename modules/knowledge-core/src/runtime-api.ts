@@ -9,6 +9,7 @@ import type {
   LifecycleStatus,
   VerificationStatus,
 } from "./contracts.js";
+import type { FileIngestionRequest } from "./file-ingest.js";
 import type { TextIngestionRequest, TextIngestionResult } from "./ingest.js";
 import type { KnowledgeRuntimeHealth } from "./postgres-telemetry.js";
 import type { UrlIngestionRequest } from "./url-ingest.js";
@@ -37,6 +38,7 @@ export interface KnowledgeRuntimeService {
   query(request: KnowledgeQueryRequest, context?: RuntimeActorContext): Promise<KnowledgeQueryResult>;
   ingest(request: TextIngestionRequest, context?: RuntimeActorContext): Promise<TextIngestionResult>;
   ingestUrl(request: UrlIngestionRequest, context?: RuntimeActorContext): Promise<TextIngestionResult>;
+  ingestFile(request: FileIngestionRequest, context?: RuntimeActorContext): Promise<TextIngestionResult>;
   health(): Promise<KnowledgeRuntimeHealth>;
 }
 
@@ -251,6 +253,19 @@ function parseUrlIngestion(body: unknown): UrlIngestionRequest {
   };
 }
 
+function parseFileIngestion(body: unknown): FileIngestionRequest {
+  if (!plainObject(body)) throw new Error("Parsed file object body required");
+  if (!(body.bytes instanceof Uint8Array)) throw new Error("file bytes must be a Uint8Array");
+  return {
+    filename: boundedString(body.filename, "filename", 500)!,
+    declaredMimeType: boundedString(body.declaredMimeType, "declaredMimeType", 200, false),
+    bytes: body.bytes,
+    source: parseSource(body.source),
+    document: parseDocument(body.document),
+    ...parseChunking(body),
+  };
+}
+
 function parseQuery(body: unknown): KnowledgeQueryRequest {
   if (!plainObject(body)) throw new Error("JSON object body required");
   const freshness = boundedString(body.freshnessRequirement, "freshnessRequirement", 20, false) as FreshnessRequirement | undefined;
@@ -325,14 +340,16 @@ export async function handleKnowledgeRuntimeRequest(
     }
   }
 
-  if (request.path === "/v1/ingest/text" || request.path === "/v1/ingest/url") {
+  if (request.path === "/v1/ingest/text" || request.path === "/v1/ingest/url" || request.path === "/v1/ingest/file") {
     if (method !== "POST") return response(405, { error: "Method not allowed" });
     const auth = authorize(request, env, "ingest");
     if (!auth.ok) return authFailure(auth);
 
-    let parsed: TextIngestionRequest | UrlIngestionRequest;
+    let parsed: TextIngestionRequest | UrlIngestionRequest | FileIngestionRequest;
     try {
-      parsed = request.path.endsWith("/url") ? parseUrlIngestion(request.body) : parseTextIngestion(request.body);
+      if (request.path.endsWith("/url")) parsed = parseUrlIngestion(request.body);
+      else if (request.path.endsWith("/file")) parsed = parseFileIngestion(request.body);
+      else parsed = parseTextIngestion(request.body);
     } catch (error) {
       return response(400, { error: error instanceof Error ? error.message : "Invalid request" });
     }
@@ -342,9 +359,10 @@ export async function handleKnowledgeRuntimeRequest(
     parsed = { ...parsed, document: { ...parsed.document, projectScope } };
 
     try {
-      const result = request.path.endsWith("/url")
-        ? await runtime.ingestUrl(parsed as UrlIngestionRequest, { actor: auth.consumer })
-        : await runtime.ingest(parsed as TextIngestionRequest, { actor: auth.consumer });
+      let result: TextIngestionResult;
+      if (request.path.endsWith("/url")) result = await runtime.ingestUrl(parsed as UrlIngestionRequest, { actor: auth.consumer });
+      else if (request.path.endsWith("/file")) result = await runtime.ingestFile(parsed as FileIngestionRequest, { actor: auth.consumer });
+      else result = await runtime.ingest(parsed as TextIngestionRequest, { actor: auth.consumer });
       return response(201, {
         schemaVersion: KNOWLEDGE_RUNTIME_SCHEMA_VERSION,
         documentId: result.document.id,
@@ -353,9 +371,10 @@ export async function handleKnowledgeRuntimeRequest(
         chunkCount: result.chunks.length,
       });
     } catch {
-      return response(request.path.endsWith("/url") ? 422 : 500, {
-        error: request.path.endsWith("/url") ? "URL ingestion failed" : "Knowledge ingestion failed",
-      });
+      const error = request.path.endsWith("/url")
+        ? "URL ingestion failed"
+        : request.path.endsWith("/file") ? "File ingestion failed" : "Knowledge ingestion failed";
+      return response(request.path.endsWith("/url") || request.path.endsWith("/file") ? 422 : 500, { error });
     }
   }
 
