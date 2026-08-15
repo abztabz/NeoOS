@@ -8,7 +8,7 @@ class RecordingSql implements SqlExecutor {
   async query<T extends SqlRow = SqlRow>(text: string, params: unknown[] = []): Promise<T[]> {
     this.calls.push({ text, params });
     if (text.includes("insert into knowledge_core.knowledge_chunks")) {
-      return [{
+      const rows: SqlRow[] = [{
         chunk_id: `chunk-${Number(params[1]) + 1}`,
         document_id: params[0],
         chunk_index: params[1],
@@ -19,7 +19,8 @@ class RecordingSql implements SqlExecutor {
         embedding_model: null,
         embedding_dimensions: null,
         chunk_metadata: {},
-      }] as T[];
+      }];
+      return rows as unknown as T[];
     }
     return [];
   }
