@@ -47,6 +47,8 @@ npm test
 
 Runtime dependency versions are pinned. `@neondatabase/serverless` is isolated in the Neon adapter; the core domain and repository contracts remain PostgreSQL/provider-neutral.
 
+The Foundation CI compiles the module and runs the Knowledge Core test suite on every relevant pull-request change. The latest verified suite contains six tests covering chunking, untrusted ingestion/provenance, decision-aware retrieval, private/RLS schema posture, stale-chunk cleanup, and lexical-score calibration.
+
 ## Infrastructure
 
 `sql/schema.sql` is provider-neutral PostgreSQL + pgvector. A dedicated Neon Postgres project named **NeoOS Knowledge Core** is deployed and its main schema has been migrated successfully. Neon is an infrastructure choice, not a dependency embedded in the Knowledge Core domain model; the schema remains portable to compatible PostgreSQL platforms.
@@ -60,3 +62,5 @@ The main database has been bootstrapped with NeoOS decisions D-019/D-020 and ADR
 - deploy a dedicated Knowledge Core API without coupling it to the existing `neoos-cio` Vercel project;
 - add embeddings and dimension-specific vector indexing after the embedding provider is selected;
 - add file/URL ingestion, observability, backup/recovery checks, and scale tests.
+
+Phase 2 is tracked in NeoOS issue #3.
