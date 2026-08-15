@@ -42,32 +42,28 @@ interface ZipEntry {
 }
 
 const UTF8 = new TextDecoder("utf-8", { fatal: true });
-const ZIP_LOCAL_SIGNATURE = 0x04034b50;
-const ZIP_CENTRAL_SIGNATURE = 0x02014b50;
-const ZIP_EOCD_SIGNATURE = 0x06054b50;
+const ZIP_LOCAL = 0x04034b50;
+const ZIP_CENTRAL = 0x02014b50;
+const ZIP_EOCD = 0x06054b50;
 const PDF_SIGNATURE = "%PDF-";
 
 const sha256 = (bytes: Uint8Array): string => createHash("sha256").update(bytes).digest("hex");
 
-function boundedInteger(value: number | undefined, fallback: number, minimum: number, maximum: number): number {
+function boundedInteger(value: number | undefined, fallback: number, min: number, max: number): number {
   const resolved = value ?? fallback;
-  if (!Number.isInteger(resolved) || resolved < minimum || resolved > maximum) {
-    throw new Error("File ingestion policy is invalid");
-  }
+  if (!Number.isInteger(resolved) || resolved < min || resolved > max) throw new Error("File ingestion policy is invalid");
   return resolved;
 }
 
 function extensionOf(filename: string): string {
-  const normalized = filename.trim().toLowerCase();
-  const index = normalized.lastIndexOf(".");
-  return index >= 0 ? normalized.slice(index + 1) : "";
+  const value = filename.trim().toLowerCase();
+  const index = value.lastIndexOf(".");
+  return index < 0 ? "" : value.slice(index + 1);
 }
 
 function startsWithAscii(bytes: Uint8Array, value: string): boolean {
   if (bytes.length < value.length) return false;
-  for (let index = 0; index < value.length; index += 1) {
-    if (bytes[index] !== value.charCodeAt(index)) return false;
-  }
+  for (let index = 0; index < value.length; index += 1) if (bytes[index] !== value.charCodeAt(index)) return false;
   return true;
 }
 
@@ -75,14 +71,14 @@ function isZip(bytes: Uint8Array): boolean {
   return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && [0x03, 0x05, 0x07].includes(bytes[2] ?? -1);
 }
 
-function normalizeDeclaredMime(value?: string): string {
+function normalizedMime(value?: string): string {
   return value?.split(";", 1)[0]?.trim().toLowerCase() ?? "";
 }
 
-function validateDeclaredMime(type: SupportedKnowledgeFile, declaredMimeType?: string): void {
-  const declared = normalizeDeclaredMime(declaredMimeType);
+function validateMime(type: SupportedKnowledgeFile, declaredMimeType?: string): void {
+  const declared = normalizedMime(declaredMimeType);
   if (!declared) return;
-  const allowed: Record<SupportedKnowledgeFile, string[]> = {
+  const allowed: Record<SupportedKnowledgeFile, readonly string[]> = {
     pdf: ["application/pdf"],
     docx: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/zip"],
     text: ["text/plain"],
@@ -95,20 +91,20 @@ function detectType(filename: string, declaredMimeType: string | undefined, byte
   const extension = extensionOf(filename);
   if (startsWithAscii(bytes, PDF_SIGNATURE)) {
     if (extension && extension !== "pdf") throw new Error("File extension does not match PDF content");
-    validateDeclaredMime("pdf", declaredMimeType);
+    validateMime("pdf", declaredMimeType);
     return "pdf";
   }
   if (isZip(bytes)) {
     if (extension !== "docx") throw new Error("ZIP input is accepted only as a DOCX document");
-    validateDeclaredMime("docx", declaredMimeType);
+    validateMime("docx", declaredMimeType);
     return "docx";
   }
   if (extension === "txt") {
-    validateDeclaredMime("text", declaredMimeType);
+    validateMime("text", declaredMimeType);
     return "text";
   }
   if (extension === "md" || extension === "markdown") {
-    validateDeclaredMime("markdown", declaredMimeType);
+    validateMime("markdown", declaredMimeType);
     return "markdown";
   }
   if (extension === "pdf" || extension === "docx") throw new Error("File content does not match its extension");
@@ -116,17 +112,17 @@ function detectType(filename: string, declaredMimeType: string | undefined, byte
 }
 
 function decodeText(bytes: Uint8Array, maxCharacters: number): string {
-  if (bytes.some((byte) => byte === 0)) throw new Error("Text file contains binary NUL bytes");
-  let text: string;
+  if (bytes.some(byte => byte === 0)) throw new Error("Text file contains binary NUL bytes");
+  let value: string;
   try {
-    text = UTF8.decode(bytes);
+    value = UTF8.decode(bytes);
   } catch {
     throw new Error("Text file is not valid UTF-8");
   }
-  text = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trim();
-  if (!text) throw new Error("Knowledge file contained no ingestible text");
-  if (text.length > maxCharacters) throw new Error("Extracted file text exceeds the character limit");
-  return text;
+  value = value.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trim();
+  if (!value) throw new Error("Knowledge file contained no ingestible text");
+  if (value.length > maxCharacters) throw new Error("Extracted file text exceeds the character limit");
+  return value;
 }
 
 function readU16(view: DataView, offset: number): number {
@@ -156,10 +152,19 @@ function crc32(bytes: Uint8Array): number {
 
 function findEocd(bytes: Uint8Array, view: DataView): number {
   const minimum = Math.max(0, bytes.length - 65_557);
-  for (let offset = bytes.length - 22; offset >= minimum; offset -= 1) {
-    if (readU32(view, offset) === ZIP_EOCD_SIGNATURE) return offset;
-  }
+  for (let offset = bytes.length - 22; offset >= minimum; offset -= 1) if (readU32(view, offset) === ZIP_EOCD) return offset;
   throw new Error("DOCX ZIP end-of-directory record was not found");
+}
+
+function decodeZipName(bytes: Uint8Array): string {
+  let name: string;
+  try {
+    name = UTF8.decode(bytes).replace(/\\/g, "/");
+  } catch {
+    throw new Error("DOCX ZIP contains a non-UTF-8 entry name");
+  }
+  if (!name || name.startsWith("/") || name.includes("../")) throw new Error("DOCX ZIP contains an unsafe or duplicate entry name");
+  return name;
 }
 
 function parseZipEntries(bytes: Uint8Array, maxEntries: number, maxUncompressedBytes: number): ZipEntry[] {
@@ -174,14 +179,14 @@ function parseZipEntries(bytes: Uint8Array, maxEntries: number, maxUncompressedB
   if (disk !== 0 || centralDisk !== 0 || entriesOnDisk !== totalEntries) throw new Error("Multi-disk DOCX ZIP files are not supported");
   if (totalEntries === 0xffff || centralSize === 0xffffffff || centralOffset === 0xffffffff) throw new Error("ZIP64 DOCX files are not supported");
   if (totalEntries > maxEntries) throw new Error("DOCX contains too many ZIP entries");
-  if (centralOffset + centralSize > bytes.length) throw new Error("DOCX central directory exceeds file bounds");
+  if (centralOffset + centralSize > bytes.length || centralOffset + centralSize > eocd) throw new Error("DOCX central directory exceeds file bounds");
 
   const entries: ZipEntry[] = [];
+  const names = new Set<string>();
   let offset = centralOffset;
   let totalUncompressed = 0;
-  const names = new Set<string>();
   for (let index = 0; index < totalEntries; index += 1) {
-    if (readU32(view, offset) !== ZIP_CENTRAL_SIGNATURE) throw new Error("DOCX central directory is invalid");
+    if (readU32(view, offset) !== ZIP_CENTRAL) throw new Error("DOCX central directory is invalid");
     const flags = readU16(view, offset + 8);
     const method = readU16(view, offset + 10);
     const entryCrc = readU32(view, offset + 16);
@@ -195,13 +200,8 @@ function parseZipEntries(bytes: Uint8Array, maxEntries: number, maxUncompressedB
     const nameStart = offset + 46;
     const nameEnd = nameStart + nameLength;
     if (nameEnd > bytes.length) throw new Error("DOCX ZIP entry name is truncated");
-    let name: string;
-    try {
-      name = UTF8.decode(bytes.subarray(nameStart, nameEnd)).replace(/\\/g, "/");
-    } catch {
-      throw new Error("DOCX ZIP contains a non-UTF-8 entry name");
-    }
-    if (!name || name.startsWith("/") || name.includes("../") || names.has(name)) throw new Error("DOCX ZIP contains an unsafe or duplicate entry name");
+    const name = decodeZipName(bytes.subarray(nameStart, nameEnd));
+    if (names.has(name)) throw new Error("DOCX ZIP contains an unsafe or duplicate entry name");
     names.add(name);
     if ((flags & 0x1) !== 0) throw new Error("Encrypted DOCX ZIP entries are not supported");
     totalUncompressed += uncompressedSize;
@@ -210,21 +210,27 @@ function parseZipEntries(bytes: Uint8Array, maxEntries: number, maxUncompressedB
     offset = nameEnd + extraLength + commentLength;
     if (offset > centralOffset + centralSize) throw new Error("DOCX central directory entry exceeds declared bounds");
   }
+  if (offset !== centralOffset + centralSize) throw new Error("DOCX central directory size is inconsistent");
   return entries;
 }
 
 function extractZipEntry(bytes: Uint8Array, entry: ZipEntry): Uint8Array {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const offset = entry.localHeaderOffset;
-  if (readU32(view, offset) !== ZIP_LOCAL_SIGNATURE) throw new Error("DOCX local ZIP header is invalid");
+  if (readU32(view, offset) !== ZIP_LOCAL) throw new Error("DOCX local ZIP header is invalid");
   const localFlags = readU16(view, offset + 6);
   const localMethod = readU16(view, offset + 8);
   const nameLength = readU16(view, offset + 26);
   const extraLength = readU16(view, offset + 28);
   if ((localFlags & 0x1) !== 0 || localMethod !== entry.method) throw new Error("DOCX ZIP local header does not match central directory");
-  const dataStart = offset + 30 + nameLength + extraLength;
+  const localNameStart = offset + 30;
+  const localNameEnd = localNameStart + nameLength;
+  if (localNameEnd > bytes.length || decodeZipName(bytes.subarray(localNameStart, localNameEnd)) !== entry.name) {
+    throw new Error("DOCX ZIP local header does not match central directory");
+  }
+  const dataStart = localNameEnd + extraLength;
   const dataEnd = dataStart + entry.compressedSize;
-  if (dataStart < 0 || dataEnd > bytes.length) throw new Error("DOCX compressed entry exceeds file bounds");
+  if (dataEnd > bytes.length) throw new Error("DOCX compressed entry exceeds file bounds");
   const compressed = bytes.subarray(dataStart, dataEnd);
   let output: Uint8Array;
   if (entry.method === 0) output = new Uint8Array(compressed);
@@ -242,11 +248,7 @@ function extractZipEntry(bytes: Uint8Array, entry: ZipEntry): Uint8Array {
 
 function decodeXmlEntities(value: string): string {
   return value
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&")
     .replace(/&#(\d+);/g, (_, code) => {
       const numeric = Number(code);
       return Number.isInteger(numeric) && numeric >= 0 && numeric <= 0x10ffff ? String.fromCodePoint(numeric) : " ";
@@ -259,42 +261,42 @@ function decodeXmlEntities(value: string): string {
 
 function extractDocxText(bytes: Uint8Array, maxCharacters: number, maxEntries: number, maxUncompressedBytes: number): string {
   const entries = parseZipEntries(bytes, maxEntries, maxUncompressedBytes);
-  if (entries.some((entry) => entry.name.toLowerCase().endsWith("/vbaproject.bin"))) throw new Error("Macro-enabled DOCX content is not accepted");
-  const contentTypes = entries.find((entry) => entry.name === "[Content_Types].xml");
-  const documentEntry = entries.find((entry) => entry.name === "word/document.xml");
+  if (entries.some(entry => entry.name.toLowerCase().endsWith("/vbaproject.bin"))) throw new Error("Macro-enabled DOCX content is not accepted");
+  const contentTypes = entries.find(entry => entry.name === "[Content_Types].xml");
+  const documentEntry = entries.find(entry => entry.name === "word/document.xml");
   if (!contentTypes || !documentEntry) throw new Error("ZIP file is not a valid DOCX document");
   const contentTypesXml = decodeText(extractZipEntry(bytes, contentTypes), Math.min(maxCharacters, 1_000_000));
   if (!contentTypesXml.includes("wordprocessingml.document.main+xml") || /macroenabled/i.test(contentTypesXml)) {
     throw new Error("DOCX content types are not accepted");
   }
-  const xml = decodeText(extractZipEntry(bytes, documentEntry), Math.max(maxCharacters * 4, maxCharacters));
+  const xmlLimit = Math.min(maxUncompressedBytes, Math.max(maxCharacters * 4, maxCharacters));
+  const xml = decodeText(extractZipEntry(bytes, documentEntry), xmlLimit);
   const text = decodeXmlEntities(xml
     .replace(/<w:(?:instrText|delText)\b[^>]*>[\s\S]*?<\/w:(?:instrText|delText)>/gi, " ")
-    .replace(/<w:tab\b[^>]*\/>/gi, "\t")
-    .replace(/<w:br\b[^>]*\/>/gi, "\n")
-    .replace(/<\/w:p>/gi, "\n")
+    .replace(/<w:tab\b[^>]*\/>/gi, "\t").replace(/<w:br\b[^>]*\/>/gi, "\n").replace(/<\/w:p>/gi, "\n")
     .replace(/<[^>]+>/g, " "))
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .replace(/[ \t]{2,}/g, " ")
-    .trim();
+    .replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").replace(/[ \t]{2,}/g, " ").trim();
   if (!text) throw new Error("DOCX contained no ingestible text");
   if (text.length > maxCharacters) throw new Error("Extracted file text exceeds the character limit");
   return text;
 }
 
 async function extractPdfText(bytes: Uint8Array, maxCharacters: number, maxPages: number): Promise<{ text: string; pages: number }> {
+  // PDF.js transfers the provided buffer to its worker; give it a copy so the
+  // caller's original bytes remain stable for provenance and audit operations.
   const loadingTask = getDocument({
-    data: bytes,
-    isEvalSupported: false,
+    data: new Uint8Array(bytes),
     useSystemFonts: false,
     disableFontFace: true,
     disableAutoFetch: true,
     disableStream: true,
+    stopAtErrors: true,
+    useWasm: false,
+    isOffscreenCanvasSupported: false,
+    isImageDecoderSupported: false,
   });
-  let document: Awaited<typeof loadingTask.promise> | undefined;
   try {
-    document = await loadingTask.promise;
+    const document = await loadingTask.promise;
     if (document.numPages > maxPages) throw new Error("PDF exceeds the page limit");
     const parts: string[] = [];
     let characters = 0;
@@ -303,16 +305,12 @@ async function extractPdfText(bytes: Uint8Array, maxCharacters: number, maxPages
       try {
         const content = await page.getTextContent();
         const pageText = content.items
-          .map((item) => ("str" in item && typeof item.str === "string" ? item.str : ""))
-          .filter(Boolean)
-          .join(" ")
-          .replace(/\s+/g, " ")
-          .trim();
-        if (pageText) {
-          characters += pageText.length + 1;
-          if (characters > maxCharacters) throw new Error("Extracted file text exceeds the character limit");
-          parts.push(pageText);
-        }
+          .map(item => ("str" in item && typeof item.str === "string" ? item.str : ""))
+          .filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+        if (!pageText) continue;
+        characters += pageText.length + 1;
+        if (characters > maxCharacters) throw new Error("Extracted file text exceeds the character limit");
+        parts.push(pageText);
       } finally {
         page.cleanup();
       }
@@ -321,8 +319,7 @@ async function extractPdfText(bytes: Uint8Array, maxCharacters: number, maxPages
     if (!text) throw new Error("PDF contained no ingestible text");
     return { text, pages: document.numPages };
   } finally {
-    if (document) await document.destroy();
-    else await loadingTask.destroy();
+    await loadingTask.destroy();
   }
 }
 
@@ -353,22 +350,20 @@ export async function ingestFile(
   request: FileIngestionRequest,
   deps: { repository: KnowledgeRepository; embedder?: EmbeddingProvider; policy?: FileIngestionPolicy; now?: () => Date },
 ): Promise<TextIngestionResult> {
-  const extracted = await extractFile(request, deps.policy ?? {});
+  // Hash before parsing so provenance never depends on parser buffer ownership.
   const fileHash = sha256(request.bytes);
+  const originalByteLength = request.bytes.byteLength;
+  const extracted = await extractFile(request, deps.policy ?? {});
   const provenance = {
     filename: request.filename,
     originalFileSha256: fileHash,
-    originalByteLength: request.bytes.byteLength,
+    originalByteLength,
     detectedFileType: extracted.type,
     ...extracted.metadata,
   };
   return ingestText({
     source: { ...request.source, metadata: { ...request.source.metadata, ...provenance } },
-    document: {
-      ...request.document,
-      mimeType: extracted.mimeType,
-      metadata: { ...request.document.metadata, ...provenance },
-    },
+    document: { ...request.document, mimeType: extracted.mimeType, metadata: { ...request.document.metadata, ...provenance } },
     content: extracted.text,
     chunkSize: request.chunkSize,
     overlap: request.overlap,
