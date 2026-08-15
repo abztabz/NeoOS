@@ -8,6 +8,18 @@ declare module "node:crypto" {
     digest(encoding: "hex"): string;
   }
   export function createHash(algorithm: string): Hash;
+  export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean;
+}
+
+declare module "node:dns/promises" {
+  export function lookup(
+    hostname: string,
+    options: { all: true; order?: "verbatim" | "ipv4first" | "ipv6first" },
+  ): Promise<Array<{ address: string; family: number }>>;
+}
+
+declare module "node:net" {
+  export function isIP(input: string): 0 | 4 | 6;
 }
 
 declare module "node:assert/strict" {
