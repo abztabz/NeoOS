@@ -226,6 +226,11 @@ export class PostgresKnowledgeRepository implements KnowledgeRepository {
       if (!rows[0]) throw new Error(`Knowledge chunk ${chunk.chunkIndex} insert returned no row`);
       stored.push(toChunk(rows[0]));
     }
+    await this.sql.query(
+      `delete from knowledge_core.knowledge_chunks
+       where document_id = $1 and chunk_index >= $2`,
+      [documentId, chunks.length],
+    );
     return stored;
   }
 
