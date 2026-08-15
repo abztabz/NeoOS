@@ -8,6 +8,9 @@
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test dist/tests/*.test.js"
   },
+  "dependencies": {
+    "@neondatabase/serverless": "1.0.2"
+  },
   "devDependencies": {
     "typescript": "5.8.3"
   }
