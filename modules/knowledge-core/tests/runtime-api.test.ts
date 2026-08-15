@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { KnowledgeQueryRequest, KnowledgeQueryResult, StoredChunk, StoredDocument, StoredSource } from "../src/contracts.js";
+import type { FileIngestionRequest } from "../src/file-ingest.js";
 import type { TextIngestionRequest, TextIngestionResult } from "../src/ingest.js";
 import { handleKnowledgeRuntimeRequest, type KnowledgeRuntimeService, type RuntimeActorContext, type RuntimeRequest } from "../src/runtime-api.js";
 import type { UrlIngestionRequest } from "../src/url-ingest.js";
@@ -35,30 +36,13 @@ const queryResult: KnowledgeQueryResult = {
   route: { lexical: true, semantic: false, decisions: true, registry: false },
 };
 
-const source: StoredSource = {
-  id: "source-1",
-  name: "Example",
-  sourceType: "manual",
-  authorityClass: "unknown",
-};
+const source: StoredSource = { id: "source-1", name: "Example", sourceType: "manual", authorityClass: "unknown" };
 const document: StoredDocument = {
-  id: "doc-1",
-  sourceId: source.id,
-  title: "Example",
-  retrievedAt: "2026-08-15T20:00:00.000Z",
-  projectScope: "global",
-  verificationStatus: "unverified",
-  lifecycleStatus: "ingested",
-  contentHash: "doc-hash",
-  untrustedSource: true,
+  id: "doc-1", sourceId: source.id, title: "Example", retrievedAt: "2026-08-15T20:00:00.000Z",
+  projectScope: "global", verificationStatus: "unverified", lifecycleStatus: "ingested",
+  contentHash: "doc-hash", untrustedSource: true,
 };
-const chunk: StoredChunk = {
-  id: "chunk-1",
-  documentId: document.id,
-  chunkIndex: 0,
-  content: "example",
-  contentHash: "chunk-hash",
-};
+const chunk: StoredChunk = { id: "chunk-1", documentId: document.id, chunkIndex: 0, content: "example", contentHash: "chunk-hash" };
 const ingestionResult: TextIngestionResult = { source, document, chunks: [chunk] };
 
 class RuntimeStub implements KnowledgeRuntimeService {
@@ -94,9 +78,14 @@ class RuntimeStub implements KnowledgeRuntimeService {
     return ingestionResult;
   }
 
-  async health() {
-    return { databaseReachable: true, vectorEnabled: true, knowledgeSchemaPresent: true };
+  async ingestFile(input: FileIngestionRequest, context?: RuntimeActorContext): Promise<TextIngestionResult> {
+    this.ingestCalls += 1;
+    this.ingestActor = context?.actor ?? "";
+    this.ingestProject = input.document.projectScope ?? "";
+    return ingestionResult;
   }
+
+  async health() { return { databaseReachable: true, vectorEnabled: true, knowledgeSchemaPresent: true }; }
 }
 
 const validQuery = { query: "What is NeoOS Knowledge Core?", freshnessRequirement: "stable" };
@@ -109,6 +98,13 @@ const validUrlIngest = {
   source: { name: "Web", sourceType: "web", authorityClass: "unknown" },
   document: { title: "Web article" },
   url: "https://example.org/article",
+};
+const validFileIngest = {
+  source: { name: "Upload", sourceType: "file", authorityClass: "unknown" },
+  document: { title: "Uploaded note" },
+  filename: "note.txt",
+  declaredMimeType: "text/plain",
+  bytes: new TextEncoder().encode("file knowledge"),
 };
 
 test("health endpoint is public but exposes only coarse status", async () => {
@@ -149,11 +145,7 @@ test("valid query token defaults to its only allowed project and propagates acto
 
 test("consumer cannot query another project by changing projectScope", async () => {
   const runtime = new RuntimeStub();
-  const response = await handleKnowledgeRuntimeRequest(
-    request("/v1/query", QUERY_TOKEN, "reader", { ...validQuery, projectScope: "NeoContent" }),
-    env,
-    runtime,
-  );
+  const response = await handleKnowledgeRuntimeRequest(request("/v1/query", QUERY_TOKEN, "reader", { ...validQuery, projectScope: "NeoContent" }), env, runtime);
   assert.equal(response.status, 403);
   assert.equal(runtime.queryCalls, 0);
 });
@@ -168,12 +160,18 @@ test("ingest consumer defaults writes to its allowed project, never global", asy
 test("ingest consumer cannot promote a project document to global knowledge", async () => {
   const runtime = new RuntimeStub();
   const response = await handleKnowledgeRuntimeRequest(
-    request("/v1/ingest/text", INGEST_TOKEN, "writer", { ...validTextIngest, document: { title: "Manual note", projectScope: "global" } }),
-    env,
-    runtime,
+    request("/v1/ingest/text", INGEST_TOKEN, "writer", { ...validTextIngest, document: { title: "Manual note", projectScope: "global" } }), env, runtime,
   );
   assert.equal(response.status, 403);
   assert.equal(runtime.ingestCalls, 0);
+});
+
+test("binary file ingestion uses same project isolation boundary", async () => {
+  const runtime = new RuntimeStub();
+  const response = await handleKnowledgeRuntimeRequest(request("/v1/ingest/file", INGEST_TOKEN, "writer", validFileIngest), env, runtime);
+  assert.equal(response.status, 201);
+  assert.equal(runtime.ingestProject, "NeoContent");
+  assert.equal(runtime.ingestActor, "writer");
 });
 
 test("admin scope with wildcard project access may perform global ingestion", async () => {
