@@ -1,4 +1,5 @@
 import { lookup } from "node:dns/promises";
+import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
 import type { EmbeddingProvider, KnowledgeRepository } from "./contracts.js";
 import { ingestText, type TextIngestionRequest, type TextIngestionResult } from "./ingest.js";
@@ -6,13 +7,25 @@ import { ingestText, type TextIngestionRequest, type TextIngestionResult } from 
 export interface ResolvedAddress { address: string; family: number; }
 export type HostResolver = (hostname: string) => Promise<ResolvedAddress[]>;
 
+export interface GovernedTransportResponse {
+  status: number;
+  headers: Record<string, string | string[] | undefined>;
+  body: Uint8Array;
+}
+
+export type GovernedHttpsTransport = (
+  url: URL,
+  target: ResolvedAddress,
+  options: { maxBytes: number; timeoutMs: number },
+) => Promise<GovernedTransportResponse>;
+
 export interface UrlIngestionPolicy {
   maxBytes?: number;
   timeoutMs?: number;
   maxRedirects?: number;
   allowedHosts?: string[];
   resolver?: HostResolver;
-  fetchImpl?: typeof fetch;
+  transport?: GovernedHttpsTransport;
 }
 
 export interface UrlIngestionRequest extends Omit<TextIngestionRequest, "content"> {
@@ -41,24 +54,23 @@ export function isPublicNetworkAddress(address: string): boolean {
     if (a === 100 && b >= 64 && b <= 127) return false;
     if (a === 169 && b === 254) return false;
     if (a === 172 && b >= 16 && b <= 31) return false;
-    if (a === 192 && b === 168) return false;
-    if (a === 192 && b === 0) return false;
+    if (a === 192 && b === 0 && c === 0) return false;
     if (a === 192 && b === 0 && c === 2) return false;
+    if (a === 192 && b === 88 && c === 99) return false;
+    if (a === 192 && b === 168) return false;
     if (a === 198 && (b === 18 || b === 19)) return false;
     if (a === 198 && b === 51 && c === 100) return false;
     if (a === 203 && b === 0 && c === 113) return false;
     return true;
   }
   if (family === 6) {
-    if (normalized === "::" || normalized === "::1") return false;
+    if (normalized === "::" || normalized === "::1" || normalized.startsWith("::")) return false;
     if (normalized.startsWith("fc") || normalized.startsWith("fd")) return false;
     if (/^fe[89ab]/.test(normalized)) return false;
     if (normalized.startsWith("ff")) return false;
-    if (normalized.startsWith("2001:db8:")) return false;
-    if (normalized.startsWith("::ffff:")) {
-      const mapped = normalized.slice("::ffff:".length);
-      return isPublicNetworkAddress(mapped);
-    }
+    if (normalized.startsWith("64:ff9b:")) return false;
+    if (normalized.startsWith("2001:0:") || normalized.startsWith("2001:db8:")) return false;
+    if (normalized.startsWith("2002:")) return false;
     return true;
   }
   return false;
@@ -77,11 +89,14 @@ function hostAllowed(hostname: string, allowedHosts?: string[]): boolean {
 function rejectReservedHostname(hostname: string): void {
   const host = normalizeHost(hostname);
   if (!host || host === "localhost") throw new Error("URL host is not allowed");
-  const blockedSuffixes = [".localhost", ".local", ".internal", ".lan", ".home", ".invalid", ".test", ".example", ".onion"];
+  const blockedSuffixes = [
+    ".localhost", ".local", ".internal", ".lan", ".home",
+    ".invalid", ".test", ".example", ".onion", ".arpa",
+  ];
   if (blockedSuffixes.some((suffix) => host.endsWith(suffix))) throw new Error("URL host is not allowed");
 }
 
-async function validateTarget(url: URL, policy: UrlIngestionPolicy): Promise<void> {
+async function validateTarget(url: URL, policy: UrlIngestionPolicy): Promise<ResolvedAddress> {
   if (url.protocol !== "https:") throw new Error("Knowledge URL ingestion requires HTTPS");
   if (url.username || url.password) throw new Error("Knowledge URL must not contain credentials");
   if (url.port && url.port !== "443") throw new Error("Knowledge URL must use the standard HTTPS port");
@@ -89,9 +104,10 @@ async function validateTarget(url: URL, policy: UrlIngestionPolicy): Promise<voi
   if (!hostAllowed(url.hostname, policy.allowedHosts)) throw new Error("URL host is outside the ingestion allowlist");
 
   const host = normalizeHost(url.hostname);
-  if (isIP(host)) {
+  const literalFamily = isIP(host);
+  if (literalFamily) {
     if (!isPublicNetworkAddress(host)) throw new Error("URL resolves to a non-public network address");
-    return;
+    return { address: host, family: literalFamily };
   }
 
   const addresses = await (policy.resolver ?? defaultResolver)(host);
@@ -99,36 +115,94 @@ async function validateTarget(url: URL, policy: UrlIngestionPolicy): Promise<voi
   if (addresses.some(({ address }) => !isPublicNetworkAddress(address))) {
     throw new Error("URL host resolves to a non-public network address");
   }
+  return addresses[0]!;
 }
 
-async function readBounded(response: Response, maxBytes: number): Promise<string> {
-  const declared = Number(response.headers.get("content-length") ?? "0");
-  if (Number.isFinite(declared) && declared > maxBytes) throw new Error("Knowledge URL response exceeds the size limit");
-  if (!response.body) return "";
-
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (!value) continue;
-    total += value.byteLength;
-    if (total > maxBytes) {
-      await reader.cancel("Knowledge URL response exceeds the size limit");
-      throw new Error("Knowledge URL response exceeds the size limit");
-    }
-    chunks.push(value);
-  }
-
-  const bytes = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+function headerValue(headers: GovernedTransportResponse["headers"], name: string): string {
+  const found = headers[name.toLowerCase()] ?? headers[name];
+  return Array.isArray(found) ? found[0] ?? "" : found ?? "";
 }
+
+const defaultTransport: GovernedHttpsTransport = async (url, target, options) => {
+  const hostname = normalizeHost(url.hostname);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs);
+  try {
+    return await new Promise<GovernedTransportResponse>((resolve, reject) => {
+      let settled = false;
+      const finishReject = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        reject(error instanceof Error ? error : new Error("HTTPS transport failed"));
+      };
+      const req = httpsRequest({
+        protocol: "https:",
+        hostname,
+        port: 443,
+        path: `${url.pathname}${url.search}`,
+        method: "GET",
+        servername: isIP(hostname) ? undefined : hostname,
+        rejectUnauthorized: true,
+        signal: controller.signal,
+        lookup: (_hostname, _options, callback) => callback(null, target.address, target.family === 6 ? 6 : 4),
+        headers: {
+          accept: "text/html,text/plain,text/markdown,application/json,application/xhtml+xml;q=0.9,*/*;q=0.1",
+          "accept-encoding": "identity",
+          "user-agent": "NeoOS-Knowledge-Core/1.0",
+          connection: "close",
+        },
+      }, (incoming) => {
+        const status = incoming.statusCode ?? 0;
+        const headers = incoming.headers;
+        if (status >= 300 && status < 400) {
+          incoming.resume();
+          if (!settled) {
+            settled = true;
+            resolve({ status, headers, body: new Uint8Array() });
+          }
+          return;
+        }
+
+        const declared = Number(headerValue(headers, "content-length") || "0");
+        if (Number.isFinite(declared) && declared > options.maxBytes) {
+          incoming.destroy();
+          finishReject(new Error("Knowledge URL response exceeds the size limit"));
+          return;
+        }
+
+        const chunks: Uint8Array[] = [];
+        let total = 0;
+        incoming.on("data", (chunk: Uint8Array) => {
+          if (settled) return;
+          const bytes = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+          total += bytes.byteLength;
+          if (total > options.maxBytes) {
+            incoming.destroy();
+            finishReject(new Error("Knowledge URL response exceeds the size limit"));
+            return;
+          }
+          chunks.push(bytes);
+        });
+        incoming.on("end", () => {
+          if (settled) return;
+          const body = new Uint8Array(total);
+          let offset = 0;
+          for (const chunk of chunks) {
+            body.set(chunk, offset);
+            offset += chunk.byteLength;
+          }
+          settled = true;
+          resolve({ status, headers, body });
+        });
+        incoming.on("error", finishReject);
+      });
+      req.on("error", finishReject);
+      req.end();
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+};
 
 function decodeEntities(value: string): string {
   return value
@@ -159,39 +233,29 @@ function extractText(raw: string, contentType: string): string {
 }
 
 async function fetchGovernedUrl(input: string, policy: UrlIngestionPolicy): Promise<{ finalUrl: string; contentType: string; text: string }> {
-  const fetchImpl = policy.fetchImpl ?? fetch;
+  const transport = policy.transport ?? defaultTransport;
   const maxBytes = Math.max(1_024, Math.min(policy.maxBytes ?? 2_000_000, 10_000_000));
   const timeoutMs = Math.max(500, Math.min(policy.timeoutMs ?? 10_000, 30_000));
   const maxRedirects = Math.max(0, Math.min(policy.maxRedirects ?? 3, 5));
   let current = new URL(input);
 
   for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
-    await validateTarget(current, policy);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    let response: Response;
-    try {
-      response = await fetchImpl(current, {
-        method: "GET",
-        redirect: "manual",
-        signal: controller.signal,
-        headers: { accept: "text/html,text/plain,text/markdown,application/json,application/xhtml+xml;q=0.9,*/*;q=0.1" },
-      });
-    } finally {
-      clearTimeout(timer);
-    }
+    const target = await validateTarget(current, policy);
+    const response = await transport(current, target, { maxBytes, timeoutMs });
 
     if (response.status >= 300 && response.status < 400) {
       if (redirectCount >= maxRedirects) throw new Error("Knowledge URL exceeded the redirect limit");
-      const location = response.headers.get("location");
+      const location = headerValue(response.headers, "location");
       if (!location) throw new Error("Knowledge URL redirect is missing a location");
       current = new URL(location, current);
       continue;
     }
-    if (!response.ok) throw new Error(`Knowledge URL fetch failed with HTTP ${response.status}`);
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(`Knowledge URL fetch failed with HTTP ${response.status}`);
+    }
 
-    const contentType = response.headers.get("content-type") ?? "";
-    const raw = await readBounded(response, maxBytes);
+    const contentType = headerValue(response.headers, "content-type");
+    const raw = new TextDecoder("utf-8", { fatal: false }).decode(response.body);
     const text = extractText(raw, contentType);
     if (!text) throw new Error("Knowledge URL contained no ingestible text");
     return { finalUrl: current.toString(), contentType, text };
