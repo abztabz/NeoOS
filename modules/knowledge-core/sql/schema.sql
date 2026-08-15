@@ -1,12 +1,16 @@
 -- NeoOS Knowledge Core foundation schema blueprint.
--- This file is source-controlled design evidence. Deploy through a governed Supabase migration after the dedicated project is provisioned.
+-- Source-controlled PostgreSQL design evidence. Deploy through a governed migration.
 
-create extension if not exists vector with schema extensions;
-create extension if not exists pgcrypto with schema extensions;
+create extension if not exists vector;
+create extension if not exists pgcrypto;
 
 create schema if not exists knowledge_core;
-revoke all on schema knowledge_core from public, anon, authenticated;
-grant usage on schema knowledge_core to service_role;
+revoke all on schema knowledge_core from public;
+
+-- Keep future objects private by default. Consumer/runtime privileges are granted
+-- only after a NeoOS identity and least-privilege database role model is approved.
+alter default privileges in schema knowledge_core revoke all on tables from public;
+alter default privileges in schema knowledge_core revoke all on sequences from public;
 
 create table if not exists knowledge_core.knowledge_sources (
   id uuid primary key default gen_random_uuid(),
@@ -61,7 +65,7 @@ create table if not exists knowledge_core.knowledge_chunks (
   content text not null,
   content_hash text not null,
   lexical tsvector generated always as (to_tsvector('simple', content)) stored,
-  embedding extensions.vector,
+  embedding vector,
   embedding_model text,
   embedding_dimensions integer check (embedding_dimensions is null or embedding_dimensions > 0),
   metadata jsonb not null default '{}'::jsonb,
@@ -155,9 +159,9 @@ alter table knowledge_core.knowledge_queries enable row level security;
 alter table knowledge_core.knowledge_query_evidence enable row level security;
 alter table knowledge_core.audit_log enable row level security;
 
-revoke all on all tables in schema knowledge_core from public, anon, authenticated;
-grant select, insert, update, delete on all tables in schema knowledge_core to service_role;
-grant usage, select on all sequences in schema knowledge_core to service_role;
+revoke all on all tables in schema knowledge_core from public;
+revoke all on all sequences in schema knowledge_core from public;
 
--- Intentionally no anon/authenticated policies in Foundation.
--- Knowledge Core is server-mediated. Consumer-specific policies are added only when an identity model is approved.
+-- Foundation intentionally exposes no client/database-user policies.
+-- Knowledge Core remains server-mediated. Least-privilege runtime roles and
+-- consumer-specific policies are added only when the NeoOS identity model is approved.
