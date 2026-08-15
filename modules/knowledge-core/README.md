@@ -15,7 +15,7 @@ Knowledge Core belongs to NeoOS, not to NeoContent, NeoCRM, WordPress, NeoOS CIO
 - internal NeoOS decisions returned as a distinct evidence class;
 - evidence scoring across retrieval relevance, authority, freshness, and verification;
 - Source Registry integration by capability, never provider-specific shape;
-- database schema blueprint with provenance, lifecycle, decision, query, and audit records;
+- PostgreSQL schema blueprint with provenance, lifecycle, decision, query, and audit records;
 - private-schema / server-mediated database posture with RLS defense in depth.
 
 ## Knowledge routing model
@@ -31,9 +31,9 @@ Knowledge Core belongs to NeoOS, not to NeoContent, NeoCRM, WordPress, NeoOS CIO
 
 - Retrieved documents are data, never instructions.
 - `untrustedSource` defaults to `true`.
-- No browser/client receives a Supabase service-role secret.
-- No `anon` or `authenticated` database grants exist in the Foundation schema.
-- Consumer-specific access policies must be added only after the NeoOS identity/project authorization model is approved.
+- No browser/client receives a privileged database credential.
+- The Foundation schema exposes no client/database-user privileges.
+- Consumer-specific access policies and least-privilege runtime roles must be added only after the NeoOS identity/project authorization model is approved.
 
 ## Development
 
@@ -44,6 +44,6 @@ npm test
 
 The package is intentionally dependency-light. The only development dependency is a pinned TypeScript compiler.
 
-## Infrastructure gate
+## Infrastructure
 
-`sql/schema.sql` is a source-controlled schema blueprint, not a claim that a database has been deployed. A dedicated shared NeoOS Supabase project must be provisioned and the schema applied/verified before database status can be called Implemented or Tested.
+`sql/schema.sql` is provider-neutral PostgreSQL + pgvector. The current deployment target is a dedicated Neon Postgres project named **NeoOS Knowledge Core**. Neon is an infrastructure choice, not a dependency embedded in the Knowledge Core domain model; the schema remains portable to compatible PostgreSQL platforms.
