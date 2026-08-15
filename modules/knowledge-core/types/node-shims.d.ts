@@ -1,3 +1,7 @@
+declare const process: {
+  env: Record<string, string | undefined>;
+};
+
 declare module "node:crypto" {
   interface Hash {
     update(data: string, inputEncoding?: string): Hash;
