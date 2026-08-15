@@ -22,3 +22,4 @@
 | D-018 | Founder interacts through one product interface; internal roles remain hidden by default | Product direction adopted |
 | D-019 | Build shared NeoOS Knowledge Core; projects consume it rather than creating isolated general-purpose knowledge systems | Approved direction; implementation proposed in PR |
 | D-020 | Keep NeoOS Knowledge Core separate from NeoOS CIO data infrastructure | Approved direction; implementation proposed in PR |
+| D-021 | Use Neon Postgres as the current Knowledge Core deployment target while keeping the schema provider-neutral PostgreSQL + pgvector | Active infrastructure decision; migration verification in progress |
