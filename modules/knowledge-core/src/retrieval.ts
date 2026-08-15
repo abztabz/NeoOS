@@ -11,6 +11,12 @@ const authorityWeight: Record<AuthorityClass, number> = {
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
+function normalizeRelativeScores(hits: SearchHit[]): SearchHit[] {
+  const maximum = hits.reduce((max, hit) => Math.max(max, hit.retrievalScore), 0);
+  if (maximum <= 0) return hits;
+  return hits.map((hit) => ({ ...hit, retrievalScore: clamp(hit.retrievalScore / maximum) }));
+}
+
 function evidenceScore(hit: SearchHit): number {
   const retrieval = clamp(hit.retrievalScore);
   const authority = authorityWeight[hit.source.authorityClass];
@@ -77,10 +83,11 @@ export async function queryKnowledge(
   const limit = Math.max(1, Math.min(request.limit ?? 8, 50));
   const candidateLimit = Math.min(limit * 2, 100);
 
-  const [lexical, decisions] = await Promise.all([
+  const [lexicalRaw, decisions] = await Promise.all([
     deps.repository.searchLexical(query, { projectScope, limit: candidateLimit }),
     deps.repository.searchDecisions(query, { projectScope, limit: Math.min(limit, 20) }),
   ]);
+  const lexical = normalizeRelativeScores(lexicalRaw);
 
   let semantic: SearchHit[] = [];
   if (deps.embedder) {
