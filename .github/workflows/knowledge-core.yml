@@ -1,0 +1,31 @@
+name: Knowledge Core
+
+on:
+  pull_request:
+    paths:
+      - "modules/knowledge-core/**"
+      - ".github/workflows/knowledge-core.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: modules/knowledge-core
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: modules/knowledge-core/package.json
+      - name: Install
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test
+        run: npm test
