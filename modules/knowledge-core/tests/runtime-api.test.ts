@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { KnowledgeQueryRequest, KnowledgeQueryResult, StoredChunk, StoredDocument, StoredSource } from "../src/contracts.js";
@@ -8,12 +9,13 @@ import type { UrlIngestionRequest } from "../src/url-ingest.js";
 const QUERY_TOKEN = "query-token-abcdefghijklmnopqrstuvwxyz";
 const INGEST_TOKEN = "ingest-token-abcdefghijklmnopqrstuvwxyz";
 const ADMIN_TOKEN = "admin-token-abcdefghijklmnopqrstuvwxyz";
+const hash = (value: string) => createHash("sha256").update(value, "utf8").digest("hex");
 
 const env = {
-  NEO_KNOWLEDGE_CONSUMER_TOKENS: JSON.stringify({
-    reader: { token: QUERY_TOKEN, scopes: ["query"] },
-    writer: { token: INGEST_TOKEN, scopes: ["ingest"] },
-    operator: { token: ADMIN_TOKEN, scopes: ["admin"] },
+  NEO_KNOWLEDGE_CONSUMERS: JSON.stringify({
+    reader: { tokenSha256: hash(QUERY_TOKEN), scopes: ["query"], projects: ["NeoCRM"] },
+    writer: { tokenSha256: hash(INGEST_TOKEN), scopes: ["ingest"], projects: ["NeoContent"] },
+    operator: { tokenSha256: hash(ADMIN_TOKEN), scopes: ["admin"], projects: ["*"] },
   }),
 };
 
@@ -61,28 +63,33 @@ const ingestionResult: TextIngestionResult = { source, document, chunks: [chunk]
 
 class RuntimeStub implements KnowledgeRuntimeService {
   queryActor = "";
+  queryProject = "";
   ingestActor = "";
+  ingestProject = "";
   queryCalls = 0;
   ingestCalls = 0;
   failQuery = false;
   failUrl = false;
 
-  async query(_request: KnowledgeQueryRequest, context?: RuntimeActorContext): Promise<KnowledgeQueryResult> {
+  async query(input: KnowledgeQueryRequest, context?: RuntimeActorContext): Promise<KnowledgeQueryResult> {
     this.queryCalls += 1;
     this.queryActor = context?.actor ?? "";
+    this.queryProject = input.projectScope ?? "";
     if (this.failQuery) throw new Error("database password should never leak");
     return queryResult;
   }
 
-  async ingest(_request: TextIngestionRequest, context?: RuntimeActorContext): Promise<TextIngestionResult> {
+  async ingest(input: TextIngestionRequest, context?: RuntimeActorContext): Promise<TextIngestionResult> {
     this.ingestCalls += 1;
     this.ingestActor = context?.actor ?? "";
+    this.ingestProject = input.document.projectScope ?? "";
     return ingestionResult;
   }
 
-  async ingestUrl(_request: UrlIngestionRequest, context?: RuntimeActorContext): Promise<TextIngestionResult> {
+  async ingestUrl(input: UrlIngestionRequest, context?: RuntimeActorContext): Promise<TextIngestionResult> {
     this.ingestCalls += 1;
     this.ingestActor = context?.actor ?? "";
+    this.ingestProject = input.document.projectScope ?? "";
     if (this.failUrl) throw new Error("internal transport details should never leak");
     return ingestionResult;
   }
@@ -131,19 +138,50 @@ test("query-only consumer cannot ingest", async () => {
   assert.equal(runtime.ingestCalls, 0);
 });
 
-test("valid query token propagates consumer identity as audit actor", async () => {
+test("valid query token defaults to its only allowed project and propagates actor identity", async () => {
   const runtime = new RuntimeStub();
   const response = await handleKnowledgeRuntimeRequest(request("/v1/query", QUERY_TOKEN, "reader", validQuery), env, runtime);
   assert.equal(response.status, 200);
   assert.equal(runtime.queryActor, "reader");
+  assert.equal(runtime.queryProject, "NeoCRM");
   assert.equal(runtime.queryCalls, 1);
 });
 
-test("admin scope may perform ingestion", async () => {
+test("consumer cannot query another project by changing projectScope", async () => {
+  const runtime = new RuntimeStub();
+  const response = await handleKnowledgeRuntimeRequest(
+    request("/v1/query", QUERY_TOKEN, "reader", { ...validQuery, projectScope: "NeoContent" }),
+    env,
+    runtime,
+  );
+  assert.equal(response.status, 403);
+  assert.equal(runtime.queryCalls, 0);
+});
+
+test("ingest consumer defaults writes to its allowed project, never global", async () => {
+  const runtime = new RuntimeStub();
+  const response = await handleKnowledgeRuntimeRequest(request("/v1/ingest/text", INGEST_TOKEN, "writer", validTextIngest), env, runtime);
+  assert.equal(response.status, 201);
+  assert.equal(runtime.ingestProject, "NeoContent");
+});
+
+test("ingest consumer cannot promote a project document to global knowledge", async () => {
+  const runtime = new RuntimeStub();
+  const response = await handleKnowledgeRuntimeRequest(
+    request("/v1/ingest/text", INGEST_TOKEN, "writer", { ...validTextIngest, document: { title: "Manual note", projectScope: "global" } }),
+    env,
+    runtime,
+  );
+  assert.equal(response.status, 403);
+  assert.equal(runtime.ingestCalls, 0);
+});
+
+test("admin scope with wildcard project access may perform global ingestion", async () => {
   const runtime = new RuntimeStub();
   const response = await handleKnowledgeRuntimeRequest(request("/v1/ingest/text", ADMIN_TOKEN, "operator", validTextIngest), env, runtime);
   assert.equal(response.status, 201);
   assert.equal(runtime.ingestActor, "operator");
+  assert.equal(runtime.ingestProject, "global");
 });
 
 test("malformed query is a client error and does not call runtime", async () => {
