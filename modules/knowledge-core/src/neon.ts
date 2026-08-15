@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import type { EmbeddingProvider, KnowledgeQueryRequest, KnowledgeQueryResult, SourceRegistryAdapter } from "./contracts.js";
+import { ingestFile, type FileIngestionPolicy, type FileIngestionRequest } from "./file-ingest.js";
 import { ingestText, type TextIngestionRequest, type TextIngestionResult } from "./ingest.js";
 import { PostgresKnowledgeRepository, type SqlExecutor, type SqlRow } from "./postgres-repository.js";
 import { PostgresKnowledgeTelemetry, type KnowledgeRuntimeHealth } from "./postgres-telemetry.js";
@@ -16,6 +17,7 @@ export interface NeonKnowledgeRuntimeOptions {
   embedder?: EmbeddingProvider;
   registry?: SourceRegistryAdapter;
   urlPolicy?: UrlIngestionPolicy;
+  filePolicy?: FileIngestionPolicy;
   captureQueryText?: boolean;
 }
 
@@ -75,6 +77,23 @@ export function createNeonKnowledgeRuntime(options: NeonKnowledgeRuntimeOptions 
         sourceId: result.source.id,
         canonicalUrl: result.document.canonicalUrl,
         contentHash: result.document.contentHash,
+        chunkCount: result.chunks.length,
+        projectScope: result.document.projectScope ?? "global",
+      });
+      return result;
+    },
+
+    async ingestFile(request: FileIngestionRequest, context?: KnowledgeRuntimeContext): Promise<TextIngestionResult> {
+      const result = await ingestFile(request, {
+        repository,
+        embedder: options.embedder,
+        policy: options.filePolicy,
+      });
+      await telemetry.audit(actorFrom(context), "knowledge.ingest.file", "knowledge_document", result.document.id, {
+        sourceId: result.source.id,
+        contentHash: result.document.contentHash,
+        originalFileSha256: result.document.metadata?.originalFileSha256,
+        detectedFileType: result.document.metadata?.detectedFileType,
         chunkCount: result.chunks.length,
         projectScope: result.document.projectScope ?? "global",
       });
