@@ -35,12 +35,12 @@ export interface UrlIngestionRequest extends Omit<TextIngestionRequest, "content
 const defaultResolver: HostResolver = async (hostname) =>
   await lookup(hostname, { all: true, order: "verbatim" }) as ResolvedAddress[];
 
-function parseIPv4(address: string): number[] | undefined {
+function parseIPv4(address: string): [number, number, number, number] | undefined {
   const parts = address.split(".");
   if (parts.length !== 4) return undefined;
   const numbers = parts.map(Number);
   if (numbers.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return undefined;
-  return numbers;
+  return numbers as [number, number, number, number];
 }
 
 export function isPublicNetworkAddress(address: string): boolean {
