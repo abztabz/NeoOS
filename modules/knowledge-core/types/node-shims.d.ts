@@ -4,7 +4,7 @@ declare const process: {
 
 declare module "node:crypto" {
   interface Hash {
-    update(data: string, inputEncoding?: string): Hash;
+    update(data: string | Uint8Array, inputEncoding?: string): Hash;
     digest(encoding: "hex"): string;
   }
   export function createHash(algorithm: string): Hash;
@@ -50,6 +50,13 @@ declare module "node:https" {
     end(): void;
   }
   export function request(options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest;
+}
+
+declare module "node:zlib" {
+  export function inflateRawSync(
+    data: Uint8Array,
+    options?: { maxOutputLength?: number },
+  ): Uint8Array;
 }
 
 declare module "node:assert/strict" {
