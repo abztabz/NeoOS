@@ -46,6 +46,6 @@ test("top lexical evidence is normalized before trust scoring", async () => {
     { query: "shared Knowledge Core", freshnessRequirement: "stable" },
     { repository: new LowRawRankRepository() },
   );
-  assert.equal(result.evidence[0]?.score, 0.925);
+  assert.ok(Math.abs((result.evidence[0]?.score ?? 0) - 0.925) < 1e-12);
   assert.equal(result.liveResearchRequired, false);
 });
