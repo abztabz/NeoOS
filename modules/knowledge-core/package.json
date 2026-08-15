@@ -1,15 +1,19 @@
 {
   "name": "@neoos/knowledge-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Shared governed knowledge ingestion and retrieval core for NeoOS.",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test dist/tests/*.test.js"
   },
   "dependencies": {
-    "@neondatabase/serverless": "1.0.2"
+    "@neondatabase/serverless": "1.0.2",
+    "pdfjs-dist": "6.1.200"
   },
   "devDependencies": {
     "typescript": "5.8.3"
