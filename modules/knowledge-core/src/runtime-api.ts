@@ -41,7 +41,11 @@ export interface KnowledgeRuntimeService {
 }
 
 type RuntimeEnv = Record<string, string | undefined>;
-interface ConsumerCredential { token: string; scopes: RuntimeScope[]; }
+interface ConsumerCredential {
+  tokenSha256: string;
+  scopes: RuntimeScope[];
+  projects: string[];
+}
 
 const BASE_HEADERS = Object.freeze({
   "content-type": "application/json; charset=utf-8",
@@ -80,16 +84,28 @@ function safeConsumer(value: string): string {
   return /^[a-z0-9][a-z0-9-]{1,63}$/.test(normalized) ? normalized : "";
 }
 
-function tokenDigest(value: string): Uint8Array {
-  return new TextEncoder().encode(createHash("sha256").update(value, "utf8").digest("hex"));
+function safeProject(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const normalized = value.trim();
+  if (normalized === "*") return normalized;
+  return /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(normalized) ? normalized : "";
 }
 
-function constantTimeMatch(actual: string, expected: string): boolean {
-  return timingSafeEqual(tokenDigest(actual), tokenDigest(expected));
+function sha256Hex(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+function constantTimeTokenMatch(actualToken: string, expectedHash: string): boolean {
+  if (!/^[a-f0-9]{64}$/i.test(expectedHash)) return false;
+  const encoder = new TextEncoder();
+  return timingSafeEqual(
+    encoder.encode(sha256Hex(actualToken)),
+    encoder.encode(expectedHash.toLowerCase()),
+  );
 }
 
 function parseConsumerCredentials(env: RuntimeEnv): Record<string, ConsumerCredential> {
-  const raw = env.NEO_KNOWLEDGE_CONSUMER_TOKENS?.trim();
+  const raw = env.NEO_KNOWLEDGE_CONSUMERS?.trim();
   if (!raw) return {};
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -98,12 +114,19 @@ function parseConsumerCredentials(env: RuntimeEnv): Record<string, ConsumerCrede
     for (const [consumer, candidate] of Object.entries(parsed)) {
       const id = safeConsumer(consumer);
       if (!id || !plainObject(candidate)) continue;
-      const token = typeof candidate.token === "string" ? candidate.token.trim() : "";
+      const tokenSha256 = typeof candidate.tokenSha256 === "string" ? candidate.tokenSha256.trim().toLowerCase() : "";
       const scopes = Array.isArray(candidate.scopes)
         ? candidate.scopes.filter((scope): scope is RuntimeScope => typeof scope === "string" && runtimeScopes.has(scope as RuntimeScope))
         : [];
-      if (token.length < 24 || scopes.length === 0) continue;
-      credentials[id] = { token, scopes: [...new Set(scopes)] };
+      const projects = Array.isArray(candidate.projects)
+        ? candidate.projects.map(safeProject).filter((project) => Boolean(project))
+        : [];
+      if (!/^[a-f0-9]{64}$/.test(tokenSha256) || scopes.length === 0 || projects.length === 0) continue;
+      credentials[id] = {
+        tokenSha256,
+        scopes: [...new Set(scopes)],
+        projects: [...new Set(projects)],
+      };
     }
     return credentials;
   } catch {
@@ -115,16 +138,22 @@ function authorize(
   request: RuntimeRequest,
   env: RuntimeEnv,
   requiredScope: Exclude<RuntimeScope, "admin">,
-): { ok: true; consumer: string } | { ok: false; status: 401 | 403 | 503 } {
+): { ok: true; consumer: string; projects: string[] } | { ok: false; status: 401 | 403 | 503 } {
   const credentials = parseConsumerCredentials(env);
   if (Object.keys(credentials).length === 0) return { ok: false, status: 503 };
   const consumer = safeConsumer(headerValue(request.headers, "x-neo-consumer"));
   const authorization = headerValue(request.headers, "authorization");
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
   const credential = consumer ? credentials[consumer] : undefined;
-  if (!consumer || !token || !credential || !constantTimeMatch(token, credential.token)) return { ok: false, status: 401 };
+  if (!consumer || !token || !credential || !constantTimeTokenMatch(token, credential.tokenSha256)) return { ok: false, status: 401 };
   if (!credential.scopes.includes(requiredScope) && !credential.scopes.includes("admin")) return { ok: false, status: 403 };
-  return { ok: true, consumer };
+  return { ok: true, consumer, projects: credential.projects };
+}
+
+function resolveProjectScope(requested: string | undefined, allowed: string[]): string | undefined {
+  if (allowed.includes("*")) return requested ?? "global";
+  if (requested) return allowed.includes(requested) ? requested : undefined;
+  return allowed.length === 1 ? allowed[0] : undefined;
 }
 
 function boundedString(value: unknown, field: string, maxLength: number, required = true): string | undefined {
@@ -285,6 +314,9 @@ export async function handleKnowledgeRuntimeRequest(
     } catch (error) {
       return response(400, { error: error instanceof Error ? error.message : "Invalid request" });
     }
+    const projectScope = resolveProjectScope(parsed.projectScope, auth.projects);
+    if (!projectScope) return response(403, { error: "Forbidden" });
+    parsed = { ...parsed, projectScope };
     try {
       const result = await runtime.query(parsed, { actor: auth.consumer });
       return response(200, { schemaVersion: KNOWLEDGE_RUNTIME_SCHEMA_VERSION, ...result });
@@ -304,6 +336,10 @@ export async function handleKnowledgeRuntimeRequest(
     } catch (error) {
       return response(400, { error: error instanceof Error ? error.message : "Invalid request" });
     }
+
+    const projectScope = resolveProjectScope(parsed.document.projectScope, auth.projects);
+    if (!projectScope) return response(403, { error: "Forbidden" });
+    parsed = { ...parsed, document: { ...parsed.document, projectScope } };
 
     try {
       const result = request.path.endsWith("/url")
