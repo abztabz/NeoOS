@@ -146,10 +146,25 @@ class LedgerTests(unittest.TestCase):
         self.assertIn("learning_recorded", [event["event"] for event in self.ledger.events("KAN-SEARCH-001")])
 
     def test_no_approval_pilot_requires_independent_verification(self):
-        self.ledger.submit(contract(id="SAFE-LOCAL-002", requires_approval=False))
-        lease = self.ledger.claim("atlas")
-        # First task is still available and claims are FIFO; use a clean database for pilot.
-        self.assertIsNotNone(lease)
+        ledger = ExecutionLedger(Path(self.tmp.name) / "pilot.db")
+        ledger.submit(contract(id="SAFE-LOCAL-002", requires_approval=False))
+        lease = ledger.claim("atlas")
+        ledger.candidate("SAFE-LOCAL-002", "atlas", lease["lease_token"], "local-rev", "local fixture")
+        ledger.record_tests("SAFE-LOCAL-002", "local-rev", results())
+        self.assertEqual(
+            ledger.review("SAFE-LOCAL-002", "aegis", "local-rev", True, "verified fixture"),
+            "independently_verified",
+        )
+        self.assertEqual(ledger.get("SAFE-LOCAL-002")["approval_by"], None)
+
+    def test_bounded_crash_recovery_blocks_unstable_worker(self):
+        self.claim()
+        for _ in range(2):
+            self.now[0] += 31
+            self.assertTrue(self.claim()["recovered"])
+        self.now[0] += 31
+        self.assertIsNone(self.ledger.claim("atlas"))
+        self.assertEqual(self.ledger.get("KAN-SEARCH-001")["state"], "blocked")
 
     def test_restart_preserves_evidence_and_state(self):
         self.verify()
