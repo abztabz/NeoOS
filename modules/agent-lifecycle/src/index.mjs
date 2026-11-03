@@ -82,7 +82,7 @@ export class AgentLifecycleManager {
 
   async create({ requestId, role, task, sourceUrl }) {
     if (this.locked) throw new Error("manager busy");
-    if (!requestId || typeof requestId !== "string" || requestId.length < 8 || requestId.length > 90) throw new Error("invalid requestId");
+    if (!requestId || typeof requestId !== "string" || requestId.length < 8 || requestId.length > 84) throw new Error("invalid requestId");
     if (!Object.hasOwn(this.roles, role)) throw new Error("role is not approved");
     if (typeof task !== "string" || !task.trim() || task.length > 2400) throw new Error("invalid task");
     if (sourceUrl && (!/^https:\/\/[^\s]+$/i.test(sourceUrl) || sourceUrl.length > 2048)) throw new Error("public HTTPS sourceUrl required");
@@ -154,7 +154,7 @@ export class AgentLifecycleManager {
     // Save the uncertainty boundary before making a network call.
     await this.#save();
     try {
-      const r = await this.transport.assign({ request_id: t.requestId, agent_kind: this.roles[t.role].agentKind,
+      const r = await this.transport.assign({ request_id: t.requestId + (t.attempts > 1 ? "-r" + t.attempts : ""), agent_kind: this.roles[t.role].agentKind,
         task: t.task, ...(t.sourceUrl ? { source_url: t.sourceUrl } : {}),
         data_zone: "general", export_to_chatgpt: true });
       if (!r?.job_id) throw new Error("no job ID returned");
@@ -175,16 +175,25 @@ export class AgentLifecycleManager {
     if (r?.status === "cancelled") {
       t.status = "cancelled"; t.reason = "Backend confirmed cancellation";
       this.#event(t, "cancelled_confirmed", { jobId: t.jobId });
+    } else if (r?.status === "complete") {
+      // A worker can complete while cancellation is in flight; do not keep
+      // the orchestration lease stuck at 'cancelling' indefinitely.
+      t.result = r.agent_result ?? r.result ?? null;
+      t.status = "review_required"; t.review = "pending";
+      t.reason = "Worker completed; independent review required";
+      this.#event(t, "completed_pending_review", { jobId: t.jobId });
+    } else if (r?.status === "error" || r?.status === "failed") {
+      t.reason = r.error ?? r.reason ?? "Worker failed";
+      this.#event(t, "backend_error", { jobId: t.jobId });
+      if (t.attempts < this.maxAttempts && t.status !== "cancelling") {
+        // Only read-only registered tasks are retryable; each attempt gets
+        // a separate backend idempotency key, with a bounded retry budget.
+        t.status = "queued"; t.jobId = null;
+        this.#event(t, "retry_queued", { nextAttempt: t.attempts + 1 });
+      } else t.status = "failed";
     } else if (t.status === "cancelling") {
       // Never mark cancelled from cancel_requested alone.
       t.reason = "Waiting for backend cancellation confirmation";
-    } else if (r?.status === "complete") {
-      t.result = r.agent_result ?? r.result ?? null;
-      t.status = "review_required"; t.review = "pending";
-      this.#event(t, "completed_pending_review", { jobId: t.jobId });
-    } else if (r?.status === "error" || r?.status === "failed") {
-      t.status = "failed"; t.reason = r.error ?? r.reason ?? "Worker failed";
-      this.#event(t, "backend_error", { jobId: t.jobId });
     }
     if (TERMINAL.has(t.status) || t.status === "review_required") {
       await this.#recordResources(t);
