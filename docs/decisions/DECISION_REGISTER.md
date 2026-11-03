@@ -23,3 +23,4 @@
 | D-019 | Build shared NeoOS Knowledge Core; projects consume it rather than creating isolated general-purpose knowledge systems | Approved direction; implementation proposed in PR |
 | D-020 | Keep NeoOS Knowledge Core separate from NeoOS CIO data infrastructure | Approved direction; implementation proposed in PR |
 | D-021 | Use Neon Postgres as the current Knowledge Core deployment target while keeping the schema provider-neutral PostgreSQL + pgvector | Active infrastructure decision; migration verification in progress |
+| D-022 | Adopt evidence-gated execution, recovery, independent verification and learning as NeoOS default task workflow; runtime deployment remains gated by authenticated integration and live tests | Approved direction; execution-core pilot implemented in draft PR; runtime pending |
