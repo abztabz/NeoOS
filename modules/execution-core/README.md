@@ -33,6 +33,33 @@ python3 -m unittest discover -s tests -p 'test_*.py' -v
 Python 3.11 standard library only. The GitHub Actions workflow runs the same suite
 on pull requests that touch this module.
 
+## Authenticated in-process integration boundary
+
+The pilot includes `bridge_adapter.py`, an explicit permission boundary in front
+of `ExecutionLedger`. It has separate owner, dispatcher, builder, tester,
+verifier, and releaser identities. Unknown credentials and cross-role calls
+are rejected. Tests exercise this boundary, including unauthorized claims,
+reviews, approvals and releases.
+
+This is **not** a network endpoint, a deployed Neo Studio extension, or a
+credential issuance mechanism. The trusted NeoOS runtime must provide strong
+per-actor secrets (minimum 32 characters), secure storage, transport authentication,
+project-level authorization and external action allowlists. Do not place secrets
+in Git or grant arbitrary shell/production permissions to model outputs.
+
+Even with authenticated callers, a `record_tests` evidence string can be fabricated
+unless the host binds it to a trusted runner, exact revision, signed test artifact
+and result hash. Similarly, a release event requires a genuinely verified live
+smoke test and approved deployment mechanism. The source-level tests do not prove
+these runtime properties.
+
+A live connector needs narrowly scoped task submission/status APIs and separate
+attestation actions bound to the local NeoOS scheduler. The currently paired Neo
+bridge offers fixed QA/model/learner functions but **does not expose** arbitrary
+code execution, authenticated execution-core installation or a general task
+submission API. Until these capabilities are supplied by the Neo Studio runtime,
+the integration must remain a draft and production must remain untouched.
+
 ## Proposed integration sequence
 
 1. Mount a persistent, access-controlled SQLite path on the NeoOS host.
