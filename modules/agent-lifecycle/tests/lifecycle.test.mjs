@@ -4,6 +4,7 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { AgentLifecycleManager, JsonFileStore, MemoryStore } from "../src/index.mjs";
+import { NeoBridgeTransport, unpackNeoResult } from "../src/neo-bridge.mjs";
 
 function harness({ safe = true, reviewer = true, memory = false } = {}) {
   const remote = new Map();
@@ -194,4 +195,35 @@ test("completion racing with cancellation releases orchestration slot for review
   await manager.tick();
   assert.equal(manager.get(t.id).status, "verified");
   assert.equal((await manager.tick()).active, 0);
+});
+
+test("Neo bridge adapter handles current structuredContent shape", async () => {
+  const calls = [];
+  const bridge = new NeoBridgeTransport({
+    deviceId: "test-mac",
+    assignAgent: async payload => {
+      calls.push(payload);
+      return { structuredContent: { job_id: "neo-123", status: "queued" } };
+    },
+    getAgentTask: async payload => ({ structuredContent: { job_id: payload.job_id, status: "complete", agent_result: { knowledge_markdown: "OK" } } }),
+    cancelJob: async payload => ({ structuredContent: { job_id: payload.job_id, status: "cancelled" } })
+  });
+  const launched = await bridge.assign({ request_id: "authorized-test", agent_kind: "summarize",
+    task: "Public example", data_zone: "general", export_to_chatgpt: true });
+  assert.equal(launched.job_id, "neo-123");
+  assert.equal(calls[0].device_id, "test-mac");
+  assert.equal((await bridge.read({ job_id: "neo-123" })).status, "complete");
+  assert.equal((await bridge.cancel({ job_id: "neo-123" })).status, "cancelled");
+});
+
+test("Neo bridge rejects unauthorized agent kinds and data zones", async () => {
+  const bridge = new NeoBridgeTransport({
+    deviceId: "test-mac",
+    assignAgent: async () => { throw new Error("should not call"); },
+    getAgentTask: async () => null,
+    cancelJob: async () => null
+  });
+  await assert.rejects(() => bridge.assign({ agent_kind: "send_email", data_zone: "general", export_to_chatgpt: true }), /Unsupported/);
+  await assert.rejects(() => bridge.assign({ agent_kind: "summarize", data_zone: "private", export_to_chatgpt: true }), /general-zone/);
+  assert.throws(() => unpackNeoResult({ content: "not-json" }), /Unrecognized/);
 });
