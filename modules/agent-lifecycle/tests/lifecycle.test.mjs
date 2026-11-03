@@ -162,3 +162,36 @@ test("unsafe dispatch state recovered as blocked after restart", async () => {
   const b = await new AgentLifecycleManager({ ...h, store }).init();
   assert.equal(b.get(t.id).status, "blocked");
 });
+
+test("known read-only backend failure retries once with a new backend request ID", async () => {
+  const h = harness();
+  const requests = [];
+  const original = h.transport.assign;
+  h.transport.assign = async payload => {
+    requests.push(payload.request_id);
+    return original(payload);
+  };
+  const manager = await new AgentLifecycleManager(h).init();
+  const t = await manager.create(request());
+  await manager.tick();
+  h.remote.get(manager.get(t.id).jobId).status = "error";
+  await manager.tick();
+  assert.equal(manager.get(t.id).status, "running"); // same tick retries after released slot
+  assert.equal(h.assigns, 2);
+  assert.deepEqual(requests, ["test-request-001", "test-request-001-r2"]);
+  h.remote.get(manager.get(t.id).jobId).status = "complete";
+  await manager.tick();
+  assert.equal(manager.get(t.id).status, "verified");
+});
+
+test("completion racing with cancellation releases orchestration slot for review", async () => {
+  const h = harness();
+  const manager = await new AgentLifecycleManager(h).init();
+  const t = await manager.create(request());
+  await manager.tick();
+  await manager.cancel(t.id);
+  h.remote.get(manager.get(t.id).jobId).status = "complete";
+  await manager.tick();
+  assert.equal(manager.get(t.id).status, "verified");
+  assert.equal((await manager.tick()).active, 0);
+});
