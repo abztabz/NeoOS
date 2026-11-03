@@ -1,0 +1,9 @@
+{
+  "name": "@neoos/agent-lifecycle",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Governed NeoOS worker orchestration with evidence-backed lifecycle states.",
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node --test tests/*.test.mjs" }
+}
