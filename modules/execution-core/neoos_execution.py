@@ -10,6 +10,7 @@ import json
 import sqlite3
 import time
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 
 STATES = frozenset({
@@ -76,6 +77,7 @@ class ExecutionLedger:
                     id TEXT PRIMARY KEY, project_id TEXT NOT NULL,
                     contract TEXT NOT NULL, contract_sha TEXT NOT NULL,
                     state TEXT NOT NULL, attempt INTEGER NOT NULL DEFAULT 0,
+                    recoveries INTEGER NOT NULL DEFAULT 0,
                     lease_owner TEXT, lease_token TEXT, lease_until REAL,
                     candidate_version TEXT, tests TEXT, verifier_id TEXT,
                     review_evidence TEXT, approval_by TEXT,
@@ -95,12 +97,20 @@ class ExecutionLedger:
                     ON tasks(state, lease_until, created_at);
             """)
 
+    @contextmanager
     def _db(self):
         db = sqlite3.connect(self.path, timeout=10)
-        db.row_factory = sqlite3.Row
-        db.execute("PRAGMA busy_timeout=10000")
-        db.execute("PRAGMA journal_mode=WAL")
-        return db
+        try:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA busy_timeout=10000")
+            db.execute("PRAGMA journal_mode=WAL")
+            yield db
+            db.commit()
+        except BaseException:
+            db.rollback()
+            raise
+        finally:
+            db.close()
 
     def _event(self, db, task_id, event, details):
         db.execute(
@@ -167,13 +177,23 @@ class ExecutionLedger:
                 contract = json.loads(row["contract"])
                 if contract["builder"] != worker:
                     continue
-                token = uuid.uuid4().hex
                 recovery = row["state"] == "executing"
+                if recovery and row["recoveries"] >= contract["max_attempts"]:
+                    db.execute(
+                        "UPDATE tasks SET state='blocked',lease_owner=NULL,lease_token=NULL,"
+                        "lease_until=NULL,updated_at=? WHERE id=?",
+                        (self.clock(), row["id"]),
+                    )
+                    self._event(db, row["id"], "lease_recovery_exhausted", {})
+                    continue
+                token = uuid.uuid4().hex
                 attempt = row["attempt"] if recovery else row["attempt"] + 1
+                recoveries = row["recoveries"] + 1 if recovery else 0
                 db.execute(
-                    "UPDATE tasks SET state='executing',attempt=?,lease_owner=?,lease_token=?,"
-                    "lease_until=?,updated_at=? WHERE id=?",
-                    (attempt, worker, token, self.clock() + lease_seconds, self.clock(), row["id"]),
+                    "UPDATE tasks SET state='executing',attempt=?,recoveries=?,"
+                    "lease_owner=?,lease_token=?,lease_until=?,updated_at=? WHERE id=?",
+                    (attempt, recoveries, worker, token, self.clock() + lease_seconds,
+                     self.clock(), row["id"]),
                 )
                 self._event(db, row["id"], "recovered" if recovery else "assigned", {"attempt": attempt})
                 return {"task_id": row["id"], "attempt": attempt, "lease_token": token, "recovered": recovery}
