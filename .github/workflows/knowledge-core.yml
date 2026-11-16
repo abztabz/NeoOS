@@ -22,10 +22,10 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
-          cache-dependency-path: modules/knowledge-core/package.json
+          cache-dependency-path: modules/knowledge-core/package-lock.json
       - name: Install
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --omit=optional --no-audit --no-fund
       - name: Test
         run: npm test
