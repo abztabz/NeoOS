@@ -1,0 +1,9 @@
+{
+  "name":"@neoos/ifm-k2-worker",
+  "version":"0.2.0",
+  "private":true,
+  "type":"module",
+  "description":"Optional hosted K2 adapter reusing NeoStudio's existing manual Keychain-backed bounded worker",
+  "engines":{"node":">=20"},
+  "scripts":{"test":"node --test tests/*.test.mjs"}
+}
