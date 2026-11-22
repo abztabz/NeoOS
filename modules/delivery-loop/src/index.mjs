@@ -115,6 +115,8 @@ export class DeliveryLoop {
       ensure(Array.isArray(t.acceptance) && t.acceptance.length > 0 && t.acceptance.every(a =>
         ID.test(a.id || '') && ['contains','equals','manual'].includes(a.method) && nonempty(a.description) && (a.method === 'manual' || typeof a.expected === 'string')
       ), 'testable acceptance required');
+      ensure(new Set(t.acceptance.map(a => a.id)).size === t.acceptance.length, 'duplicate acceptance criterion id');
+      ensure(t.acceptance.every(a => a.method === 'manual' || (typeof a.expected === 'string' && a.expected.trim().length > 0)), 'nonempty acceptance expected required');
       seen.add(t.id);
     }
     ensure(covered.size === objectiveCount, 'plan omits one or more founder objectives');
