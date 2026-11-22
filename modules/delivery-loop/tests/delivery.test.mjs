@@ -9,10 +9,10 @@ const DIGEST = 'a'.repeat(64);
 const sample = (id='step1', overrides={}) => ({id,title:`Task ${id}`,instruction:'Produce a testable output',risk:'read_only',dependsOn:[],skill:'approved-skill',skillDigest:DIGEST,capability:'local_text',objectiveRefs:[0],acceptance:[{id:'core',method:'contains',expected:'PASS',description:'Output contains PASS'}],...overrides});
 const input = (requestId='request_00001') => ({requestId,problem:'A process takes too much time',direction:'Improve output efficiency',references:[],objectives:['Deliver a reliable sample']});
 let dirs=[];
-const setup = async ({tasks=[sample()],run=async()=>({output:'PASS',evidence:['fixture://worker-output']}),reconcile,review,skills,policy,maxAttempts}={}) => {
+const setup = async ({tasks=[sample()],run=async()=>({output:'PASS',evidence:['fixture://worker-output']}),reconcile,review,skills,policy,maxAttempts,dispatchTimeoutMs}={}) => {
  const dir=await mkdtemp(join(tmpdir(),'neo-delivery-')); dirs.push(dir);
  const path=join(dir,'state.json');
- const ports={ledger:new JsonLedger(path),planner:{plan:async()=>tasks},executor:{run,reconcile},verifier:{review:review|| (async()=>({pass:true,checks:[],reviewer:'separate-verifier',evidence:'test://review'}))},skills:{has:skills|| (async()=>true)},capabilities:{local_text:'read_only',external_action:'external'},policy,maxAttempts};
+ const ports={ledger:new JsonLedger(path),planner:{plan:async()=>tasks},executor:{run,reconcile},verifier:{review:review|| (async()=>({pass:true,checks:[],reviewer:'separate-verifier',evidence:'test://review'}))},skills:{has:skills|| (async()=>true)},capabilities:{local_text:'read_only',external_action:'external'},policy,maxAttempts,dispatchTimeoutMs};
  const loop=await new DeliveryLoop(ports).open();return {loop,path,ports};
 };
 test.afterEach(async()=>{for(const d of dirs.splice(0))await rm(d,{recursive:true,force:true});});
@@ -140,4 +140,14 @@ test('a crashed in-flight task is reconciled by driver on restart',async()=>{
  await loop.save();await loop.close();
  const resumed=await new DeliveryLoop({...ports,ledger:new JsonLedger(path)}).open();
  assert.equal((await resumed.runUntilBoundary(o.id)).status,'delivered');await resumed.close();
+});
+
+test('planner cannot label an external-capability action as read_only',async()=>{
+ const {loop}=await setup({tasks:[sample('step1',{capability:'external_action',risk:'read_only'})]});
+ const o=await loop.intake(input());await assert.rejects(loop.plan(o.id),/risk mismatch/);await loop.close();
+});
+test('hung worker times out as uncertain, and never auto re-dispatches',async()=>{
+ let calls=0;const {loop}=await setup({dispatchTimeoutMs:5,run:async()=>{calls++;return new Promise(()=>{});},reconcile:async()=>({status:'pending'})});
+ const o=await loop.intake(input());await loop.plan(o.id);assert.equal((await loop.dispatch(o.id)).status,'uncertain');
+ assert.equal((await loop.reconcile(o.id,'step1')).status,'running');assert.equal(calls,1);await loop.close();
 });
