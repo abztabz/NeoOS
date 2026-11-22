@@ -13,7 +13,6 @@ const fail = message => { throw new Error(message); };
 const ensure = (ok, message) => { if (!ok) fail(message); };
 const nonempty = v => typeof v === 'string' && v.trim().length > 0;
 const SAFE = new Set(['read_only', 'reversible', 'external']);
-const RISK_ORDER = {read_only:0, reversible:1, external:2};
 const ID = /^[a-zA-Z0-9_-]{1,64}$/;
 
 /** Internal persistence: atomic file replace. Only one process may hold the ledger lock. */
@@ -51,12 +50,13 @@ export class DeliveryLoop {
    * skills.has({skillId, digest}), policy.authorize({objective, task}).
    * Each port is an explicit granted capability; no dynamic code or tools from prompt text.
    */
-  constructor({ ledger, planner, executor, verifier, skills, capabilities, policy = {}, clock = () => new Date().toISOString(), maxAttempts = 3 }) {
+  constructor({ ledger, planner, executor, verifier, skills, capabilities, policy = {}, clock = () => new Date().toISOString(), maxAttempts = 3, dispatchTimeoutMs = 120000 }) {
     ensure(ledger && planner && executor && verifier && skills && capabilities, 'missing required port');
     this.ledger = ledger; this.planner = planner; this.executor = executor;
     this.verifier = verifier; this.skills = skills; this.capabilities = capabilities; this.policy = policy;
-    this.clock = clock; this.maxAttempts = maxAttempts;
+    this.clock = clock; this.maxAttempts = maxAttempts; this.dispatchTimeoutMs = dispatchTimeoutMs;
     ensure(Number.isInteger(maxAttempts) && maxAttempts >= 1 && maxAttempts <= 5, 'unsafe maxAttempts');
+    ensure(Number.isInteger(dispatchTimeoutMs) && dispatchTimeoutMs >= 1 && dispatchTimeoutMs <= 3600000, 'unsafe dispatch timeout');
   }
   async open() { await this.ledger.acquire(); this.state = await this.ledger.read(); this.validateJournal(); return this; }
   async close() { await this.ledger.close(); }
@@ -109,7 +109,7 @@ export class DeliveryLoop {
       ensure(/^[a-f0-9]{64}$/.test(t.skillDigest || ''), 'pinned skill digest required');
       ensure(nonempty(t.capability) && ID.test(t.capability), 'allowlisted capability required');
       const declaredRisk = this.capabilities[t.capability];
-      ensure(SAFE.has(declaredRisk) && RISK_ORDER[t.risk] <= RISK_ORDER[declaredRisk], 'capability not authorized for claimed risk');
+      ensure(SAFE.has(declaredRisk) && t.risk === declaredRisk, 'capability risk mismatch (no down-classification)');
       ensure(Array.isArray(t.objectiveRefs) && t.objectiveRefs.length > 0 && t.objectiveRefs.every(i => Number.isInteger(i) && i>=0 && i<objectiveCount), 'objective coverage references required');
       t.objectiveRefs.forEach(i=>covered.add(i));
       ensure(Array.isArray(t.acceptance) && t.acceptance.length > 0 && t.acceptance.every(a =>
@@ -157,14 +157,19 @@ export class DeliveryLoop {
       // Write before the call: restart must reconcile uncertainty, never dispatch twice.
       t.status='dispatching';t.attempt+=1;t.dispatchId=`${objectiveId}:${t.id}:${t.attempt}`;
       this.event('DISPATCH_PREPARED',objectiveId,{taskId:t.id,idempotencyKey:t.dispatchId});await this.save();
+      const controller = new AbortController();
+      let timer;
       try {
-        const r=await this.executor.run({objective:copy(o),task:copy(t),idempotencyKey:t.dispatchId});
+        const r=await Promise.race([
+          this.executor.run({objective:copy(o),task:copy(t),idempotencyKey:t.dispatchId,signal:controller.signal}),
+          new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new Error('dispatch timeout'));},this.dispatchTimeoutMs);})
+        ]);
         return await this.receive(objectiveId,t.id,r);
       } catch (error) {
         t.status='uncertain';t.blocker='DISPATCH_UNCERTAIN_RECONCILE_REQUIRED';
         this.event('DISPATCH_UNCERTAIN',objectiveId,{taskId:t.id});await this.save();
         return {status:'uncertain',taskId:t.id};
-      }
+      } finally {clearTimeout(timer);}
     }
     return {status:pending.length ? 'waiting_dependencies_or_blocked' : 'no_queued_tasks'};
   }
