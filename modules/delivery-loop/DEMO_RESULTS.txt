@@ -1,0 +1,15 @@
+
+> @neoos/delivery-loop@0.1.0 demo
+> node examples/demo.mjs
+
+{
+  "objectiveId": "bbc875ab-b45a-4f6e-a6bd-d85d94045b04",
+  "status": "delivered",
+  "workers": [
+    "deterministic-demo-worker"
+  ],
+  "evidence": [
+    "demo://fixture-not-a-real-qwen-run"
+  ],
+  "ledger": "/tmp/neoos-delivery-demo-dg9z01/state.json"
+}
