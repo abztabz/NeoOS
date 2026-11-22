@@ -6,159 +6,177 @@ TAP version 13
 # Subtest: 4-field intake → plan → dispatch → independent QA → delivery with evidence
 ok 1 - 4-field intake → plan → dispatch → independent QA → delivery with evidence
   ---
-  duration_ms: 28.266615
+  duration_ms: 26.861735
   type: 'test'
   ...
 # Subtest: intake replay is idempotent; conflicting reuse refused
 ok 2 - intake replay is idempotent; conflicting reuse refused
   ---
-  duration_ms: 6.013103
+  duration_ms: 4.867236
   type: 'test'
   ...
 # Subtest: incomplete input rejected instead of fabricated assumptions
 ok 3 - incomplete input rejected instead of fabricated assumptions
   ---
-  duration_ms: 3.684761
+  duration_ms: 3.586465
   type: 'test'
   ...
 # Subtest: planner cannot add unpinned skills, cyclic/future dependencies or arbitrary risk
 ok 4 - planner cannot add unpinned skills, cyclic/future dependencies or arbitrary risk
   ---
-  duration_ms: 10.351267
+  duration_ms: 9.924548
   type: 'test'
   ...
 # Subtest: missing installed skill blocks worker without dispatch
 ok 5 - missing installed skill blocks worker without dispatch
   ---
-  duration_ms: 6.655527
+  duration_ms: 6.160143
   type: 'test'
   ...
 # Subtest: approved skill can unblock and dispatch without changing plan
 ok 6 - approved skill can unblock and dispatch without changing plan
   ---
-  duration_ms: 9.609566
+  duration_ms: 7.23379
   type: 'test'
   ...
 # Subtest: external action requires exact explicit owner approval
 ok 7 - external action requires exact explicit owner approval
   ---
-  duration_ms: 11.173817
+  duration_ms: 7.70655
   type: 'test'
   ...
 # Subtest: DENY from governance policy blocks without side effects
 ok 8 - DENY from governance policy blocks without side effects
   ---
-  duration_ms: 13.804362
+  duration_ms: 8.889172
   type: 'test'
   ...
 # Subtest: deterministic acceptance cannot be overridden by reviewer; bounded retry repairs
 ok 9 - deterministic acceptance cannot be overridden by reviewer; bounded retry repairs
   ---
-  duration_ms: 13.520028
+  duration_ms: 14.60062
   type: 'test'
   ...
 # Subtest: external actions do not automatically retry after QA rejection
 ok 10 - external actions do not automatically retry after QA rejection
   ---
-  duration_ms: 7.957109
+  duration_ms: 8.326689
   type: 'test'
   ...
 # Subtest: separate QA can fail a deterministic PASS and must supply identity/evidence
 ok 11 - separate QA can fail a deterministic PASS and must supply identity/evidence
   ---
-  duration_ms: 11.272829
+  duration_ms: 7.917751
   type: 'test'
   ...
 # Subtest: manual criteria require explicit reviewer checks
 ok 12 - manual criteria require explicit reviewer checks
   ---
-  duration_ms: 6.056857
+  duration_ms: 5.087531
   type: 'test'
   ...
 # Subtest: unacknowledged dispatch becomes uncertain and is reconciled, never blindly replayed
 ok 13 - unacknowledged dispatch becomes uncertain and is reconciled, never blindly replayed
   ---
-  duration_ms: 11.066454
+  duration_ms: 11.370099
   type: 'test'
   ...
 # Subtest: two dependent activities respect accepted prerequisites
 ok 14 - two dependent activities respect accepted prerequisites
   ---
-  duration_ms: 12.640045
+  duration_ms: 9.358483
   type: 'test'
   ...
 # Subtest: restart preserves evidence and audit for completed task
 ok 15 - restart preserves evidence and audit for completed task
   ---
-  duration_ms: 7.289338
+  duration_ms: 17.198407
   type: 'test'
   ...
 # Subtest: audit tampering rejects opening
 ok 16 - audit tampering rejects opening
   ---
-  duration_ms: 3.932207
+  duration_ms: 4.391064
   type: 'test'
   ...
 # Subtest: two competing dispatchers cannot hold same local ledger
 ok 17 - two competing dispatchers cannot hold same local ledger
   ---
-  duration_ms: 1.590965
+  duration_ms: 2.430663
   type: 'test'
   ...
 # Subtest: cannot claim delivered before all tasks independently verified
 ok 18 - cannot claim delivered before all tasks independently verified
   ---
-  duration_ms: 3.168705
+  duration_ms: 4.789687
   type: 'test'
   ...
 # Subtest: rejected output after retry cap is not delivered
 ok 19 - rejected output after retry cap is not delivered
   ---
-  duration_ms: 9.048884
+  duration_ms: 7.424671
   type: 'test'
   ...
 # Subtest: a plan must cover every founder success objective
 ok 20 - a plan must cover every founder success objective
   ---
-  duration_ms: 2.610763
+  duration_ms: 2.061327
   type: 'test'
   ...
 # Subtest: unregistered capability and falsely down-classified risky action fail before execution
 ok 21 - unregistered capability and falsely down-classified risky action fail before execution
   ---
-  duration_ms: 3.382013
+  duration_ms: 2.026515
   type: 'test'
   ...
 # Subtest: one driver invocation completes a two-task workflow without manual handoffs
 ok 22 - one driver invocation completes a two-task workflow without manual handoffs
   ---
-  duration_ms: 11.65923
+  duration_ms: 9.644561
   type: 'test'
   ...
 # Subtest: a crashed in-flight task is reconciled by driver on restart
 ok 23 - a crashed in-flight task is reconciled by driver on restart
   ---
-  duration_ms: 9.582814
+  duration_ms: 10.086537
   type: 'test'
   ...
 # Subtest: planner cannot label an external-capability action as read_only
 ok 24 - planner cannot label an external-capability action as read_only
   ---
-  duration_ms: 2.481328
+  duration_ms: 2.221481
   type: 'test'
   ...
 # Subtest: hung worker times out as uncertain, and never auto re-dispatches
 ok 25 - hung worker times out as uncertain, and never auto re-dispatches
   ---
-  duration_ms: 12.283433
+  duration_ms: 10.24713
   type: 'test'
   ...
-1..25
-# tests 25
+# Subtest: cannot deliver on task checks alone before whole-founder-objective QA
+ok 26 - cannot deliver on task checks alone before whole-founder-objective QA
+  ---
+  duration_ms: 5.37197
+  type: 'test'
+  ...
+# Subtest: failed founder-level QA blocks release without false completion
+ok 27 - failed founder-level QA blocks release without false completion
+  ---
+  duration_ms: 5.689846
+  type: 'test'
+  ...
+# Subtest: founder-level QA can trigger bounded safe rework and rerun dependent tasks
+ok 28 - founder-level QA can trigger bounded safe rework and rerun dependent tasks
+  ---
+  duration_ms: 19.192829
+  type: 'test'
+  ...
+1..28
+# tests 28
 # suites 0
-# pass 25
+# pass 28
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 310.504105
+# duration_ms 346.54965

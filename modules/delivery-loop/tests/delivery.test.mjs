@@ -12,7 +12,7 @@ let dirs=[];
 const setup = async ({tasks=[sample()],run=async()=>({output:'PASS',evidence:['fixture://worker-output']}),reconcile,review,skills,policy,maxAttempts,dispatchTimeoutMs}={}) => {
  const dir=await mkdtemp(join(tmpdir(),'neo-delivery-')); dirs.push(dir);
  const path=join(dir,'state.json');
- const ports={ledger:new JsonLedger(path),planner:{plan:async()=>tasks},executor:{run,reconcile},verifier:{review:review|| (async()=>({pass:true,checks:[],reviewer:'separate-verifier',evidence:'test://review'}))},skills:{has:skills|| (async()=>true)},capabilities:{local_text:'read_only',external_action:'external'},policy,maxAttempts,dispatchTimeoutMs};
+ const ports={ledger:new JsonLedger(path),planner:{plan:async()=>tasks},executor:{run,reconcile},verifier:{review:review|| (async()=>({pass:true,checks:[],reviewer:'separate-verifier',evidence:'test://review'})),reviewObjective:async({objective})=>({pass:true,reviewer:'separate-objective-verifier',evidence:'test://objective-check',checks:objective.intake.objectives.map((_,index)=>({index,passed:true,evidence:'test://criteria'}))})},skills:{has:skills|| (async()=>true)},capabilities:{local_text:'read_only',external_action:'external'},policy,maxAttempts,dispatchTimeoutMs};
  const loop=await new DeliveryLoop(ports).open();return {loop,path,ports};
 };
 test.afterEach(async()=>{for(const d of dirs.splice(0))await rm(d,{recursive:true,force:true});});
@@ -22,7 +22,7 @@ test('4-field intake → plan → dispatch → independent QA → delivery with 
  const o=await loop.intake(input());assert.equal(o.status,'intake');
  await loop.plan(o.id);assert.equal((await loop.dispatch(o.id)).status,'review_required');
  assert.equal((await loop.review(o.id,'step1')).status,'verified');
- const delivered=await loop.deliver(o.id);assert.equal(delivered.status,'delivered');
+ await loop.reviewObjective(o.id);const delivered=await loop.deliver(o.id);assert.equal(delivered.status,'delivered');
  assert.equal(delivered.results[0].review.reviewer,'separate-verifier');
  loop.validateJournal();await loop.close();
 });
@@ -93,12 +93,12 @@ test('two dependent activities respect accepted prerequisites',async()=>{
  const o=await loop.intake(input());await loop.plan(o.id);
  assert.equal((await loop.dispatch(o.id)).taskId,'first');assert.equal(loop.get(o.id).tasks[1].status,'queued');
  await loop.review(o.id,'first');assert.equal((await loop.dispatch(o.id)).taskId,'second');await loop.review(o.id,'second');
- assert.equal((await loop.deliver(o.id)).results.length,2);await loop.close();
+ await loop.reviewObjective(o.id);assert.equal((await loop.deliver(o.id)).results.length,2);await loop.close();
 });
 test('restart preserves evidence and audit for completed task',async()=>{
  const {loop,path,ports}=await setup();const o=await loop.intake(input());await loop.plan(o.id);await loop.dispatch(o.id);await loop.close();
  const resumed=await new DeliveryLoop({...ports,ledger:new JsonLedger(path)}).open();
- assert.equal(resumed.get(o.id).tasks[0].status,'review_required');await resumed.review(o.id,'step1');await resumed.deliver(o.id);resumed.validateJournal();await resumed.close();
+ assert.equal(resumed.get(o.id).tasks[0].status,'review_required');await resumed.review(o.id,'step1');await resumed.reviewObjective(o.id);await resumed.deliver(o.id);resumed.validateJournal();await resumed.close();
 });
 test('audit tampering rejects opening',async()=>{
  const {loop,path,ports}=await setup();await loop.intake(input());await loop.close();
@@ -150,4 +150,22 @@ test('hung worker times out as uncertain, and never auto re-dispatches',async()=
  let calls=0;const {loop}=await setup({dispatchTimeoutMs:5,run:async()=>{calls++;return new Promise(()=>{});},reconcile:async()=>({status:'pending'})});
  const o=await loop.intake(input());await loop.plan(o.id);assert.equal((await loop.dispatch(o.id)).status,'uncertain');
  assert.equal((await loop.reconcile(o.id,'step1')).status,'running');assert.equal(calls,1);await loop.close();
+});
+
+test('cannot deliver on task checks alone before whole-founder-objective QA',async()=>{
+ const {loop}=await setup();const o=await loop.intake(input());await loop.plan(o.id);await loop.dispatch(o.id);await loop.review(o.id,'step1');
+ await assert.rejects(loop.deliver(o.id),/not verified/);
+ assert.equal((await loop.reviewObjective(o.id)).status,'verified_for_delivery');
+ assert.equal((await loop.deliver(o.id)).objectiveReview.reviewer,'separate-objective-verifier');await loop.close();
+});
+test('failed founder-level QA blocks release without false completion',async()=>{
+ const {loop}=await setup();loop.verifier.reviewObjective=async()=>({pass:false,reviewer:'objective-verifier',evidence:'qa://failed',checks:[{index:0,passed:false,evidence:'qa://missing'}]});
+ const o=await loop.intake(input());await loop.plan(o.id);await loop.dispatch(o.id);await loop.review(o.id,'step1');
+ assert.equal((await loop.reviewObjective(o.id)).status,'blocked');await assert.rejects(loop.deliver(o.id),/not verified/);await loop.close();
+});
+test('founder-level QA can trigger bounded safe rework and rerun dependent tasks',async()=>{
+ const tasks=[sample('first'),sample('second',{dependsOn:['first']})];const {loop}=await setup({tasks});let reviews=0;
+ loop.verifier.reviewObjective=async({objective})=>{reviews++;return {pass:reviews>1,reviewer:'objective-verifier',evidence:`qa://objective-${reviews}`,checks:[{index:0,passed:reviews>1,evidence:'qa://coverage'}],reworkTaskIds:['first']};};
+ const o=await loop.intake(input());await loop.plan(o.id);const result=await loop.runUntilBoundary(o.id);
+ assert.equal(result.status,'delivered');assert.equal(reviews,2);assert.equal(result.objective.tasks[0].attempt,2);assert.equal(result.objective.tasks[1].attempt,2);await loop.close();
 });

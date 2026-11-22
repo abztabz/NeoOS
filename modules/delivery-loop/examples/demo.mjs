@@ -9,7 +9,7 @@ const loop = await new DeliveryLoop({
  ledger:new JsonLedger(join(root,'state.json')),
  planner:{plan:async()=>[{id:'write',title:'Draft useful output',instruction:'Provide an accurate, limited answer',risk:'read_only',dependsOn:[],skill:'example-skill',skillDigest:digest,capability:'example_composer',objectiveRefs:[0],acceptance:[{id:'objective',method:'contains',expected:'DELIVERY',description:'Expected output marker'}]}]},
  executor:{run:async({objective})=>({output:`DELIVERY: ${objective.intake.objectives[0]}. Produced by deterministic demonstration worker.`,evidence:['demo://fixture-not-a-real-qwen-run']})},
- verifier:{review:async()=>({pass:true,reviewer:'deterministic-demo-verifier',evidence:'demo://separate-check',checks:[]})},
+ verifier:{review:async()=>({pass:true,reviewer:'deterministic-demo-verifier',evidence:'demo://separate-check',checks:[]}),reviewObjective:async()=>({pass:true,reviewer:'objective-demo-verifier',evidence:'demo://objective-check',checks:[{index:0,passed:true,evidence:'demo://objective-check'}]})},
  skills:{has:async({skillId,digest:found})=>skillId==='example-skill'&&digest===digest},
  capabilities:{example_composer:'read_only'},
 }).open();

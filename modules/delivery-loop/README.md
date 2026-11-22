@@ -12,7 +12,7 @@ This module exists to solve a specific failure mode: founder supplies **Problem 
 - Skill gate, owner permission gate and pluggable governance policy gate before worker dispatch.
 - Persist-before-dispatch idempotency; any ambiguous dispatch is **reconciled**, not silently repeated.
 - Execution port, evidence requirements, verifier port, deterministic non-overridable checks, bounded safe retries, dispatch timeout with reconciliation, and no automatic repeat of external actions.
-- Whole-workflow driver that executes ready work, verifies each result and produces a delivered artifact only when every task passes.
+- Whole-workflow driver that executes ready work, verifies each result and requires both every task to pass and a separate **whole-founder-objective** verification before any delivery.
 - Atomic JSON ledger, chained SHA-256 audit, and single-process runtime lock.
 - Working terminal demo and reproducible Node tests with a simulated worker.
 
@@ -50,7 +50,10 @@ const loop = await new DeliveryLoop({
     run: async ({objective, task, idempotencyKey}) => /* scoped NeoStudio tool call */ {},
     reconcile: async ({objective, task, idempotencyKey}) => /* poll existing task */ {},
   },
-  verifier: { review: async ({objective, task, output, evidence}) => /* independent QA */ {} },
+  verifier: {
+    review: async ({objective, task, output, evidence}) => /* independent task QA */ {},
+    reviewObjective: async ({objective, results}) => /* founder objective coverage QA */ {}
+  },
   skills: { has: async ({skillId, digest}) => /* pinned, installed registry check */ false },
   capabilities: { local_text:'read_only' },
   policy: { authorize: async ({objective, task}) => /* trusted policy decision */ 'DENY' }
@@ -89,7 +92,7 @@ await loop.plan(o.id);
 const outcome = await loop.runUntilBoundary(o.id);
 ```
 
-`runUntilBoundary` returns `delivered` only after **all** tasks are independently reviewed, and otherwise stops at a blocker, pending job, retry budget or step budget. An external scheduler should call it again after an event, rather than continuously burning model calls.
+`runUntilBoundary` returns `delivered` only after **all** tasks and each founder objective are independently reviewed, and otherwise stops at a blocker, pending job, retry budget or step budget. An external scheduler should call it again after an event, rather than continuously burning model calls.
 
 ## Existing NeoOS responsibilities (do not redefine)
 

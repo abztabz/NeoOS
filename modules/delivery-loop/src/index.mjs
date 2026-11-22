@@ -91,7 +91,7 @@ export class DeliveryLoop {
       return this.get(recorded.objectiveId);
     }
     const id = randomUUID();
-    const o = {id, requestId, intake:payload, status:'intake', tasks:[], approvals:[], results:[], created:this.clock(), updated:this.clock()};
+    const o = {id, requestId, intake:payload, status:'intake', tasks:[], approvals:[], results:[], objectiveReview:null, objectiveReviewAttempts:0, created:this.clock(), updated:this.clock()};
     this.state.objectives[id] = o; this.state.requests[requestId] = {checksum, objectiveId:id};
     this.event('INTAKE',id,{fingerprint:checksum}); await this.save(); return this.get(id);
   }
@@ -221,7 +221,8 @@ export class DeliveryLoop {
     ensure(Number.isInteger(maxSteps) && maxSteps>=1 && maxSteps<=1000, 'invalid step budget');
     for(let i=0;i<maxSteps;i++) {
       const o=this.get(objectiveId);
-      if(o.status==='ready_to_deliver') return {status:'delivered',objective:await this.deliver(objectiveId)};
+      if(o.status==='verified_for_delivery') return {status:'delivered',objective:await this.deliver(objectiveId)};
+      if(o.status==='ready_to_deliver') {const verdict=await this.reviewObjective(objectiveId);if(verdict.status==='blocked') return verdict;continue;}
       if(o.status!=='active') return {status:o.status,objective:o};
       const awaiting=o.tasks.find(t=>t.status==='review_required');
       if(awaiting) {await this.review(objectiveId,awaiting.id);continue;}
@@ -241,9 +242,39 @@ export class DeliveryLoop {
     }
     return {status:'step_budget_exhausted',objective:this.get(objectiveId)};
   }
+  /** An additional outcome gate: per-task passing cannot impersonate founder success. */
+  async reviewObjective(objectiveId) {
+    const o = this.state.objectives[objectiveId];
+    ensure(o?.status === 'ready_to_deliver' && o.tasks.every(t => t.status === 'verified'), 'whole objective not ready');
+    ensure(typeof this.verifier.reviewObjective === 'function','independent whole-objective reviewer required');
+    const verdict = await this.verifier.reviewObjective({objective:copy(o),results:o.tasks.map(t=>({id:t.id,output:t.output,evidence:copy(t.evidence),review:copy(t.review)}))});
+    ensure(verdict && nonempty(verdict.reviewer) && nonempty(verdict.evidence) && Array.isArray(verdict.checks), 'whole-objective review requires reviewer/evidence/checks');
+    ensure(verdict.checks.length === o.intake.objectives.length && o.intake.objectives.every((_,i)=>
+      verdict.checks.some(c=>c.index===i && typeof c.passed==='boolean' && nonempty(c.evidence))
+    ),'whole-objective checks must cover each founder objective');
+    const passed = verdict.pass===true && verdict.checks.every(c=>c.passed===true);
+    o.objectiveReviewAttempts++;
+    o.objectiveReview={pass:passed,reviewer:verdict.reviewer,evidence:verdict.evidence,checks:copy(verdict.checks)};
+    this.event(passed?'OBJECTIVE_VERIFIED':'OBJECTIVE_REJECTED',objectiveId,{reviewer:verdict.reviewer,failed:verdict.checks.filter(c=>!c.passed).map(c=>c.index)});
+    if (passed) {o.status='verified_for_delivery';await this.save();return {status:'verified_for_delivery'};}
+    // Scope repair to the verifier's exact nominated, safe tasks and downstream descendants.
+    const roots=Array.isArray(verdict.reworkTaskIds)?verdict.reworkTaskIds:[];
+    const required=new Set(roots);
+    for(const t of o.tasks) if(t.dependsOn.some(d=>required.has(d))) required.add(t.id);
+    const targets=o.tasks.filter(t=>required.has(t.id));
+    const canRetry=roots.length>0 && targets.length===required.size &&
+      o.objectiveReviewAttempts<this.maxAttempts && targets.every(t=>t.risk!=='external' && t.attempt<this.maxAttempts);
+    if(!canRetry) {
+      o.status='blocked';o.blocker='FOUNDER_OBJECTIVE_QA_FAILED';
+      this.event('BLOCKED',objectiveId,{reason:o.blocker});await this.save();return {status:'blocked',reason:o.blocker};
+    }
+    targets.forEach(t=>{t.status='queued';t.blocker='WHOLE_OBJECTIVE_REWORK';t.dispatchId=null;});
+    o.status='active';this.event('REWORK_PLANNED',objectiveId,{taskIds:targets.map(t=>t.id)});await this.save();
+    return {status:'rework_queued',taskIds:targets.map(t=>t.id)};
+  }
   async deliver(objectiveId) {
-    const o=this.state.objectives[objectiveId];ensure(o?.status==='ready_to_deliver' && o.tasks.every(t=>t.status==='verified'),'not verified end to end');
+    const o=this.state.objectives[objectiveId];ensure(o?.status==='verified_for_delivery' && o.objectiveReview?.pass===true && o.tasks.every(t=>t.status==='verified'),'not verified end to end');
     o.status='delivered';o.updated=this.clock();o.results=o.tasks.map(t=>({taskId:t.id,output:t.output,evidence:t.evidence,review:t.review}));
-    this.event('DELIVERED',objectiveId,{taskCount:o.results.length});await this.save();return this.get(objectiveId);
+    this.event('DELIVERED',objectiveId,{taskCount:o.results.length,objectiveReview:o.objectiveReview.evidence});await this.save();return this.get(objectiveId);
   }
 }
