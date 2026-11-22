@@ -1,0 +1,152 @@
+
+> @neoos/delivery-loop@0.1.0 test
+> node --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: 4-field intake → plan → dispatch → independent QA → delivery with evidence
+ok 1 - 4-field intake → plan → dispatch → independent QA → delivery with evidence
+  ---
+  duration_ms: 26.653405
+  type: 'test'
+  ...
+# Subtest: intake replay is idempotent; conflicting reuse refused
+ok 2 - intake replay is idempotent; conflicting reuse refused
+  ---
+  duration_ms: 8.051068
+  type: 'test'
+  ...
+# Subtest: incomplete input rejected instead of fabricated assumptions
+ok 3 - incomplete input rejected instead of fabricated assumptions
+  ---
+  duration_ms: 5.00094
+  type: 'test'
+  ...
+# Subtest: planner cannot add unpinned skills, cyclic/future dependencies or arbitrary risk
+ok 4 - planner cannot add unpinned skills, cyclic/future dependencies or arbitrary risk
+  ---
+  duration_ms: 15.512025
+  type: 'test'
+  ...
+# Subtest: missing installed skill blocks worker without dispatch
+ok 5 - missing installed skill blocks worker without dispatch
+  ---
+  duration_ms: 9.531726
+  type: 'test'
+  ...
+# Subtest: approved skill can unblock and dispatch without changing plan
+ok 6 - approved skill can unblock and dispatch without changing plan
+  ---
+  duration_ms: 11.209209
+  type: 'test'
+  ...
+# Subtest: external action requires exact explicit owner approval
+ok 7 - external action requires exact explicit owner approval
+  ---
+  duration_ms: 14.24952
+  type: 'test'
+  ...
+# Subtest: DENY from governance policy blocks without side effects
+ok 8 - DENY from governance policy blocks without side effects
+  ---
+  duration_ms: 12.469309
+  type: 'test'
+  ...
+# Subtest: deterministic acceptance cannot be overridden by reviewer; bounded retry repairs
+ok 9 - deterministic acceptance cannot be overridden by reviewer; bounded retry repairs
+  ---
+  duration_ms: 12.647458
+  type: 'test'
+  ...
+# Subtest: external actions do not automatically retry after QA rejection
+ok 10 - external actions do not automatically retry after QA rejection
+  ---
+  duration_ms: 7.551929
+  type: 'test'
+  ...
+# Subtest: separate QA can fail a deterministic PASS and must supply identity/evidence
+ok 11 - separate QA can fail a deterministic PASS and must supply identity/evidence
+  ---
+  duration_ms: 8.16985
+  type: 'test'
+  ...
+# Subtest: manual criteria require explicit reviewer checks
+ok 12 - manual criteria require explicit reviewer checks
+  ---
+  duration_ms: 7.452912
+  type: 'test'
+  ...
+# Subtest: unacknowledged dispatch becomes uncertain and is reconciled, never blindly replayed
+ok 13 - unacknowledged dispatch becomes uncertain and is reconciled, never blindly replayed
+  ---
+  duration_ms: 13.44477
+  type: 'test'
+  ...
+# Subtest: two dependent activities respect accepted prerequisites
+ok 14 - two dependent activities respect accepted prerequisites
+  ---
+  duration_ms: 14.152707
+  type: 'test'
+  ...
+# Subtest: restart preserves evidence and audit for completed task
+ok 15 - restart preserves evidence and audit for completed task
+  ---
+  duration_ms: 10.496701
+  type: 'test'
+  ...
+# Subtest: audit tampering rejects opening
+ok 16 - audit tampering rejects opening
+  ---
+  duration_ms: 6.831673
+  type: 'test'
+  ...
+# Subtest: two competing dispatchers cannot hold same local ledger
+ok 17 - two competing dispatchers cannot hold same local ledger
+  ---
+  duration_ms: 4.759585
+  type: 'test'
+  ...
+# Subtest: cannot claim delivered before all tasks independently verified
+ok 18 - cannot claim delivered before all tasks independently verified
+  ---
+  duration_ms: 5.71078
+  type: 'test'
+  ...
+# Subtest: rejected output after retry cap is not delivered
+ok 19 - rejected output after retry cap is not delivered
+  ---
+  duration_ms: 9.928984
+  type: 'test'
+  ...
+# Subtest: a plan must cover every founder success objective
+ok 20 - a plan must cover every founder success objective
+  ---
+  duration_ms: 4.278671
+  type: 'test'
+  ...
+# Subtest: unregistered capability and falsely down-classified risky action fail before execution
+ok 21 - unregistered capability and falsely down-classified risky action fail before execution
+  ---
+  duration_ms: 2.315916
+  type: 'test'
+  ...
+# Subtest: one driver invocation completes a two-task workflow without manual handoffs
+ok 22 - one driver invocation completes a two-task workflow without manual handoffs
+  ---
+  duration_ms: 8.546205
+  type: 'test'
+  ...
+# Subtest: a crashed in-flight task is reconciled by driver on restart
+ok 23 - a crashed in-flight task is reconciled by driver on restart
+  ---
+  duration_ms: 8.789109
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 339.047755
