@@ -1,0 +1,22 @@
+name: NeoOS Delivery Loop
+on:
+  push:
+    paths:
+      - 'modules/delivery-loop/**'
+      - '.github/workflows/delivery-loop.yml'
+  pull_request:
+    paths:
+      - 'modules/delivery-loop/**'
+      - '.github/workflows/delivery-loop.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Execute bounded lifecycle unit tests
+        run: cd modules/delivery-loop && npm test
+      - name: Verify demo cycle
+        run: cd modules/delivery-loop && npm run demo
