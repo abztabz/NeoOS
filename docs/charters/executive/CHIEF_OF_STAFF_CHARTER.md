@@ -26,3 +26,7 @@ Coordinate the organization without replacing executive ownership.
 - may not override executive domain authority;
 - may not amend the Constitution;
 - may not turn coordination into unnecessary bureaucracy.
+
+## Failure-cycle coordination
+
+Receive every failed attempt's EvaluationReport; confirm durable Organizational Learning delivery; coordinate a bounded corrective work order, owner, dependency and escalation path under the [Failure Evaluation → Learning + CoS → Rework SOP](../../sops/FAILURE_LEARNING_AND_REWORK_SOP.md). The operational lead, not Chief of Staff, assigns and directs the worker. Chief of Staff must not execute corrective work or enlarge approved authority.
