@@ -7,11 +7,11 @@ This module exists to solve a specific failure mode: founder supplies **Problem 
 ## What works today
 
 - A four-field, strictly validated founder intake with immutable request-id semantics.
-- Planner port for activity decomposition. Every task has a named capability, approved skill/digest, risk class, explicit objectives coverage, upstream dependencies and checkable acceptance criteria.
+- Planner port for activity decomposition. Every task has a named capability with an exact risk class, approved skill/digest, explicit objectives coverage, upstream dependencies and checkable acceptance criteria.
 - Deterministic plan validation and trusted **capability allowlist**: a model cannot grant itself a shell, network or paid tool by writing its name in a plan.
 - Skill gate, owner permission gate and pluggable governance policy gate before worker dispatch.
 - Persist-before-dispatch idempotency; any ambiguous dispatch is **reconciled**, not silently repeated.
-- Execution port, evidence requirements, verifier port, deterministic non-overridable checks, up to 3 retries for safe tasks, and no automatic repeat of external actions.
+- Execution port, evidence requirements, verifier port, deterministic non-overridable checks, bounded safe retries, dispatch timeout with reconciliation, and no automatic repeat of external actions.
 - Whole-workflow driver that executes ready work, verifies each result and produces a delivered artifact only when every task passes.
 - Atomic JSON ledger, chained SHA-256 audit, and single-process runtime lock.
 - Working terminal demo and reproducible Node tests with a simulated worker.
