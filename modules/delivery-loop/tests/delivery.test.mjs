@@ -169,3 +169,20 @@ test('founder-level QA can trigger bounded safe rework and rerun dependent tasks
  const o=await loop.intake(input());await loop.plan(o.id);const result=await loop.runUntilBoundary(o.id);
  assert.equal(result.status,'delivered');assert.equal(reviews,2);assert.equal(result.objective.tasks[0].attempt,2);assert.equal(result.objective.tasks[1].attempt,2);await loop.close();
 });
+
+
+test('security regression: empty substring acceptance may never silently pass any output',async()=>{
+ const {loop}=await setup({tasks:[sample('step1',{acceptance:[{id:'empty',method:'contains',expected:'',description:'Must have a real check'}]})]});
+ const o=await loop.intake(input());
+ await assert.rejects(loop.plan(o.id),/nonempty acceptance expected/);
+ await loop.close();
+});
+test('security regression: duplicate criterion IDs are rejected at plan time',async()=>{
+ const {loop}=await setup({tasks:[sample('step1',{acceptance:[
+  {id:'same',method:'contains',expected:'PASS',description:'first'},
+  {id:'same',method:'manual',description:'second'}
+ ]})]});
+ const o=await loop.intake(input());
+ await assert.rejects(loop.plan(o.id),/duplicate acceptance criterion/);
+ await loop.close();
+});
