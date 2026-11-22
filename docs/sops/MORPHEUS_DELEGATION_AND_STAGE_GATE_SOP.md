@@ -17,3 +17,7 @@
 - No bypass of CMO, Atlas, QA, or other domain authority.
 - No verified claim without independent evidence.
 - No use of Human Authority as routine QA.
+
+## Mandatory failure feedback and controlled rework
+
+Every failed or blocked *attempt*, including runtime failures and rejected QA, follows [Failure Evaluation → Learning + CoS → Rework SOP](FAILURE_LEARNING_AND_REWORK_SOP.md). Preserve immutable evidence, send the same EvaluationReport to Organizational Learning and Chief of Staff using durable delivery, and require a bounded, authorized corrective work order before redispatch. CoS coordinates; the operational lead assigns work. No failure may disappear following eventual success.

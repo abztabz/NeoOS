@@ -23,3 +23,7 @@ Convert operational experience into reviewed institutional learning.
 4. Durable Organizational Knowledge - promoted after defined review and scope validation.
 
 Memory is a technical substrate of this office, not a separate organizational office.
+
+## Attempt-level feedback
+
+Receive and retain **every failed attempt**, including those ultimately recovered, together with its EvaluationReport, evidence, remediation and outcome. Maintain separate provisional-failure and reviewed-lesson states; issue pattern-based improvement proposals, never unilaterally rewrite operational playbooks. See [Failure Evaluation → Learning + CoS → Rework SOP](../../sops/FAILURE_LEARNING_AND_REWORK_SOP.md).
