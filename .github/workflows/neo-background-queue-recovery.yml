@@ -1,0 +1,18 @@
+name: NeoStudio queue recovery safety
+on:
+  push:
+    paths:
+      - 'ops/neo-background-queue-recovery/**'
+      - '.github/workflows/neo-background-queue-recovery.yml'
+  pull_request:
+    paths:
+      - 'ops/neo-background-queue-recovery/**'
+      - '.github/workflows/neo-background-queue-recovery.yml'
+jobs:
+  safety-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate syntax and mocked recovery paths (no Mac service touched)
+        run: bash ops/neo-background-queue-recovery/tests/test_recovery.sh
